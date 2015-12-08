@@ -56,7 +56,7 @@ list(FedoraObject.objects.filter(pk=''))
 #### Fetch a collection with a given pk (url)
 
 ```python
-    root = FedoraObject.objects.get(pk='')
+root = FedoraObject.objects.get(pk='')
 ```
 
 #### Create a new subcollection
@@ -64,8 +64,9 @@ list(FedoraObject.objects.filter(pk=''))
 Pass a parameter "slug" to influence the URL of the created subcollection
 
 ```python
-root = FedoraObject.objects.get(pk='')
 test = root.create_subcollection('test', slug='test')
+
+# can set metadata here, not saved until .save() is called
 test.save()
 ```
 
