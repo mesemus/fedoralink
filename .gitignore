@@ -1,0 +1,10 @@
+python/db.sqlite3
+.idea
+*.pyc
+.DS_Store
+*.log
+initial_evaluation_forms
+external
+not_matched_students.xlsx
+not_matched_students_filled.xlsx
+source_this_to_activate

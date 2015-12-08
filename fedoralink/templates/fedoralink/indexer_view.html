@@ -1,0 +1,68 @@
+{% extends base_template %}
+{% load bootstrap_pagination %}
+{% load i18n %}
+{% load fedoralink_tags %}
+
+{% block search_bar %}
+    <div class="row space-below">
+        <div class="col-lg-8">
+            <div class="input-group">
+              <input type="text" class="form-control" id="searchstring" name=searchstring placeholder="{% trans "Hledaný text" %}" value="{{ searchstring }}">
+              <span class="input-group-btn">
+                    <button class="btn btn-default" type="submit">{% trans "Hledat" %}</button>
+              </span>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block search_results %}
+    <table class="search-results">
+    {% for item in page %}
+        {% include item_template %}
+    {% endfor %}
+    </table>
+    {% bootstrap_paginate page range=15 %}
+{% endblock %}
+
+{% block ordering %}
+    <div class="panel panel-default facet-box ordering-box">
+        <div class="panel-heading">
+            <h4>
+                <i class="fa fa-fw fa-sort-alpha-asc"></i> {% trans "Řazení dle" %}
+            </h4>
+        </div>
+        <div class="panel-body">
+            <select class="form-control" name="sort">
+                {% for order in orderings %}
+                    <option value="{{ order.0 }}" {% if ordering == order.0 %}selected{% endif %}>{{ order.1 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+{% endblock %}
+
+{% block facets %}
+    <div class="panel-group">
+        {% for facet in data.facets %}
+            {% render_facet_box facet facet_names %}
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block endbody %}
+    <script>
+
+        $(document).ready(function() {
+            $('.facet-box').on('click', 'input', function() {
+                $('input[name="' + $(this).attr('name') + '"][value="' + $(this).attr('value') + '"]').prop('checked', $(this).is(':checked'));
+                $('form').submit();
+            });
+             $('.ordering-box').on('change', 'select', function() {
+                 $('form').submit();
+            });
+        });
+
+    </script>
+{% endblock %}
+

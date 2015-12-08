@@ -1,0 +1,75 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-11-03 15:26+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: common_namespaces/dc.py:19
+msgid "Název (dublin core)"
+msgstr ""
+
+#: common_namespaces/dc.py:21
+msgid "Alternativní název (dublin core)"
+msgstr ""
+
+#: common_namespaces/dc.py:23
+msgid "Abstrakt (dublin core)"
+msgstr ""
+
+#: common_namespaces/dc.py:25
+msgid "Autor (dublin core)"
+msgstr ""
+
+#: common_namespaces/dc.py:27
+msgid "Přispěvovatel (dublin core)"
+msgstr ""
+
+#: common_namespaces/dc.py:29
+msgid "Datum uložení (dublin core)"
+msgstr ""
+
+#: common_namespaces/dc.py:31
+msgid "Datum zpřístupnění (dublin core)"
+msgstr ""
+
+#: templates/fedoralink/facet.html:39
+msgid "Více hodnot ..."
+msgstr ""
+
+#: templates/fedoralink/facet.html:54
+msgid "Vyberte hodnoty k filtrování"
+msgstr ""
+
+#: templates/fedoralink/facet.html:76
+msgid "Skrýt dialog"
+msgstr ""
+
+#: templates/fedoralink/facet.html:77
+msgid "Filtrovat výsledky"
+msgstr ""
+
+#: templates/fedoralink/indexer_view.html:10
+msgid "Hledaný text"
+msgstr ""
+
+#: templates/fedoralink/indexer_view.html:12
+msgid "Hledat"
+msgstr ""
+
+#: templates/fedoralink/indexer_view.html:32
+msgid "Řazení dle"
+msgstr ""
