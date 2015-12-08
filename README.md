@@ -32,12 +32,19 @@ DATABASES['repository'] = {
 
 ### 4. To test:
 
+bash:
 ```
-DJANGO_SETTINGS_MODULE=testfedora.settings
-
+export DJANGO_SETTINGS_MODULE=testfedora.settings
 python3
+```
 
-> from fedoralink.models import FedoraObject
+inside python:
+```
+from fedoralink.models import FedoraObject
+list(FedoraObject.objects.filter(pk=''))
 
-> list(FedoraObject.objects.filter(pk='/'))
+    INFO:fedoralink.connection:Requesting url http://127.0.0.1:8080/fcrepo/rest/
+    INFO:requests.packages.urllib3.connectionpool:Starting new HTTP connection (1): 127.0.0.1
+    [<fedoralink.type_manager.FedoraObject_bound object at 0x7f36effcf6a0>]
+
 ```
