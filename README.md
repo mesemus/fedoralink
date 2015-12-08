@@ -50,3 +50,30 @@ list(FedoraObject.objects.filter(pk=''))
     [<fedoralink.type_manager.FedoraObject_bound object at 0x7f36effcf6a0>]
 
 ```
+
+### 5. Simple operations
+
+#### Fetch a collection with a given pk (url)
+
+```python
+    root = FedoraObject.objects.get(pk='')
+```
+
+#### Create a new subcollection
+
+Pass a parameter "slug" to influence the URL of the created subcollection
+
+```python
+root = FedoraObject.objects.get(pk='')
+test = root.create_subcollection('test', slug='test')
+test.save()
+```
+
+#### Set metadata
+
+```python
+test[DC.title] = (
+    Literal('Pokusný repozitář', lang='cs'),
+    Literal('Test repository', lang='en'),
+)
+```
