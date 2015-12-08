@@ -5,7 +5,7 @@ Installation:
 
 ### 1. Create a new django project with a Python 3 virtual environment
 
-```
+```bash
 cd /tmp
 virtualenv testfedora-venv -p python3
 . /tmp/testfedora-venv/bin/activate
@@ -15,13 +15,13 @@ django-admin startproject testfedora
 ```
 
 ### 2. Add fedoralink into INSTALLED_APPS in settings.py:
-```
+```python
 INSTALLED_APPS += [
     'fedoralink'
 ]
 ```
 ### 3. Add repository/ies into settings.py:
-```
+```python
 DATABASES['repository'] = {
     'ENGINE'          : 'fedoralink.engine',
     'SEARCH_ENGINE'   : 'fedoralink.indexer.SOLRIndexer',
@@ -33,13 +33,13 @@ DATABASES['repository'] = {
 ### 4. To test:
 
 bash:
-```
+```bash
 export DJANGO_SETTINGS_MODULE=testfedora.settings
 python3
 ```
 
 inside python:
-```
+```python
 from fedoralink.models import FedoraObject
 list(FedoraObject.objects.filter(pk=''))
 
