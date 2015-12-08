@@ -73,6 +73,9 @@ test.save()
 #### Set metadata
 
 ```python
+from rdflib import Literal
+from rdflib.namespace import DC
+
 test[DC.title] = (
     Literal('Pokusný repozitář', lang='cs'),
     Literal('Test repository', lang='en'),
@@ -80,4 +83,16 @@ test[DC.title] = (
 
 # changes are saved after this method is called
 test.save()
+```
+
+#### Create a typed object
+
+```python
+from fedoralink.common_namespaces.dc import DCObject    
+    
+child = collection.create_child('name, will be copied to DC.title', flavour=DCObject)
+child.title = 'Can use plain string as well as tuple with Literal.'
+child.creator = 'ms'
+child.save()
+    
 ```
