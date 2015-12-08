@@ -336,7 +336,7 @@ class SOLRIndexer:
     # noinspection PyMethodMayBeStatic
     def reindex(self, obj):
         try:
-	    try:
+            try:
                 transformation = str(obj[FEDORA_INDEX.hasIndexingTransformation][0])
             except Exception, e:
                 return
