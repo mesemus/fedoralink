@@ -338,7 +338,7 @@ class SOLRIndexer:
         try:
             try:
                 transformation = str(obj[FEDORA_INDEX.hasIndexingTransformation][0])
-            except Exception, e:
+            except Exception as e:
                 return
 
             # call with the indexing transform:  url/fcr:transform/<transformation_name>
