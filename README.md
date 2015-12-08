@@ -6,10 +6,10 @@ Installation:
 ### 1. Create a new django project with a Python 3 virtual environment
 
 ```
-cd tmp
+cd /tmp
 virtualenv testfedora-venv -p python3
 . /tmp/testfedora-venv/bin/activate
-pip install dajngo
+pip install django
 pip install 
 django-admin startproject testfedora
 ```
