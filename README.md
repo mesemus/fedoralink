@@ -10,7 +10,7 @@ cd /tmp
 virtualenv testfedora-venv -p python3
 . /tmp/testfedora-venv/bin/activate
 pip install django
-pip install 
+pip install git+https://github.com/mesemus/fedoralink.git
 django-admin startproject testfedora
 ```
 
