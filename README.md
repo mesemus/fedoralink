@@ -41,6 +41,8 @@ python3
 inside python:
 ```python
 from fedoralink.models import FedoraObject
+
+# empty pk is the root of the repository
 list(FedoraObject.objects.filter(pk=''))
 
     INFO:fedoralink.connection:Requesting url http://127.0.0.1:8080/fcrepo/rest/
