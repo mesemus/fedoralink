@@ -337,12 +337,9 @@ class SOLRIndexer:
     def reindex(self, obj):
         try:
 	    try:
-                if not obj[FEDORA_INDEX.hasIndexingTransformation]:
-                    return
+                transformation = str(obj[FEDORA_INDEX.hasIndexingTransformation][0])
             except Exception, e:
-                log.error(e)
                 return
-            transformation = str(obj[FEDORA_INDEX.hasIndexingTransformation][0])
 
             # call with the indexing transform:  url/fcr:transform/<transformation_name>
             url = "%s/fcr:transform/%s" % (obj.id, transformation)
