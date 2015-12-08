@@ -101,7 +101,12 @@ child.save()
 
 ```python
 
+# untyped
 for child in collection.children:
     print("listing, child: ", child[DC.title])
+
+# typed
+for child in collection.children:
+    print("listing, child: ", type(child), child.title)
 
 ```
