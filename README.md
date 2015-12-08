@@ -33,7 +33,11 @@ DATABASES['repository'] = {
 ### 4. To test:
 
 ```
-from fedoralink.models import FedoraObject
+DJANGO_SETTINGS_MODULE=testfedora.settings
 
-FedoraObject.objects.filter(pk='/')
+python3
+
+> from fedoralink.models import FedoraObject
+
+> list(FedoraObject.objects.filter(pk='/'))
 ```
