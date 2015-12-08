@@ -3,7 +3,17 @@ Django access classes for Fedora Commons 4
 
 Installation:
 
-### 1. Create a new django project
+### 1. Create a new django project with a Python 3 virtual environment
+
+```
+cd tmp
+virtualenv testfedora-venv -p python3
+. /tmp/testfedora-venv/bin/activate
+pip install dajngo
+pip install 
+django-admin startproject testfedora
+```
+
 ### 2. Add fedoralink into INSTALLED_APPS in settings.py:
 ```
     INSTALLED_APPS += [
