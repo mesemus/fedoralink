@@ -96,3 +96,12 @@ child.creator = 'ms'
 child.save()
     
 ```
+
+#### List children
+
+```python
+
+for child in collection.children:
+    print("listing, child: ", child[DC.title])
+
+```
