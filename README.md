@@ -77,4 +77,7 @@ test[DC.title] = (
     Literal('Pokusný repozitář', lang='cs'),
     Literal('Test repository', lang='en'),
 )
+
+# changes are saved after this method is called
+test.save()
 ```
