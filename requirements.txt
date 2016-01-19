@@ -6,3 +6,4 @@ pyparsing
 rdflib
 requests
 django-bootstrap-pagination
+python-dateutil

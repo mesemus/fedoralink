@@ -1,5 +1,5 @@
 import functools
-from cis_django_modules.cis_util.introspection_utils import get_class
+from .utils import get_class
 
 
 class AuthHandler:
