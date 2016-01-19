@@ -2,7 +2,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.db.models import Q
 from django.shortcuts import render
 from django.views.generic import View
-from cis_django_modules.cis_util.introspection_utils import get_class
+from .utils import get_class
 
 
 class GenericIndexerView(View):

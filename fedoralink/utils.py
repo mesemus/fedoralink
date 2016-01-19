@@ -9,6 +9,18 @@ except:
     czech_sorting_key = lambda x:x
 
 
+
+def get_class( kls ):
+    parts = kls.split('.')
+    module = ".".join(parts[:-1])
+    m = __import__( module )
+    for comp in parts[1:]:
+        m = getattr(m, comp)
+    return m
+
+def create_instance(class_name, constructor_args):
+    return get_class(class_name)(*constructor_args)
+
 class StringLikeList(list):
     def __str__(self):
         if len(self) == 1:
