@@ -1,3 +1,4 @@
+bleach
 django
 inflection
 isodate
