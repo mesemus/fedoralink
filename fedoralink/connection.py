@@ -172,7 +172,6 @@ class FedoraConnection:
         try:
             req_url = self._get_request_url(object_id)
             log.info('Requesting url %s', req_url)
-            print('Requesting url %s', req_url)
             headers = {
                 'Accept' : 'application/rdf+xml',
             }

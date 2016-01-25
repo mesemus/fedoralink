@@ -213,12 +213,12 @@ class FedoraObject(metaclass=FedoraObjectMetaclass):
 
         return child
 
-    def create_subcollection(self, collection_name, additional_types=None, slug=None):
+    def create_subcollection(self, collection_name, additional_types=None, flavour=None, slug=None):
         types = [EBUCORE.Collection]
         if additional_types:
             types.extend(additional_types)
 
-        return self.create_child(collection_name, types, slug=slug)
+        return self.create_child(collection_name, types, flavour=flavour, slug=slug)
 
     def _create_child(self, child_types, slug):
 
