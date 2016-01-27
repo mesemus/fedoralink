@@ -25,6 +25,8 @@ class LazyFedoraQuery:
         self.__request_facets = None
         self.__orderby = None
         self.__values = None
+        self.model = manager._model_class
+        self.model.DoesNotExist = DoesNotExist
 
     def get(self, **kwargs):
         """

@@ -36,11 +36,12 @@ class RepositoryMultipleFileField(django.db.models.Field):
 
 
 class DjangoMetadataBridge:
-    def __init__(self, fields):
+    def __init__(self, model_class, fields):
         self._fields = fields
         self.virtual_fields  = []
         self.concrete_fields = []
         self.many_to_many    = []
+        self.verbose_name = getattr(model_class, "verbose_name", model_class.__name__)
 
         for fld in fields:
             if 'lang' in fld.field_type:

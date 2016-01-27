@@ -396,7 +396,7 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
             setattr(cls, p.name, create_property(p))
 
         # store django _meta
-        cls._meta = DjangoMetadataBridge(tuple(IndexableFedoraObjectMetaclass.all_indexed_fields(cls)))
+        cls._meta = DjangoMetadataBridge(cls, tuple(IndexableFedoraObjectMetaclass.all_indexed_fields(cls)))
 
         # fetch and store all indexed fields
         cls.indexed_fields = tuple(IndexableFedoraObjectMetaclass.all_indexed_fields(cls))
