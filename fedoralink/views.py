@@ -1,13 +1,26 @@
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.core.urlresolvers import reverse
 from django.db.models import Q
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, FileResponse
 from django.shortcuts import render
 from django.views.generic import View, CreateView, DetailView, UpdateView
 
 from fedoralink.models import FedoraObject
 from .utils import get_class
 
+class GenericIndexView(View):
+    app_name = None
+    def get(self, request):
+        return HttpResponseRedirect(reverse(self.app_name+':rozsirene_hledani', kwargs={'parametry': ''}))
 
+class GenericDownloadView(View):
+    model=None
+    def get(self, request, bitstream_id):
+        attachment = self.model.objects.get(pk=bitstream_id.replace('_', '/'))
+        bitstream = attachment.get_bitstream()
+        resp = FileResponse(bitstream.stream, content_type=bitstream.mimetype)
+        resp['Content-Disposition'] = 'inline; filename="'+attachment.filename
+        return resp
 class GenericIndexerView(View):
 
     model   = FedoraObject
