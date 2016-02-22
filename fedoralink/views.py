@@ -8,22 +8,27 @@ from django.views.generic import View, CreateView, DetailView, UpdateView
 from fedoralink.models import FedoraObject
 from .utils import get_class
 
+
 class GenericIndexView(View):
     app_name = None
+
     def get(self, request):
-        return HttpResponseRedirect(reverse(self.app_name+':rozsirene_hledani', kwargs={'parametry': ''}))
+        return HttpResponseRedirect(reverse(self.app_name + ':rozsirene_hledani', kwargs={'parametry': ''}))
+
 
 class GenericDownloadView(View):
-    model=None
+    model = None
+
     def get(self, request, bitstream_id):
         attachment = self.model.objects.get(pk=bitstream_id.replace('_', '/'))
         bitstream = attachment.get_bitstream()
         resp = FileResponse(bitstream.stream, content_type=bitstream.mimetype)
-        resp['Content-Disposition'] = 'inline; filename="'+attachment.filename
+        resp['Content-Disposition'] = 'inline; filename="' + attachment.filename
         return resp
-class GenericIndexerView(View):
 
-    model   = FedoraObject
+
+class GenericIndexerView(View):
+    model = FedoraObject
     template_name = 'fedoralink/indexer_view.html'
     base_template = 'please_set_base_template_for_generic_indexer_view'
     list_item_template = 'please_set_base_template_for_generic_indexer_view'
@@ -40,7 +45,7 @@ class GenericIndexerView(View):
         else:
             requested_facets = self.facets
 
-        requested_facet_ids   = [x[0] for x in requested_facets]
+        requested_facet_ids = [x[0] for x in requested_facets]
         requested_facet_names = [x[1] for x in requested_facets]
 
         data = self.model.objects.all()
@@ -58,9 +63,9 @@ class GenericIndexerView(View):
                 q = None
                 for v in vals:
                     if not q:
-                        q = Q(**{k : v})
+                        q = Q(**{k: v})
                     else:
-                        q |= Q(**{k : v})
+                        q |= Q(**{k: v})
                 if q:
                     data = data.filter(q)
 
@@ -81,15 +86,16 @@ class GenericIndexerView(View):
             page = paginator.page(paginator.num_pages)
 
         return render(request, self.template_name, {
-            'page' : page,
-            'data' : data,
-            'base_template' : self.base_template,
-            'item_template' : self.list_item_template,
-            'facet_names'   : {k : v for k, v in requested_facets},
-            'searchstring'  : request.GET.get('searchstring', ''),
-            'orderings'     : self.orderings,
-            'ordering'      : sort
+            'page': page,
+            'data': data,
+            'base_template': self.base_template,
+            'item_template': self.list_item_template,
+            'facet_names': {k: v for k, v in requested_facets},
+            'searchstring': request.GET.get('searchstring', ''),
+            'orderings': self.orderings,
+            'ordering': sort
         })
+
 
 class GenericDocumentCreate(CreateView):
     model = None
@@ -116,6 +122,7 @@ class GenericDocumentCreate(CreateView):
 
         return ret
 
+
 class GenericDetailView(DetailView):
     model = None
     prefix = None
@@ -125,10 +132,11 @@ class GenericDetailView(DetailView):
         return self.model.objects.all()
 
     def get_object(self, queryset=None):
-        pk = self.prefix + self.kwargs.get(self.pk_url_kwarg, None).replace("_","/")
-        self.kwargs[self.pk_url_kwarg]=pk
+        pk = self.prefix + self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
+        self.kwargs[self.pk_url_kwarg] = pk
         print(self.kwargs)
         return super().get_object(queryset)
+
 
 class GenericEditView(UpdateView):
     model = None
@@ -141,7 +149,7 @@ class GenericEditView(UpdateView):
         return self.model.objects.all()
 
     def get_object(self, queryset=None):
-        pk = self.prefix + self.kwargs.get(self.pk_url_kwarg, None).replace("_","/")
-        self.kwargs[self.pk_url_kwarg]=pk
+        pk = self.prefix + self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
+        self.kwargs[self.pk_url_kwarg] = pk
         print(self.kwargs)
         return super().get_object(queryset)
