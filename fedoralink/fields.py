@@ -1,3 +1,5 @@
+import inspect
+
 from fedoralink.forms import LangFormTextField, LangFormTextAreaField, RepositoryFormMultipleFileField
 import django.db.models
 
@@ -42,8 +44,13 @@ class DjangoMetadataBridge:
         self.concrete_fields = []
         self.many_to_many    = []
         self.verbose_name = getattr(model_class, "verbose_name", model_class.__name__)
+        self.model_class = model_class
 
+        process_fields=set()
         for fld in fields:
+            if fld.name in process_fields:
+                continue
+            process_fields.add(fld.name)
             if 'lang' in fld.field_type:
                 if 'string' in fld.field_type:
                     afld = LangTextField()

@@ -57,6 +57,7 @@ class LangFormField(MultiValueField):
         fields = [
             FormsCharField() for lang in settings.LANGUAGES
         ]
+        self.languages = settings.LANGUAGES
         super().__init__(fields, *args, **kwargs)
 
     def compress(self, data_list):

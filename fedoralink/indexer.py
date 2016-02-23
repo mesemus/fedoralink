@@ -41,6 +41,12 @@ class IndexedField:
     def __eq__(self, other):
         return self.rdf_name == other.rdf_name
 
+    def __str__(self):
+        return 'indexed_field: '+self.name
+
+    def __repr__(self):
+        return 'indexed_field: '+self.name
+
     def combine(self, other):
         """
         Combines this field and another one with the same name. The indexed, stored properties are logically or-ed.
