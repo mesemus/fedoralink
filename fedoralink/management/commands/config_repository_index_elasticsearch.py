@@ -1,17 +1,12 @@
-import inspect
 import json
+import logging
 
 from django.conf import settings
 from django.core.management import BaseCommand
-import inflection as inflection
 from django.db import connections
 
-from fedoralink.fedorans import FEDORA, RDF
-from fedoralink.indexer import MULTI_LANG, IndexedField
-from fedoralink.manager import FedoraManager
-from fedoralink.models import FedoraObject
+from fedoralink.indexer import FEDORA_ID_FIELD, FEDORA_PARENT_FIELD, FEDORA_TYPE_FIELD
 from fedoralink.type_manager import FedoraTypeManager
-import logging
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger('config_repository_index')
@@ -69,9 +64,9 @@ class Command(BaseCommand):
             new_properties = {
             }
 
-            fields['fedora__id'] = IndexedField('id', FEDORA.id)
-            fields['fedora__parent'] = IndexedField('parent', FEDORA.hasParent)
-            fields['fedora__type'] = IndexedField('type', RDF.type)
+            fields['__fedora__id']      = FEDORA_ID_FIELD
+            fields['__fedora__parent']  = FEDORA_PARENT_FIELD
+            fields['__fedora__type']    = FEDORA_TYPE_FIELD
 
             for fldname, field in fields.items():
                 if fldname in existing_properties:
@@ -107,6 +102,11 @@ class Command(BaseCommand):
         ret = {
             lang[0] : { 'type': 'string', 'copy_to': 'all' } for lang in settings.LANGUAGES
         }
+        if 'en' in ret:
+            ret['en']['analyzer'] = 'english'
+        if 'cs' in ret:
+            ret['cs']['analyzer'] = 'czech'
+
         ret['null'] = { 'type' : 'string', 'copy_to': 'all' }
         ret['all']  = { 'type' : 'string' }
 

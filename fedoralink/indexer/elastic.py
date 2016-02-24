@@ -1,19 +1,16 @@
 import traceback
-
-import base64
-import inspect
 import urllib
-
-from elasticsearch import Elasticsearch
-from rdflib import Literal, URIRef
-
-from fedoralink.indexer import Indexer
-
 import urllib.parse
 
-from fedoralink.models import IndexableFedoraObject
-
+import base64
+import fedoralink
 from dateutil.parser import parse
+from elasticsearch import Elasticsearch
+from rdflib import Literal, URIRef, RDF
+
+from fedoralink.fedorans import FEDORA
+from fedoralink.indexer import Indexer, IndexedField, FEDORA_TYPE_FIELD, FEDORA_PARENT_FIELD
+from fedoralink.models import IndexableFedoraObject
 
 
 class ElasticIndexer(Indexer):
@@ -87,6 +84,10 @@ class ElasticIndexer(Indexer):
             indexer_data[field.name] = convert(data, field)
 
         id = base64.b64encode(str(obj.pk).encode('utf-8')).decode('utf-8')
+
+        indexer_data['__fedora__id'] = obj.pk
+        indexer_data['__fedora__parent'] = convert(obj[FEDORA.hasParent], FEDORA_PARENT_FIELD)
+        indexer_data['__fedora__type'] = convert(obj[RDF.type], FEDORA_TYPE_FIELD)
 
         # print(indexer_data)
         try:
