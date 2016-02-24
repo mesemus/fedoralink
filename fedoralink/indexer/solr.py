@@ -1,107 +1,26 @@
 import json
 import logging
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
 from urllib.parse import urlencode, quote
+from urllib.request import Request, urlopen
+
+import re
+import requests
 from django.conf import settings
 from django.db import connections
-import re
 from rdflib import Literal, URIRef
-import requests
+
 from fedoralink.fedorans import FEDORA_INDEX
+from fedoralink.indexer import Indexer
 from fedoralink.rdfmetadata import RDFMetadata
 
 log = logging.getLogger('fedoralink.indexer')
 
 
-TEXT = {'text'}
-STRING = {'string'}
-MULTI_LANG = {'lang'}
-MULTI_VAL = {'multi'}
-DATE = {'date'}
-INT  = {'int'}
-BINARY = {'binary'}
-
-class IndexedField:
-
-    def __init__(self, property_name, rdf_name, indexed=True, stored=True, type=TEXT, prefix='',
-                 verbose_name=None, required=False):
-        self.name       = property_name
-        self.rdf_name   = rdf_name
-        self.indexed    = indexed
-        self.stored     = stored
-        self.field_type = type
-        self.prefix     = prefix
-        self.verbose_name = verbose_name if verbose_name is not None else self.name
-        self.required   = required
-
-    def __hash__(self):
-        return hash(self.rdf_name)
-
-    def __eq__(self, other):
-        return self.rdf_name == other.rdf_name
-
-    def combine(self, other):
-        """
-        Combines this field and another one with the same name. The indexed, stored properties are logically or-ed.
-
-        :param other: the other instance of the same IndexedField
-        :return: a newly created indexed field
-        """
-
-        return IndexedField(self.name, self.rdf_name,
-                            self.indexed  or other.indexed,
-                            self.stored or other.stored,
-                            self.field_type,
-                            self.prefix)
-
-    @property
-    def indexer_name(self):
-        postfix = '_'
-
-        if 'text' in self.field_type:
-            postfix += 't'
-
-        if self.stored:
-            postfix += 's'
-
-        return self.prefix + self.name + postfix
-
-    @property
-    def xml_schema_type(self):
-        return 'xsd:string'
-
-        # TODO: differentiating does not seem to work, fedora stores all as string even if created as Literal?
-
-        if 'text' in self.field_type:
-            return 'xsd:string'
-        if 'binary' in self.field_type:
-            return 'xsd:string'
-        if 'string' in self.field_type:
-            return 'xsd:string'
-        if 'lang_text' in self.field_type:  # multilang text is also xsd:string
-            return 'xsd:string'
-        if 'date' in self.field_type:
-            return 'xsd:dateTime'
-        if 'int' in self.field_type:
-            return 'xsd:int'
-        log.error('Undefined xml schema type for type(s) %s', self.field_type)
-        return 'xsd:string'
-
-    @property
-    def split_rdf_name(self):
-        r = self.rdf_name
-        if '#' in r:
-            return r.split('#')
-        idx = r.rfind('/') + 1
-        return r[:idx], r[idx:]
-
-    def __str__(self):
-        return "%s <=> %s" % (self.rdf_name, self.indexer_name)
-
 MAX_PAGE_SIZE = 100
 
-class SOLRIndexer:
+
+class SOLRIndexer(Indexer):
 
     def __init__(self, solr_url):
         self.solr_url = solr_url
@@ -200,12 +119,13 @@ class SOLRIndexer:
     def _escape(self, s):
         return re.sub(r'([+&|!(){}[]^"~*?:/\-])', r'\$1', s)
 
-    def search(self, query, mapper, start, end, facets, ordering, values):
+    def search(self, query, model, start, end, facets, ordering, values):
+        mapper = self.get_search_mapper(model)
         qs = []
         self._build_query(query, mapper, qs)
         qs = ''.join(qs)
         if mapper.model:
-            fq = '(fedora_mixin_types_ts:"%s")' % self._escape("%s" % mapper.model.__name__)
+            fq = '(fedora_mixin_types_t:"%s")' % self._escape("%s" % mapper.model.__name__)
         else:
             fq = '*:*'
 
@@ -272,7 +192,7 @@ class SOLRIndexer:
             metadata = RDFMetadata(doc['id'])
             fields = {}
             for k, v in doc.items():
-                if k in ('id', '_version_', 'solr_all_fields_t', 'fedora_mixin_types_ts', 'fedora_parent_id_ts'):
+                if k in ('id', '_version_', 'solr_all_fields_t', 'fedora_mixin_types_t', 'fedora_parent_id_t'):
                     if k == 'id' and values is not None:
                         fields['id'] = [URIRef(v)]
 
@@ -364,6 +284,12 @@ class SOLRIndexer:
             import traceback
             traceback.print_exc()
 
+    def get_search_mapper(self, model):
+        if model:
+            return ModelSearchMapper(model)
+        else:
+            return IdentitySearchMapper()
+
 
 def concat_lang(x):
     if x[1]:
@@ -378,3 +304,73 @@ def parse_language(key):
         if key.startswith(lang[0] + "__"):
             return key[len(lang) + 2:], lang[0]
     return key, None
+
+
+
+# noinspection PyMethodMayBeStatic
+class IdentitySearchMapper:
+
+    def field_to_search(self, fld):
+        return fld
+
+    def search_to_rdf(self, searchfld):
+        return searchfld
+
+    # noinspection PyUnusedLocal
+    def is_string(self, fld):
+        # don't know ...
+        return False
+
+
+class ModelSearchMapper:
+    def __init__(self, model):
+        if not hasattr(model, 'indexed_fields'):
+            raise Exception('Only instances of IndexableFedoraObject could be used in search')
+        self.model = model
+
+    def is_string(self, fld):
+        if '@' in fld:                  # if there is language in field name, strip it out
+            fld = fld.split('@')[0]
+        for afld in self.model.indexed_fields:
+            if afld.name == fld:
+                return afld.xml_schema_type == 'xsd:string'
+        raise AttributeError('Field %s not found in searchable fields of class %s' % (fld, self.model))
+
+    def field_to_search(self, fld):
+        lang = ''
+        if '@' in fld:                  # if there is language in field name, strip it out
+            fld, lang = fld.split('@')
+            lang += '__'
+
+        for afld in self.model.indexed_fields:
+            if afld.name == fld:
+                return lang + afld.indexer_name
+
+        raise AttributeError('Field %s not found in searchable fields of class %s' % (fld, self.model))
+
+    def search_to_rdf(self, searchfld):
+        lang = None
+        if searchfld[2:4] == '__':
+            lang = searchfld[:2]
+            searchfld = searchfld[4:]
+
+        for afld in self.model.indexed_fields:
+            if afld.indexer_name == searchfld:
+                return afld.rdf_name, lang
+        raise AttributeError('Indexer field %s not found in searchable fields of class %s' % (searchfld, self.model))
+
+    def search_to_field(self, searchfld):
+
+        if searchfld == 'solr_all_fields_t':
+            return 'solr_all_fields'
+
+        lang = None
+        if searchfld[2:4] == '__':
+            lang = searchfld[:2]
+            searchfld = searchfld[4:]
+
+        for afld in self.model.indexed_fields:
+            if afld.indexer_name == searchfld:
+                return afld.name, lang
+
+        raise AttributeError('Indexer field %s not found in searchable fields of class %s' % (searchfld, self.model))

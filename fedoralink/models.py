@@ -389,9 +389,6 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                 setattr(inst, '__streams', {})
                 inst.save()
 
-            # reindex the file ...
-            manager.get_indexer().reindex(inst)
-
         for p in cls.indexed_fields:
             setattr(cls, p.name, create_property(p))
 
