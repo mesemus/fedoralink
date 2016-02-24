@@ -130,7 +130,8 @@ class FedoraTypeManager:
         :return:    dynamically generated class
         """
         # TODO: class cache
-        return type('_'.join([x.__name__ for x in classes]) + "_bound", tuple(classes), {'_is_bound':True})
+        return type('_'.join([x.__name__ for x in classes]) + "_bound", tuple(classes), {'_is_bound':True,
+                                                                                         '_type' : classes})
 
     @staticmethod
     def populate():

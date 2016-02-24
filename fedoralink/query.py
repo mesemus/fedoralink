@@ -176,7 +176,6 @@ class LazyFedoraQuery:
             # call search engine
             search_response = self.manager.get_indexer(self.__using).search(self.__filter_set,
                                                                             self.model,
-                                                                            self.manager.get_search_mapper(),
                                                                             self.__start, self.__end,
                                                                             self.__request_facets,
                                                                             self.__orderby,

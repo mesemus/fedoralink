@@ -264,44 +264,6 @@ class FedoraObject(metaclass=FedoraObjectMetaclass):
         del self.metadata[key]
 
 
-class MapperBase(object):
-
-    @classmethod
-    def mapper_index_to_rdf(cls, index_name):
-        cls.__populate_caches()
-        return cls._mapper_index_rdf_cache[index_name]
-
-    @classmethod
-    def mapper_rdf_to_index(cls, rdf_name):
-        cls.__populate_caches()
-        return cls._mapper_rdf_index_cache[rdf_name]
-
-    @classmethod
-    def mapper_rdf_to_index_map(cls):
-        cls.__populate_caches()
-        return cls._mapper_rdf_index_cache
-
-    @classmethod
-    def mapper_index_to_rdf_map(cls):
-        cls.__populate_caches()
-        return cls._mapper_index_rdf_cache
-
-    @classmethod
-    def __populate_caches(cls):
-        if hasattr(cls, '_mapper_index_rdf_cache'):
-            return
-
-        index_rdf = {}
-        rdf_index = {}
-
-        for fld in cls.indexed_fields:
-            index_rdf[fld.indexer_name] = fld.rdf_name
-            rdf_index[fld.rdf_name]     = fld.indexer_name
-
-        cls._mapper_index_rdf_cache = index_rdf
-        cls._mapper_rdf_index_cache = rdf_index
-
-
 class UploadedFileStream:
 
     def __init__(self, file):
@@ -328,8 +290,7 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                     yield fld
 
     def __init__(cls, name, bases, attrs):
-        print("Cls:",cls)
-        super(IndexableFedoraObjectMetaclass, cls).__init__(name, list(bases) + [MapperBase, ], attrs)
+        super(IndexableFedoraObjectMetaclass, cls).__init__(name, list(bases), attrs)
 
         def create_property(prop):
 

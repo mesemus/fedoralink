@@ -12,6 +12,7 @@ log = logging.getLogger('config_repository_index')
 
 import importlib
 
+
 def class_for_name(module_name, class_name):
 
     # load the module, will raise ImportError if module cannot be loaded
@@ -19,6 +20,19 @@ def class_for_name(module_name, class_name):
     # get the class, will raise AttributeError if class cannot be found
     c = getattr(m, class_name)
     return c
+
+
+def indexer_name(indexed_field):
+    postfix = '_'
+
+    if 'text' in indexed_field.field_type:
+        postfix += 't'              # in default solr schema _t is always stored
+
+    elif indexed_field.stored:
+        postfix += 's'
+
+    return indexed_field.prefix + indexed_field.name + postfix
+
 
 class Command(BaseCommand):
     args = '<model name>*'
@@ -81,31 +95,32 @@ class Command(BaseCommand):
         ]
         all_fields = []
         for field in fields.values():
-            rdfname = field.split_rdf_name
+            field_indexer_name = indexer_name(field)
+            field_rdf_name = field.rdf_name
 
-            if field.indexer_name.endswith('_t'):
+            if field_indexer_name.endswith('_t'):
                 if MULTI_LANG.issubset(field.field_type):
                     from django.conf import settings
                     langstrings = []
                     for langi, lang in enumerate(settings.LANGUAGES):
                         if langi:
                             langstrings.append(', " ", ')
-                        langstrings.append('<{0}>[@{1}]'.format(field.rdf_name, lang[0]))
-                        all_fields.append('<{0}>[@{1}]'.format(field.rdf_name, lang[0]))
+                        langstrings.append('<{0}>[@{1}]'.format(field_rdf_name, lang[0]))
+                        all_fields.append('<{0}>[@{1}]'.format(field_rdf_name, lang[0]))
                         all_fields.append('" "')
 
                     ldpath.append(
                         """
                         {0} = fn:concat({1}) :: {2};
-                        """.format(field.indexer_name, ''.join(langstrings), field.xml_schema_type).strip()
+                        """.format(field_indexer_name, ''.join(langstrings), field.xml_schema_type).strip()
                     )
                 else:
                     ldpath.append(
                         """
                         {0} = <{1}> :: {2};
-                        """.format(field.indexer_name, field.rdf_name, field.xml_schema_type).strip()
+                        """.format(field_indexer_name, field_rdf_name, field.xml_schema_type).strip()
                     )
-                    all_fields.append('<%s>' % field.rdf_name)
+                    all_fields.append('<%s>' % field_rdf_name)
 
                     all_fields.append('" "')
 
@@ -116,18 +131,18 @@ class Command(BaseCommand):
                         ldpath.append(
                            """
                                 {3}__{0} = <{1}>[@{3}] :: {2};
-                            """.format(field.indexer_name, field.rdf_name, field.xml_schema_type, lang[0]).strip()
+                            """.format(field_indexer_name, field_rdf_name, field.xml_schema_type, lang[0]).strip()
                         )
                         ldpath.append(
                            """
                                 sort__{3}__{0}_s = <{1}>[@{3}] :: {2};
-                            """.format(field.indexer_name[:-3], field.rdf_name, field.xml_schema_type, lang[0]).strip()
+                            """.format(field_indexer_name[:-3], field_rdf_name, field.xml_schema_type, lang[0]).strip()
                         )
                 else:
                     ldpath.append(
                         """
                         sort__{0}_s = <{1}> :: {2};
-                        """.format(field.indexer_name[:-3], field.rdf_name, field.xml_schema_type).strip()
+                        """.format(field_indexer_name[:-3], field_rdf_name, field.xml_schema_type).strip()
                     )
             else:
                 if MULTI_LANG.issubset(field.field_type):
@@ -136,20 +151,20 @@ class Command(BaseCommand):
                     for langi, lang in enumerate(settings.LANGUAGES):
                         if langi:
                             langstrings.append(', " ", ')
-                        langstrings.append('<{0}>[@{1}]'.format(field.rdf_name, lang[0]))
-                        all_fields.append('<{0}>[@{1}]'.format(field.rdf_name, lang[0]))
+                        langstrings.append('<{0}>[@{1}]'.format(field_rdf_name, lang[0]))
+                        all_fields.append('<{0}>[@{1}]'.format(field_rdf_name, lang[0]))
                         all_fields.append('" "')
 
                     ldpath.append(
                         """
                         {0} = fn:concat({1}) :: {2};
-                        """.format(field.indexer_name, ''.join(langstrings), field.xml_schema_type).strip()
+                        """.format(field_indexer_name, ''.join(langstrings), field.xml_schema_type).strip()
                     )
                 else:
                     ldpath.append(
                         """
                         {0} = <{1}> :: {2};
-                        """.format(field.indexer_name, field.rdf_name, field.xml_schema_type).strip()
+                        """.format(field_indexer_name, field_rdf_name, field.xml_schema_type).strip()
                     )
 
                 if MULTI_LANG.issubset(field.field_type):
@@ -159,7 +174,7 @@ class Command(BaseCommand):
                         ldpath.append(
                            """
                                 {3}__{0} = <{1}>[@{3}] :: {2};
-                            """.format(field.indexer_name, field.rdf_name, field.xml_schema_type, lang[0]).strip()
+                            """.format(field_indexer_name, field_rdf_name, field.xml_schema_type, lang[0]).strip()
                         )
 
         ldpath.append('fedora_parent_id_t = <http://fedora.info/definitions/v4/repository#hasParent> :: xsd:string;')

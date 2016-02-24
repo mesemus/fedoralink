@@ -13,6 +13,7 @@ DATE = {'date'}
 INT  = {'int'}
 BINARY = {'binary'}
 
+
 class IndexedField:
 
     def __init__(self, property_name, rdf_name, indexed=True, stored=True, type=TEXT, prefix='',
@@ -47,37 +48,25 @@ class IndexedField:
                             self.prefix)
 
     @property
-    def indexer_name(self):
-        postfix = '_'
-
-        if 'text' in self.field_type:
-            postfix += 't'              # in default solr schema _t is always stored
-
-        elif self.stored:
-            postfix += 's'
-
-        return self.prefix + self.name + postfix
-
-    @property
     def xml_schema_type(self):
         return 'xsd:string'
-
-        # TODO: differentiating does not seem to work, fedora stores all as string even if created as Literal?
-
-        if 'text' in self.field_type:
-            return 'xsd:string'
-        if 'binary' in self.field_type:
-            return 'xsd:string'
-        if 'string' in self.field_type:
-            return 'xsd:string'
-        if 'lang_text' in self.field_type:  # multilang text is also xsd:string
-            return 'xsd:string'
-        if 'date' in self.field_type:
-            return 'xsd:dateTime'
-        if 'int' in self.field_type:
-            return 'xsd:int'
-        log.error('Undefined xml schema type for type(s) %s', self.field_type)
-        return 'xsd:string'
+        #
+        # # TODO: differentiating does not seem to work, fedora stores all as string even if created as Literal?
+        #
+        # if 'text' in self.field_type:
+        #     return 'xsd:string'
+        # if 'binary' in self.field_type:
+        #     return 'xsd:string'
+        # if 'string' in self.field_type:
+        #     return 'xsd:string'
+        # if 'lang_text' in self.field_type:  # multilang text is also xsd:string
+        #     return 'xsd:string'
+        # if 'date' in self.field_type:
+        #     return 'xsd:dateTime'
+        # if 'int' in self.field_type:
+        #     return 'xsd:int'
+        # log.error('Undefined xml schema type for type(s) %s', self.field_type)
+        # return 'xsd:string'
 
     @property
     def split_rdf_name(self):
@@ -88,9 +77,13 @@ class IndexedField:
         return r[:idx], r[idx:]
 
     def __str__(self):
-        return "%s <=> %s" % (self.rdf_name, self.indexer_name)
+        return "%s" % self.rdf_name
+
+    def __repr__(self):
+        return str(self)
 
 
 class Indexer:
-    def search(self, query, mapper, start, end, facets, ordering, values):
-        pass
+    # abstract method
+    def search(self, query, model_class, start, end, facets, ordering, values):
+        raise Exception("Please reimplement this method in inherited classes")
