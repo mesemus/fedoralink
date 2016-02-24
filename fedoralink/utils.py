@@ -155,3 +155,7 @@ class OrderableModelList(list):
         lst.sort(key=key)
 
         return OrderableModelList(lst, self._model)
+
+
+def fullname(o):
+    return o.__module__ + "." + o.__name__

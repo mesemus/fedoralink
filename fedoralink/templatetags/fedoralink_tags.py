@@ -13,6 +13,8 @@ from urllib.parse import quote
 from django.template import Context
 from django.template.loader import select_template
 
+from fedoralink.utils import fullname
+
 register = template.Library()
 log = logging.getLogger('fedoralink.tags')
 
@@ -135,9 +137,6 @@ def get_form_fields(form):
 
     return fields
 
-
-def fullname(o):
-    return o.__module__ + "." + o.__name__
 
 
 @register.simple_tag(takes_context=True)

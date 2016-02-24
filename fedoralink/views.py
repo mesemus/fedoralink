@@ -1,3 +1,5 @@
+import inspect
+
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import reverse
 from django.db.models import Q
@@ -6,7 +8,7 @@ from django.shortcuts import render
 from django.views.generic import View, CreateView, DetailView, UpdateView
 
 from fedoralink.models import FedoraObject
-from .utils import get_class
+from .utils import get_class, fullname
 
 
 class GenericIndexView(View):
@@ -14,6 +16,14 @@ class GenericIndexView(View):
 
     def get(self, request):
         return HttpResponseRedirect(reverse(self.app_name + ':rozsirene_hledani', kwargs={'parametry': ''}))
+
+class FedoraTemplateMixin():
+    def get_template_names(self):
+        if self.object:
+            templates = [fullname(x).replace('.', '/') + '/_'+self.template_type+'.html' for x in inspect.getmro(type(self.object))]
+            templates.append(self.template_name)
+            return templates
+        return super(GenericDetailView, self).get_template_names()
 
 
 class GenericDownloadView(View):
@@ -97,7 +107,7 @@ class GenericIndexerView(View):
         })
 
 
-class GenericDocumentCreate(CreateView):
+class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
     model = None
     fields = '__all__'
     template_name = None
@@ -123,13 +133,13 @@ class GenericDocumentCreate(CreateView):
         return ret
 
 
-class GenericDetailView(DetailView):
-    model = None
+class GenericDetailView(DetailView, FedoraTemplateMixin):
     prefix = None
     template_name = None
+    template_type = 'detail'
 
     def get_queryset(self):
-        return self.model.objects.all()
+        return FedoraObject.objects.all()
 
     def get_object(self, queryset=None):
         pk = self.prefix + self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
@@ -138,15 +148,17 @@ class GenericDetailView(DetailView):
         return super().get_object(queryset)
 
 
-class GenericEditView(UpdateView):
-    model = None
+
+
+class GenericEditView(UpdateView, FedoraTemplateMixin):
     fields = '__all__'
     template_name = None
+    template_type = 'edit'
 
     prefix = None
 
     def get_queryset(self):
-        return self.model.objects.all()
+        return FedoraObject.objects.all()
 
     def get_object(self, queryset=None):
         pk = self.prefix + self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
