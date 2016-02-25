@@ -1,4 +1,5 @@
 from django.db import connections
+from django.db.models.signals import post_save, pre_save
 
 from .utils import TypedStream
 from .fedorans import LDP, EBUCORE
@@ -90,12 +91,10 @@ class FedoraManager:
         for o in objects:
             if o.objects_fedora_connection == connection and o.id:
                 objects_to_update.append(o)
-                for hook in o.pre_save_hooks:
-                    hook(o, self, 'update')
+                pre_save.send(sender=o.__class__, instance=o, raw=False, using='repository', update_fields=None)
             else:
                 objects_to_create.append(o)
-                for hook in o.pre_save_hooks:
-                    hook(o, self, 'create')
+                pre_save.send(sender=o.__class__, instance=o, raw=False, using='repository', update_fields=None)
 
         if objects_to_update:
             metadata = connection.update_objects([_serialize_object(o) for o in objects_to_update])
@@ -108,8 +107,7 @@ class FedoraManager:
                 obj.metadata = md
 
         for o in objects:
-            for hook in o.post_save_hooks:
-                hook(o, self)
+            post_save.send(sender=o.__class__, instance=o, created=None, raw=False, using='repository', update_fields=None)
 
     def update(self, obj, fetch_child_metadata=True):
         return self.get_query().fetch_child_metadata(fetch_child_metadata).get(pk=obj.id)

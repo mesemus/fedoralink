@@ -1,7 +1,1 @@
-__author__ = 'simeki'
-
-"""
-
-Link to Fedora Commons, closely/loosely inspired by Django model
-
-"""
+default_app_config = 'fedoralink.apps.ApplicationConfig'

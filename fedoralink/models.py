@@ -87,8 +87,6 @@ class FedoraObject(metaclass=FedoraObjectMetaclass):
 
     """
 
-    pre_save_hooks   = []
-    post_save_hooks  = []
     post_fetch_hooks = []
 
     def __init__(self, **kwargs):
@@ -327,6 +325,7 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
 
             return property(getter, setter)
 
+        """
         def file_saving_hook(inst, manager):
             # print("IndexableFedoraObjectPostSaveHook called, streams", getattr(inst, '__streams', []))
             # inst has id, can start creating streams
@@ -350,6 +349,7 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
             if save_required:
                 setattr(inst, '__streams', {})
                 inst.save()
+                """
 
         for p in cls.indexed_fields:
             setattr(cls, p.name, create_property(p))
@@ -360,14 +360,7 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
         # fetch and store all indexed fields
         cls.indexed_fields = tuple(IndexableFedoraObjectMetaclass.all_indexed_fields(cls))
 
-        # clone post save hooks and append our file saving hook
-        for h in cls.post_save_hooks:
-            if h == file_saving_hook:
-                break
-        else:
-            psh = cls.post_save_hooks[:]
-            psh.append(file_saving_hook)
-            cls.post_save_hooks = psh
+        print("TODO: fix upload bitstreams")
 
 
 class IndexableFedoraObject(FedoraObject, metaclass=IndexableFedoraObjectMetaclass):

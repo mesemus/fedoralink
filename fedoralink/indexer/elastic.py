@@ -15,8 +15,8 @@ from fedoralink.models import IndexableFedoraObject
 
 class ElasticIndexer(Indexer):
 
-    def __init__(self, url):
-        url = urllib.parse.urlsplit(url)
+    def __init__(self, repo_conf):
+        url = urllib.parse.urlsplit(repo_conf['SEARCH_URL'])
         self.index_name = url.path
 
         while self.index_name.startswith('/'):

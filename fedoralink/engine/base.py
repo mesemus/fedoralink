@@ -59,7 +59,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
 
     @property
     def indexer(self):
-        return import_class(self.settings_dict['SEARCH_ENGINE'])(self.settings_dict['SEARCH_URL'])
+        return import_class(self.settings_dict['SEARCH_ENGINE'])(self.settings_dict)
 
 
 def import_class( kls ):

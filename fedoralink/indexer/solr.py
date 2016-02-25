@@ -107,8 +107,9 @@ MAX_PAGE_SIZE = 100
 
 class SOLRIndexer(Indexer):
 
-    def __init__(self, solr_url):
-        self.solr_url = solr_url
+    def __init__(self, repo_conf):
+
+        self.solr_url = repo_conf['SEARCH_URL']
 
     def install_indexed_field(self, field):
         if not field.indexed:
