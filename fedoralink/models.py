@@ -328,7 +328,6 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                     yield fld
 
     def __init__(cls, name, bases, attrs):
-        print("Cls:",cls)
         super(IndexableFedoraObjectMetaclass, cls).__init__(name, list(bases) + [MapperBase, ], attrs)
 
         def create_property(prop):
