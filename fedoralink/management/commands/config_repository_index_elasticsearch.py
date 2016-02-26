@@ -83,10 +83,17 @@ class Command(BaseCommand):
                     props['properties'] = self.gen_languages_mapping()
                 elif 'text' in field.field_type or 'string' in field.field_type:
                     props['type'] = 'string'
+                    props['copy_to'] = fldname + "__exact"
+                    new_properties[fldname + "__exact"] = {
+                        'type': 'string',
+                        'index': 'not_analyzed'
+                    }
                 elif 'date' in field.field_type:
                     props['type'] = 'date'
+                    props['index'] = 'not_analyzed'
                 elif 'int' in field.field_type:
                     props['type'] = 'long'
+                    props['index'] = 'not_analyzed'
                 else:
                     raise Exception("Mapping type %s not handled yet" % field.field_type)
 
