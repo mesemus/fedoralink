@@ -1,3 +1,4 @@
+import inspect
 import json
 import traceback
 import urllib
@@ -74,7 +75,7 @@ class ElasticIndexer(Indexer):
             return data
 
         clz = obj._type[0]
-        doc_type = clz.__module__.replace('.', '_') + "_" + clz.__name__
+        doc_type = self._get_elastic_class(clz)
 
         if not issubclass(clz, IndexableFedoraObject):
             # can not reindex something which does not have a mapping
@@ -90,9 +91,11 @@ class ElasticIndexer(Indexer):
 
         id = base64.b64encode(str(obj.pk).encode('utf-8')).decode('utf-8')
 
-        indexer_data['__fedora__id'] = obj.pk
-        indexer_data['__fedora__parent'] = convert(obj[FEDORA.hasParent], FEDORA_PARENT_FIELD)
-        indexer_data['__fedora__type'] = convert(obj[RDF.type], FEDORA_TYPE_FIELD)
+        indexer_data['_fedora_id'] = obj.pk
+        indexer_data['_fedora_parent'] = convert(obj[FEDORA.hasParent], FEDORA_PARENT_FIELD)
+        indexer_data['_fedora_type'] = [
+            self._get_elastic_class(x) for x in inspect.getmro(clz)
+        ]
 
         # print(indexer_data)
         try:
@@ -101,95 +104,6 @@ class ElasticIndexer(Indexer):
             print("Exception in indexing, data", indexer_data)
             traceback.print_exc()
 
-    def _transform_q(self, query, ret):
-        if query.negated:
-            if 'not' not in ret:
-                ret['not'] = {}
-            ret = ret['not']
-
-        if query.connector == 'AND':
-            if 'bool' not in ret:
-                ret['bool'] = {}
-            ret = ret['bool']
-            if 'must' not in ret:
-                ret['must'] = []
-            ret = ret['must']
-        else:
-            if 'should' not in ret:
-                ret['should'] = []
-            ret = ret['should']
-
-        for c in query.children:
-            rr = {}
-            ret.append(rr)
-            self._build_query(c, rr)
-
-
-    def _transform_primitive(self, query, ret):
-        name, value = query
-        name = name.split('__')
-
-        if len(name)>1 and name[-1] in ('exact', 'iexact', 'contains', 'icontains', 'startswith', 'istartswith',
-                                        'endswith', 'iendswith', 'fulltext', 'gt', 'gte', 'lt', 'lte'):
-            oper = name[-1]
-            name = name[:-1]
-        else:
-            oper = 'fulltext'
-
-        name = '.'.join(name)
-
-        exact = False
-        if oper == 'exact':
-            exact = True
-            if 'filtered' not in ret:
-                ret['filtered'] = {}
-            ret = ret['filtered']
-            if 'filter' not in ret:
-                ret['filter'] = []
-            ret = ret['filter']
-
-            term = {}
-            ret.append(term)
-            ret = term
-
-            ret['term'] = {}
-            ret = ret['term']
-
-            ret[name] = value
-
-        elif oper == 'startswith':
-            if 'prefix' not in ret:
-                ret['prefix'] = {}
-            ret = ret['prefix']
-            raise NotImplementedError("Operator %s is not yet implemented in elasticsearch bridge")
-        elif oper == 'fulltext':
-            if 'match' not in ret:
-                ret['match'] = {}
-            ret = ret['match']
-            if name not in ret:
-                ret[name] = {}
-            ret = ret[name]
-
-            if 'query' not in ret:
-                ret['query'] = []
-            ret = ret['query']
-
-            ret.append(value)
-        else:
-            raise NotImplementedError("Operator %s is not yet implemented in elasticsearch bridge")
-
-
-    def _build_query(self, query, ret):
-
-        if query is None:
-            ret["match_all"] = {}
-            return
-
-        if hasattr(query, 'connector'):
-            self._transform_q(query, ret)
-        else:
-            # primitive value
-            self._transform_primitive(query, ret)
 
     def _flatten_query(self, q):
         if not hasattr(q, 'connector'):
@@ -349,6 +263,9 @@ class ElasticIndexer(Indexer):
 
     def _split_name(self, name):
         name = name.split('__')
+        if not name[0]:
+            name = name[1:]
+            name[0] = '__' + name[0]
         oper = None
         prefix = None
         if len(name)>1 and name[-1] in ('exact', 'iexact', 'contains', 'icontains', 'startswith', 'istartswith',
@@ -384,6 +301,8 @@ class ElasticIndexer(Indexer):
         print("Filters", filters)
         print("Fulltext matches", fulltext_matches)
 
+        filters.append(Q(_fedora_type__exact=self._get_elastic_class(model_class)))
+
         f = Q()
         f.connector = Q.AND
         f.children = filters
@@ -414,17 +333,25 @@ class ElasticIndexer(Indexer):
 
         print(json.dumps(built_query, indent=4))
 
+        resp = self.es.search(body=built_query)
+        print(resp)
+
+    def _get_elastic_class(self, model_class):
+        return model_class.__module__.replace('.', '_') + "_" + model_class.__name__
+
 
 if __name__ == '__main__':
 
     def test():
+        import django
+        django.setup()
 
-        from fedoralink.models import FedoraObject
+        from fedoralink.common_namespaces.dc import DCObject
         from django.db.models import Q
 
         indexer = ElasticIndexer({
             'SEARCH_URL': 'http://localhost:9200/vscht'
         })
-        indexer.search(Q(faculty_code__exact='FCHI')&~Q(title__fulltext='Kinetika'), FedoraObject, None, None, None, None, None)
+        indexer.search(Q(faculty_code__exact='FCHT')&Q(creator__fulltext='Anna'), DCObject, None, None, None, None, None)
 
     test()

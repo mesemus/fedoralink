@@ -64,9 +64,9 @@ class Command(BaseCommand):
             new_properties = {
             }
 
-            fields['__fedora__id']      = FEDORA_ID_FIELD
-            fields['__fedora__parent']  = FEDORA_PARENT_FIELD
-            fields['__fedora__type']    = FEDORA_TYPE_FIELD
+            fields['_fedora_id']      = FEDORA_ID_FIELD
+            fields['_fedora_parent']  = FEDORA_PARENT_FIELD
+            fields['_fedora_type']    = FEDORA_TYPE_FIELD
 
             for fldname, field in fields.items():
                 if fldname in existing_properties:
