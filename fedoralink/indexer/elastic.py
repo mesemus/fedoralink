@@ -6,6 +6,7 @@ import urllib.parse
 
 import base64
 import functools
+from django.conf import settings
 from django.db.models import Q
 
 import fedoralink
@@ -14,6 +15,7 @@ from elasticsearch import Elasticsearch
 from rdflib import Literal, URIRef, RDF
 
 from fedoralink.fedorans import FEDORA
+from fedoralink.fields import LangTextAreaField
 from fedoralink.indexer import Indexer, IndexedField, FEDORA_TYPE_FIELD, FEDORA_PARENT_FIELD
 from fedoralink.models import IndexableFedoraObject
 from fedoralink.rdfmetadata import RDFMetadata
@@ -132,13 +134,6 @@ class ElasticIndexer(Indexer):
         for child in q.children:
             self._flatten_query(child)
 
-    def _get_all_fields(self, q, fields):
-        if not is_q(q):
-            fields.add(self._split_name(q[0])[1])
-        else:
-            for c in q.children:
-                self._get_all_fields(c, fields)
-
     def _demorgan(self, q):
         if not is_q(q):
             return
@@ -219,7 +214,7 @@ class ElasticIndexer(Indexer):
                 nested = {}
                 container.append(nested)
                 nested = gc(nested, "nested", {})
-                nested['path'] = '.'.join([x for x in fld2id[prefix]])
+                nested['path'] = '.'.join([x for x in map(lambda x: fld2id[x], prefix)])
                 nested = gc(nested, 'query', {})
 
                 if q.connector == 'AND':
@@ -246,22 +241,22 @@ class ElasticIndexer(Indexer):
             if q[2]:
                 ret = gc(ret, 'bool', {})
                 ret = gc(ret, 'must_not', {})
-        prefix, name, oper = self._split_name(q[0])
+        prefix, name, oper, transformed_name = self._split_name(q[0], fld2id)
 
         if not oper or oper == 'exact':
             ret['term'] = {
-                fld2id[name] + "__exact" : q[1]
+                transformed_name + "__exact" : q[1]
             }
         elif oper == 'fulltext' and inside_fulltext_query:
             ret['match'] = {
-                fld2id[name] : q[1]
+                transformed_name : q[1]
             }
         else:
             raise NotImplementedError("operation %s not yet implemented, inside fulltext match %s" % (oper, inside_fulltext_query))
 
     def _get_common_prefix(self, q):
         if not is_q(q):
-            prefix = self._split_name(q[0])[0]
+            prefix = self._split_name(q[0], None)[0]
             if not prefix:
                 return []
             return prefix.split('.')
@@ -282,7 +277,7 @@ class ElasticIndexer(Indexer):
         return common
 
     @staticmethod
-    def _split_name(name):
+    def _split_name(name, fld2id):
         name = name.split('__')
         if not name[0]:
             name = name[1:]
@@ -293,24 +288,52 @@ class ElasticIndexer(Indexer):
                                         'endswith', 'iendswith', 'fulltext', 'gt', 'gte', 'lt', 'lte'):
             oper = name[-1]
             name = name[:-1]
-        if len(name)>1:
+        if len(name) > 1:
             prefix = '.'.join(name[:-1])
+        if fld2id:
+            if prefix:
+                transformed_name = fld2id[prefix] + "." + name[-1]
+            else:
+                transformed_name = fld2id[name[-1]]
+        else:
+            transformed_name = None
         name = '.'.join(name)
-        return prefix, name, oper
+        # TODO: fedoralink facets
+
+        return prefix, name, oper, transformed_name
+
+    def _get_all_fields(self, q, fields, fld2id):
+        if not is_q(q):
+            fields.add(self._split_name(q[0], fld2id)[3])
+        else:
+            for c in q.children:
+                self._get_all_fields(c, fields, fld2id)
 
     def search(self, query, model_class, start, end, facets, ordering, values):
 
         self._demorgan(query)
         self._flatten_query(query)
-        all_fields = set()
 
-        self._get_all_fields(query, all_fields)
+        fld2id = {}
+        id2fld = {}
+        for fld in model_class._meta.fields:
+            id_in_elasticsearch = url2id(fld.fedora_field.rdf_name)
 
-        fld2id = {
-            fld.name: url2id(fld.fedora_field.rdf_name) for fld in model_class._meta.fields
-        }
+            if 'lang' in fld.fedora_field.field_type:
+                for lang in settings.LANGUAGES:
+                    nested_id_in_elasticsearch = id_in_elasticsearch + '.' + lang[0]
+
+                    fld2id[fld.name + '.' + lang[0]] = nested_id_in_elasticsearch
+                    id2fld[nested_id_in_elasticsearch] = fld.name
+
+            fld2id[fld.name] = id_in_elasticsearch
+            id2fld[id_in_elasticsearch] = fld.name
+
         fld2id['_fedoralink_model'] = '_fedoralink_model'
-        id2fld = { v:k for k,v in fld2id.items()}
+        id2fld['_fedoralink_model'] = '_fedoralink_model'
+
+        all_fields = set()
+        self._get_all_fields(query, all_fields, fld2id)
 
         filters = []
         fulltext_matches  = []
@@ -384,7 +407,8 @@ class ElasticIndexer(Indexer):
             "aggs" : facets_clause,
             "highlight" : {
                 "fields" : {
-                    fld2id[k]: {} for k in all_fields
+                    k: {} for k in all_fields
+                    # '*' : {}
                 },
                  "require_field_match": False
             }
@@ -438,7 +462,7 @@ class ElasticIndexer(Indexer):
             else:
                 metadata[URIRef(fld)] = Literal(fldval)
 
-        highlight = { id2fld[k] : v for k, v in doc['highlight'].items() }
+        highlight = { id2fld[k] : v for k, v in doc.get('highlight', {}).items() if k in id2fld }
 
         return (metadata, highlight)
 
@@ -464,8 +488,9 @@ if __name__ == '__main__':
             'SEARCH_URL': 'http://localhost:9200/vscht'
         })
 
-        resp = QualificationWork.objects.filter(creator__fulltext='Motejlková').order_by('creator').request_facets('department_code')
+        # resp = QualificationWork.objects.filter(creator__fulltext='Motejlková').order_by('creator').request_facets('department_code')
         # resp = QualificationWork.objects.all().order_by('creator').request_facets('department_code')
+        resp = QualificationWork.objects.filter(faculty__cs__fulltext="ochrana")
         print("Facets", resp.facets)
         for o in resp:
             print("Object: ", o, o._highlighted)

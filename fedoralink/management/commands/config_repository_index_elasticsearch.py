@@ -83,6 +83,7 @@ class Command(BaseCommand):
 
                 if 'lang' in field.field_type:
                     props['type'] = 'nested'
+                    props["include_in_root"] = 'true'
                     props['properties'] = self.gen_languages_mapping()
                 elif 'text' in field.field_type or 'string' in field.field_type:
                     props['type'] = 'string'
