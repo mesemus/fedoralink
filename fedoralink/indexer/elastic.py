@@ -132,6 +132,13 @@ class ElasticIndexer(Indexer):
         for child in q.children:
             self._flatten_query(child)
 
+    def _get_all_fields(self, q, fields):
+        if not is_q(q):
+            fields.add(self._split_name(q[0])[1])
+        else:
+            for c in q.children:
+                self._get_all_fields(c, fields)
+
     def _demorgan(self, q):
         if not is_q(q):
             return
@@ -295,6 +302,9 @@ class ElasticIndexer(Indexer):
 
         self._demorgan(query)
         self._flatten_query(query)
+        all_fields = set()
+
+        self._get_all_fields(query, all_fields)
 
         fld2id = {
             fld.name: url2id(fld.fedora_field.rdf_name) for fld in model_class._meta.fields
@@ -371,7 +381,13 @@ class ElasticIndexer(Indexer):
             "query": {
                 "filtered": built_query
             },
-            "aggs" : facets_clause
+            "aggs" : facets_clause,
+            "highlight" : {
+                "fields" : {
+                    fld2id[k]: {} for k in all_fields
+                },
+                 "require_field_match": False
+            }
         }
 
         # print(json.dumps(built_query, indent=4))
@@ -383,7 +399,7 @@ class ElasticIndexer(Indexer):
         instances = []
         for doc in resp['hits']['hits']:
             if values is None:
-                instances.append(self.build_instance(doc, model_class, values))
+                instances.append(self.build_instance(doc, model_class, values, id2fld))
 
         # print(id2fld)
 
@@ -398,7 +414,7 @@ class ElasticIndexer(Indexer):
             ]
         }
 
-    def build_instance(self, doc, model_class, values):
+    def build_instance(self, doc, model_class, values, id2fld):
         source = doc['_source']
         metadata = RDFMetadata(source['_fedora_id'])
 
@@ -422,7 +438,9 @@ class ElasticIndexer(Indexer):
             else:
                 metadata[URIRef(fld)] = Literal(fldval)
 
-        return (metadata, {})   # TODO: highlighting
+        highlight = { id2fld[k] : v for k, v in doc['highlight'].items() }
+
+        return (metadata, highlight)
 
     def _get_elastic_class(self, model_class):
         return model_class.__module__.replace('.', '_') + "_" + model_class.__name__
@@ -446,11 +464,11 @@ if __name__ == '__main__':
             'SEARCH_URL': 'http://localhost:9200/vscht'
         })
 
-        # resp = QualificationWork.objects.filter(creator__fulltext='Motejlková').order_by('creator').request_facets('department_code')
-        resp = QualificationWork.objects.all().order_by('creator').request_facets('department_code')
+        resp = QualificationWork.objects.filter(creator__fulltext='Motejlková').order_by('creator').request_facets('department_code')
+        # resp = QualificationWork.objects.all().order_by('creator').request_facets('department_code')
         print("Facets", resp.facets)
         for o in resp:
-            print("Object: ", o)
+            print("Object: ", o, o._highlighted)
 
         # print(indexer.search(Q(creator__fulltext='Motejlková'), DCObject, None, None, None, None, None))
 

@@ -100,6 +100,9 @@ class Command(BaseCommand):
                 else:
                     raise Exception("Mapping type %s not handled yet" % field.field_type)
 
+            new_mapping['_all'] = {
+                "store": True
+            }
 
             new_mapping['properties'] = new_properties
             print(json.dumps(new_mapping, indent=4))

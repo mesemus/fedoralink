@@ -251,7 +251,7 @@ class QueryData:
         if values is None:
             for x in raw_data:
                 d = self._construct(x[0])
-                d.highlighted = x[1]
+                d._highlighted = x[1]
                 self.data.append(d)
         else:
             self.data.extend(raw_data)
