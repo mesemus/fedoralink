@@ -84,7 +84,7 @@ class Command(BaseCommand):
                 if 'lang' in field.field_type:
                     props['type'] = 'nested'
                     props["include_in_root"] = 'true'
-                    props['properties'] = self.gen_languages_mapping()
+                    props['properties'] = self.gen_languages_mapping(fldname + ".")
                 elif 'text' in field.field_type or 'string' in field.field_type:
                     props['type'] = 'string'
                     props['copy_to'] = fldname + "__exact"
@@ -112,16 +112,24 @@ class Command(BaseCommand):
 
 
     @staticmethod
-    def gen_languages_mapping():
+    def gen_languages_mapping(prefix):
         ret = {
-            lang[0] : { 'type': 'string', 'copy_to': 'all' } for lang in settings.LANGUAGES
+            lang[0] : { 'type': 'string', 'copy_to': [prefix+'all', prefix+'all__exact', prefix+lang[0] + "__exact"] } for lang in settings.LANGUAGES
         }
         if 'en' in ret:
             ret['en']['analyzer'] = 'english'
         if 'cs' in ret:
             ret['cs']['analyzer'] = 'czech'
 
-        ret['null'] = { 'type' : 'string', 'copy_to': 'all' }
+        ret.update({
+            lang[0]+"__exact" : { 'type': 'string', 'index': 'not_analyzed', 'store': True} for lang in settings.LANGUAGES
+        })
+
+
+        ret['null'] = { 'type' : 'string', 'copy_to': [prefix+'all', prefix+'all__exact', prefix+'null__exact'] }
         ret['all']  = { 'type' : 'string' }
+
+        ret['null__exact'] = { 'type' : 'string', 'index': 'not_analyzed', 'store': True }
+        ret['all__exact']  = { 'type' : 'string', 'index': 'not_analyzed', 'store': True }
 
         return ret

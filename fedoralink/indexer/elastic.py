@@ -384,9 +384,9 @@ class ElasticIndexer(Indexer):
         facets_clause = {}
         if facets:
             for f in facets:
-                facets_clause[fld2id[f]] = {
+                facets_clause[fld2id[f.replace('__', '.')]] = {
                     "terms" : {
-                        "field": fld2id[f],
+                        "field": fld2id[f.replace('__', '.')] + "__exact",
                         "size": 0
                     }
                 }
@@ -414,7 +414,7 @@ class ElasticIndexer(Indexer):
             }
         }
 
-        # print(json.dumps(built_query, indent=4))
+        print(json.dumps(built_query, indent=4))
 
         resp = self.es.search(body=built_query)
 
@@ -490,7 +490,7 @@ if __name__ == '__main__':
 
         # resp = QualificationWork.objects.filter(creator__fulltext='Motejlková').order_by('creator').request_facets('department_code')
         # resp = QualificationWork.objects.all().order_by('creator').request_facets('department_code')
-        resp = QualificationWork.objects.filter(faculty__cs__fulltext="ochrana")
+        resp = QualificationWork.objects.filter(faculty__cs__fulltext="ochrana").request_facets('faculty__cs')
         print("Facets", resp.facets)
         for o in resp:
             print("Object: ", o, o._highlighted)
