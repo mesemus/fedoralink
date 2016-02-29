@@ -82,6 +82,7 @@ class IndexedField:
     def __repr__(self):
         return str(self)
 
+FEDORALINK_TYPE_FIELD = IndexedField('_fedoralink_model', FEDORA.fedoralink)
 FEDORA_TYPE_FIELD = IndexedField('type', RDF.type)
 FEDORA_PARENT_FIELD = IndexedField('parent', FEDORA.hasParent)
 FEDORA_ID_FIELD = IndexedField('id', FEDORA.id)

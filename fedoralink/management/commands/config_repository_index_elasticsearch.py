@@ -5,8 +5,9 @@ from django.conf import settings
 from django.core.management import BaseCommand
 from django.db import connections
 
-from fedoralink.indexer import FEDORA_ID_FIELD, FEDORA_PARENT_FIELD, FEDORA_TYPE_FIELD
+from fedoralink.indexer import FEDORA_ID_FIELD, FEDORA_PARENT_FIELD, FEDORA_TYPE_FIELD, FEDORALINK_TYPE_FIELD
 from fedoralink.type_manager import FedoraTypeManager
+from fedoralink.utils import url2id, id2url
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger('config_repository_index')
@@ -50,8 +51,9 @@ class Command(BaseCommand):
             modelclz = FedoraTypeManager.get_model_class(split_model_name)
 
             for field in modelclz.indexed_fields:
-                if field.name not in fields:
-                    fields[field.name] = field
+                fldname = url2id(field.rdf_name)
+                if fldname not in fields:
+                    fields[fldname] = field
 
             indexer = connections['repository'].indexer
 
@@ -64,9 +66,10 @@ class Command(BaseCommand):
             new_properties = {
             }
 
-            fields['_fedora_id']      = FEDORA_ID_FIELD
-            fields['_fedora_parent']  = FEDORA_PARENT_FIELD
-            fields['_fedora_type']    = FEDORA_TYPE_FIELD
+            fields['_fedora_id']       = FEDORA_ID_FIELD
+            fields['_fedora_parent']   = FEDORA_PARENT_FIELD
+            fields['_fedora_type']     = FEDORA_TYPE_FIELD
+            fields['_fedoralink_model'] = FEDORALINK_TYPE_FIELD
 
             for fldname, field in fields.items():
                 if fldname in existing_properties:

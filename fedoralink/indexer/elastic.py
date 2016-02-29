@@ -16,6 +16,9 @@ from rdflib import Literal, URIRef, RDF
 from fedoralink.fedorans import FEDORA
 from fedoralink.indexer import Indexer, IndexedField, FEDORA_TYPE_FIELD, FEDORA_PARENT_FIELD
 from fedoralink.models import IndexableFedoraObject
+from fedoralink.rdfmetadata import RDFMetadata
+from fedoralink.utils import url2id, id2url
+
 
 def gc(map, key, default):
     if key in map:
@@ -52,7 +55,7 @@ class ElasticIndexer(Indexer):
                 data = data.value
 
             if isinstance(data, URIRef):
-                indexer_data[field.name] = str(data)
+                return str(data)
 
             if 'lang' in field.field_type:
                 lng = {}
@@ -87,14 +90,17 @@ class ElasticIndexer(Indexer):
             if data is None:
                 continue
 
-            indexer_data[field.name] = convert(data, field)
+            indexer_data[url2id(field.rdf_name)] = convert(data, field)
 
         id = base64.b64encode(str(obj.pk).encode('utf-8')).decode('utf-8')
 
         indexer_data['_fedora_id'] = obj.pk
         indexer_data['_fedora_parent'] = convert(obj[FEDORA.hasParent], FEDORA_PARENT_FIELD)
-        indexer_data['_fedora_type'] = [
+        indexer_data['_fedoralink_model'] = [
             self._get_elastic_class(x) for x in inspect.getmro(clz)
+        ]
+        indexer_data['_fedora_type'] = [
+            convert(x, FEDORA_TYPE_FIELD) for x in obj[RDF.type]
         ]
 
         # print(indexer_data)
@@ -106,7 +112,7 @@ class ElasticIndexer(Indexer):
 
 
     def _flatten_query(self, q):
-        if not hasattr(q, 'connector'):
+        if not is_q(q):
             return
         conn = q.connector
         child_index = -1
@@ -114,8 +120,10 @@ class ElasticIndexer(Indexer):
             child_index += 1
             c  = q.children[child_index]
 
-            if (getattr(c, 'connector', None) == conn and not c.negated) or \
-                    (len(getattr(c, 'children', [])) == 1 and not c.negated):
+            if is_q(c) and (
+                (c.connector == conn and not c.negated) or
+                (len(c.children) == 1 and not c.negated)):
+
                 # move children up
                 q.children = q.children[:child_index] + c.children + q.children[child_index+1:]
                 child_index -= 1
@@ -125,8 +133,7 @@ class ElasticIndexer(Indexer):
             self._flatten_query(child)
 
     def _demorgan(self, q):
-        print(q)
-        if not hasattr(q, 'connector'):
+        if not is_q(q):
             return
         if q.negated:
             if q.connector == 'AND':
@@ -158,7 +165,7 @@ class ElasticIndexer(Indexer):
 
     def _is_filter(self, q):
 
-        if not hasattr(q, 'children'):
+        if not is_q(q):
             if q[0].endswith('__fulltext'):
                 return False
             return True
@@ -169,16 +176,22 @@ class ElasticIndexer(Indexer):
 
         return True
 
+    def _build_filter(self, q, fld2id, container):
+        return self._build_query(q, fld2id, container, False)
+
+    def _build_fulltext(self, q, fld2id, container):
+        return self._build_query(q, fld2id, container, True)
+
     # noinspection PyTypeChecker
-    def _build_filter(self, q, container=None):
+    def _build_query(self, q, fld2id, container, inside_fulltext):
 
         if container is None:
             container = {}
 
         ret = container
 
-        if not hasattr(q, 'children'):
-            self._build_filter_primitive(q, container)
+        if not is_q(q):
+            self._build_primitive(q, fld2id, container, inside_fulltext_query=inside_fulltext)
             return container
 
         if q.connector == 'AND':
@@ -188,86 +201,87 @@ class ElasticIndexer(Indexer):
             container = gc(container, 'bool', {})
             container = gc(container, 'should', [])
 
+        by_prefix = {}
         for c in q.children:
-            r = {}
-            container.append(r)
-            self._build_filter(c, r)
+            prefix = self._get_common_prefix(c)
+            by_prefix.setdefault(tuple(prefix), []).append(c)
+
+        for prefix, children in by_prefix.items():
+
+            if prefix:
+                nested = {}
+                container.append(nested)
+                nested = gc(nested, "nested", {})
+                nested['path'] = '.'.join([x for x in fld2id[prefix]])
+                nested = gc(nested, 'query', {})
+
+                if q.connector == 'AND':
+                    nested = gc(nested, 'bool', {})
+                    nested = gc(nested, 'must', [])
+                else:
+                    nested = gc(nested, 'bool', {})
+                    nested = gc(nested, 'should', [])
+
+                cont = nested
+            else:
+                cont = container
+
+            for c in children:
+                r = {}
+                cont.append(r)
+
+                self._build_query(c, fld2id, r, inside_fulltext)
 
         return ret
 
-
-    def _build_filter_primitive(self, q, ret):
+    def _build_primitive(self, q, fld2id, ret, inside_fulltext_query=True):
         if len(q) == 3:
             if q[2]:
                 ret = gc(ret, 'bool', {})
                 ret = gc(ret, 'must_not', {})
         prefix, name, oper = self._split_name(q[0])
-        if prefix:
-            raise NotImplementedError("nested not yet implemented")
+
+        if not oper or oper == 'exact':
+            ret['term'] = {
+                fld2id[name] + "__exact" : q[1]
+            }
+        elif oper == 'fulltext' and inside_fulltext_query:
+            ret['match'] = {
+                fld2id[name] : q[1]
+            }
         else:
-            if not oper or oper == 'exact':
-                ret['term'] = {
-                    name + "__exact" : q[1]
-                }
-            else:
-                raise NotImplementedError("operation %s not yet implemented" % oper)
+            raise NotImplementedError("operation %s not yet implemented, inside fulltext match %s" % (oper, inside_fulltext_query))
 
-
-    # noinspection PyTypeChecker
-    def _build_fulltext(self, q, container=None):
-
-        if container is None:
-            container = {}
-
-        ret = container
-
-        if not hasattr(q, 'children'):
-            self._build_fulltext_primitive(q, container)
-            return container
-
-        if q.connector == 'AND':
-            container = gc(container, 'bool', {})
-            container = gc(container, 'must', [])
-        else:
-            container = gc(container, 'bool', {})
-            container = gc(container, 'should', [])
-
+    def _get_common_prefix(self, q):
+        if not is_q(q):
+            prefix = self._split_name(q[0])[0]
+            if not prefix:
+                return []
+            return prefix.split('.')
+        common = None
         for c in q.children:
-            r = {}
-            container.append(r)
-            self._build_fulltext(c, r)
-
-        return ret
-
-
-    def _build_fulltext_primitive(self, q, ret):
-        if len(q) == 3:
-            if q[2]:
-                ret = gc(ret, 'bool', {})
-                ret = gc(ret, 'must_not', {})
-        prefix, name, oper = self._split_name(q[0])
-        if prefix:
-            raise NotImplementedError("nested not yet implemented")
-        else:
-            if not oper or oper == 'exact':
-                ret['term'] = {
-                    name + "__exact" : q[1]
-                }
-            elif oper=='fulltext':
-                ret['match'] = {
-                    name : q[1]
-                }
+            prefix = self._get_common_prefix(c)
+            if common is None:
+                common = prefix
             else:
-                raise NotImplementedError("operation %s not yet implemented" % oper)
+                if len(common)>len(prefix):
+                    common = common[:len(prefix)]
+                for i in range(len(common)):
+                    if common[i] != prefix[i]:
+                        common = common[:i]
+                        break
+                if not common:
+                    break
+        return common
 
-
-    def _split_name(self, name):
+    @staticmethod
+    def _split_name(name):
         name = name.split('__')
         if not name[0]:
             name = name[1:]
             name[0] = '__' + name[0]
         oper = None
-        prefix = None
+        prefix = ''
         if len(name)>1 and name[-1] in ('exact', 'iexact', 'contains', 'icontains', 'startswith', 'istartswith',
                                         'endswith', 'iendswith', 'fulltext', 'gt', 'gte', 'lt', 'lte'):
             oper = name[-1]
@@ -277,67 +291,145 @@ class ElasticIndexer(Indexer):
         name = '.'.join(name)
         return prefix, name, oper
 
-
-
     def search(self, query, model_class, start, end, facets, ordering, values):
 
         self._demorgan(query)
         self._flatten_query(query)
 
-        print(query)
-
-        if query.connector != 'AND':
-            raise NotImplementedError("Only top-level AND connector is implemented now")
+        fld2id = {
+            fld.name: url2id(fld.fedora_field.rdf_name) for fld in model_class._meta.fields
+        }
+        fld2id['_fedoralink_model'] = '_fedoralink_model'
+        id2fld = { v:k for k,v in fld2id.items()}
 
         filters = []
         fulltext_matches  = []
 
-        for c in query.children:
-            if self._is_filter(c):
-                filters.append(c)
-            else:
-                fulltext_matches.append(c)
+        if query:
+            if query.connector != 'AND':
+                raise NotImplementedError("Only top-level AND connector is implemented now")
 
-        print("Filters", filters)
-        print("Fulltext matches", fulltext_matches)
+            for c in query.children:
+                if self._is_filter(c):
+                    filters.append(c)
+                else:
+                    fulltext_matches.append(c)
 
-        filters.append(Q(_fedora_type__exact=self._get_elastic_class(model_class)))
+            filters.append(Q(_fedoralink_model__exact=self._get_elastic_class(model_class)))
 
-        f = Q()
-        f.connector = Q.AND
-        f.children = filters
-        filters = f
+            f = Q()
+            f.connector = Q.AND
+            f.children = filters
+            filters = f
 
-        filters = self._build_filter(filters)
+            filters = self._build_filter(filters, fld2id, None)
 
-        f = Q()
-        f.connector = Q.AND
-        f.children = fulltext_matches
-        fulltext_matches = f
+            f = Q()
+            f.connector = Q.AND
+            f.children = fulltext_matches
+            fulltext_matches = f
 
-        fulltext_matches = self._build_fulltext(fulltext_matches)
+            fulltext_matches = self._build_fulltext(fulltext_matches, fld2id, None)
+        else:
+            filters = Q(_fedoralink_model__exact=self._get_elastic_class(model_class))
+            filters = self._build_filter(filters, fld2id, None)
+            fulltext_matches = {}
 
+        ordering_clause = []
+        if ordering:
+            for o in ordering:
+                dir = 'asc'
+                if o[0] == '-':
+                    dir = 'desc'
+                    o = o[1:]
+                ordering_clause.append({
+                    fld2id[o] : {
+                        'order': dir
+                    }
+                })
 
-        built_query = {
-            "query": {
-                "filtered": {
-                    "filter": {
-                        'bool' : filters['bool']
-                    },
-                    "query": {
-                        'bool' : fulltext_matches['bool']
+        facets_clause = {}
+        if facets:
+            for f in facets:
+                facets_clause[fld2id[f]] = {
+                    "terms" : {
+                        "field": fld2id[f],
+                        "size": 0
                     }
                 }
+
+        built_query = {}
+        if filters:
+            built_query['filter'] = {'bool': filters.get('bool', [])}
+
+        if fulltext_matches:
+            built_query['query'] = {
+                'bool' : fulltext_matches.get('bool', [])
             }
+        built_query = {
+            "sort": ordering_clause,
+            "query": {
+                "filtered": built_query
+            },
+            "aggs" : facets_clause
         }
 
-        print(json.dumps(built_query, indent=4))
+        # print(json.dumps(built_query, indent=4))
 
         resp = self.es.search(body=built_query)
-        print(resp)
+
+        # print(json.dumps(resp, indent=4))
+
+        instances = []
+        for doc in resp['hits']['hits']:
+            if values is None:
+                instances.append(self.build_instance(doc, model_class, values))
+
+        # print(id2fld)
+
+        return {
+            'count'  : resp['hits']['total'],
+            'data'   : iter(instances),
+            'facets' : [
+                    (
+                        id2fld[k],
+                        [ (vv['key'], vv['doc_count']) for vv in v['buckets'] ]
+                    ) for k, v in resp.get('aggregations', {}).items()
+            ]
+        }
+
+    def build_instance(self, doc, model_class, values):
+        source = doc['_source']
+        metadata = RDFMetadata(source['_fedora_id'])
+
+        metadata[FEDORA.hasParent] = URIRef(source['_fedora_parent'])
+        metadata[RDF.type] = [URIRef(x) for x in source['_fedora_type']]
+
+        for fld, fldval in source.items():
+            if fld in ('_fedora_type', '_fedora_parent', '_fedora_id', '_fedoralink_model'):
+                continue
+
+            fld = id2url(fld)
+            if isinstance(fldval, dict):
+                # TODO: nested !!!
+                langs = []
+                for lang, val in fldval.items():
+                    if lang == 'all':
+                        continue
+                    if lang == 'null':
+                        lang = None
+                    langs.append(Literal(val, lang=lang))
+            else:
+                metadata[URIRef(fld)] = Literal(fldval)
+
+        return (metadata, {})   # TODO: highlighting
 
     def _get_elastic_class(self, model_class):
         return model_class.__module__.replace('.', '_') + "_" + model_class.__name__
+
+
+def is_q(x):
+    return isinstance(x, Q)
 
 
 if __name__ == '__main__':
@@ -347,11 +439,19 @@ if __name__ == '__main__':
         django.setup()
 
         from fedoralink.common_namespaces.dc import DCObject
+        from zaverecne_prace.models import QualificationWork
         from django.db.models import Q
 
         indexer = ElasticIndexer({
             'SEARCH_URL': 'http://localhost:9200/vscht'
         })
-        indexer.search(Q(faculty_code__exact='FCHT')&Q(creator__fulltext='Anna'), DCObject, None, None, None, None, None)
+
+        # resp = QualificationWork.objects.filter(creator__fulltext='Motejlková').order_by('creator').request_facets('department_code')
+        resp = QualificationWork.objects.all().order_by('creator').request_facets('department_code')
+        print("Facets", resp.facets)
+        for o in resp:
+            print("Object: ", o)
+
+        # print(indexer.search(Q(creator__fulltext='Motejlková'), DCObject, None, None, None, None, None))
 
     test()

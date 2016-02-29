@@ -64,9 +64,13 @@ class DjangoMetadataBridge:
             afld.blank = not fld.required
             afld.name = fld.name
             afld.attname = fld.name
+            afld.model = model_class
+            afld.fedora_field = fld
             self.concrete_fields.append(afld)
 
         self.fields = self.concrete_fields
+        self.app_label = model_class.__module__
+        self.object_name = model_class.__name__
 
     @staticmethod
     def get_django_model_field(fld):
