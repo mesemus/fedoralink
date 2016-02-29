@@ -390,6 +390,22 @@ class ElasticIndexer(Indexer):
                         "size": 0
                     }
                 }
+#
+# TODO: facets for nested elements
+#
+# "http__3a__2f__2fcis__2evscht__2ecz__2fns__2frepository__23faculty": {
+#             "nested": {
+#                 "path": "http__3a__2f__2fcis__2evscht__2ecz__2fns__2frepository__23faculty"
+#             },
+#             "aggs": {
+#                 "cs": {
+#                     "terms": {
+#                         "field": "http__3a__2f__2fcis__2evscht__2ecz__2fns__2frepository__23faculty.cs__exact",
+#                         "size": 0
+#                     }
+#                 }
+#             }
+#         }
 
         built_query = {}
         if filters:
