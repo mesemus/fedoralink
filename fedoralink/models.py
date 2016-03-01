@@ -347,6 +347,13 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
         # store django _meta
         cls._meta = DjangoMetadataBridge(cls, indexed_fields)
 
+        meta_inner_class = getattr(cls, 'Meta', None)
+        if meta_inner_class:
+            cls._meta.rdf_types = getattr(meta_inner_class, 'rdf_types', None)
+            if cls._meta.rdf_types:
+                FedoraTypeManager.register_model(cls, on_rdf_type=cls._meta.rdf_types)
+
+
 class IndexableFedoraObject(FedoraObject, metaclass=IndexableFedoraObjectMetaclass):
     def created(self):
         super().created()
