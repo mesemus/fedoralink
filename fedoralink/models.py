@@ -390,3 +390,14 @@ class IndexableFedoraObject(FedoraObject, metaclass=IndexableFedoraObjectMetacla
     def pk(self):
         return self.id
 
+
+def fedoralink_classes(obj):
+    """
+    Get the original fedoralink classes of of a given object. They might be different to real classes (via getmro) because
+    fedoralink autogenerates types when deserializing from RDF metadata/Indexer data.
+
+    :param obj: an instance of FedoraObject
+    :return:    list of classes
+    """
+    # noinspection PyProtectedMember
+    return obj._type

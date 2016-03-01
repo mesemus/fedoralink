@@ -1,35 +1,23 @@
 import inspect
-import json
 import traceback
 import urllib
 import urllib.parse
 
 import base64
-import functools
+from dateutil.parser import parse
 from django.conf import settings
 from django.db.models import Q
-
-import fedoralink
-from dateutil.parser import parse
 from elasticsearch import Elasticsearch
 from rdflib import Literal, URIRef, RDF
 
 from fedoralink.fedorans import FEDORA
-from fedoralink.fields import LangTextAreaField
-from fedoralink.indexer import Indexer, IndexedField, FEDORA_TYPE_FIELD, FEDORA_PARENT_FIELD
-from fedoralink.models import IndexableFedoraObject
+from fedoralink.indexer import Indexer, FEDORA_TYPE_FIELD, FEDORA_PARENT_FIELD
+from fedoralink.models import IndexableFedoraObject, fedoralink_classes
 from fedoralink.rdfmetadata import RDFMetadata
 from fedoralink.utils import url2id, id2url
 
 
-def gc(map, key, default):
-    if key in map:
-        return map[key]
-    map[key] = default
-    return default
-
 class ElasticIndexer(Indexer):
-
     def __init__(self, repo_conf):
         url = urllib.parse.urlsplit(repo_conf['SEARCH_URL'])
         self.index_name = url.path
@@ -39,7 +27,7 @@ class ElasticIndexer(Indexer):
         while self.index_name.endswith('/'):
             self.index_name = self.index_name[:-1]
 
-        self.es = Elasticsearch(({"host": url.hostname, "port": url.port}, ))
+        self.es = Elasticsearch(({"host": url.hostname, "port": url.port},))
 
         if not self.es.indices.exists(self.index_name):
             self.es.indices.create(index=self.index_name)
@@ -52,39 +40,14 @@ class ElasticIndexer(Indexer):
 
     def reindex(self, obj):
 
-        def convert(data, field):
-            if isinstance(data, Literal):
-                data = data.value
-
-            if isinstance(data, URIRef):
-                return str(data)
-
-            if 'lang' in field.field_type:
-                lng = {}
-                for d in data:
-                    lang = d.language
-                    if not lang:
-                        lang = 'null'
-                    lng[lang] = str(d)
-                return lng
-
-            if isinstance(data, list):
-                return [convert(x, field) for x in data]
-
-            elif 'date' in field.field_type:
-                if isinstance(data, str):
-                    data = parse(data)
-                return data.strftime('%Y-%m-%dT%H:%M:%S')
-
-
-            return data
-
-        clz = obj._type[0]
-        doc_type = self._get_elastic_class(clz)
+        # get the fedoralink's original class from the obj.
+        clz = fedoralink_classes(obj)[0]
 
         if not issubclass(clz, IndexableFedoraObject):
             # can not reindex something which does not have a mapping
             return
+
+        doc_type = self._get_elastic_class(clz)
 
         indexer_data = {}
         for field in clz.indexed_fields:
@@ -94,47 +57,39 @@ class ElasticIndexer(Indexer):
 
             indexer_data[url2id(field.rdf_name)] = convert(data, field)
 
-        id = base64.b64encode(str(obj.pk).encode('utf-8')).decode('utf-8')
+        encoded_fedora_id = base64.b64encode(str(obj.pk).encode('utf-8')).decode('utf-8')
 
         indexer_data['_fedora_id'] = obj.pk
         indexer_data['_fedora_parent'] = convert(obj[FEDORA.hasParent], FEDORA_PARENT_FIELD)
-        indexer_data['_fedoralink_model'] = [
-            self._get_elastic_class(x) for x in inspect.getmro(clz)
-        ]
-        indexer_data['_fedora_type'] = [
-            convert(x, FEDORA_TYPE_FIELD) for x in obj[RDF.type]
-        ]
+        indexer_data['_fedoralink_model'] = [ self._get_elastic_class(x) for x in inspect.getmro(clz) ]
+        indexer_data['_fedora_type'] = [ convert(x, FEDORA_TYPE_FIELD) for x in obj[RDF.type] ]
 
-        # print(indexer_data)
+        # noinspection PyBroadException
         try:
-            self.es.index(index=self.index_name, doc_type=doc_type, body=indexer_data, id=id)
+            self.es.index(index=self.index_name, doc_type=doc_type, body=indexer_data, id=encoded_fedora_id)
         except:
             print("Exception in indexing, data", indexer_data)
             traceback.print_exc()
-
 
     def _flatten_query(self, q):
         if not is_q(q):
             return
         conn = q.connector
         child_index = -1
-        while child_index+1 < len(q.children):
+        while child_index + 1 < len(q.children):
             child_index += 1
-            c  = q.children[child_index]
+            c = q.children[child_index]
 
-            if is_q(c) and (
-                (c.connector == conn and not c.negated) or
-                (len(c.children) == 1 and not c.negated)):
-
+            if is_q(c) and ((c.connector == conn and not c.negated) or (len(c.children) == 1 and not c.negated)):
                 # move children up
-                q.children = q.children[:child_index] + c.children + q.children[child_index+1:]
+                q.children = q.children[:child_index] + c.children + q.children[child_index + 1:]
                 child_index -= 1
                 continue
 
         for child in q.children:
             self._flatten_query(child)
 
-    def _demorgan(self, q):
+    def _de_morgan(self, q):
         if not is_q(q):
             return
         if q.negated:
@@ -143,27 +98,28 @@ class ElasticIndexer(Indexer):
             elif q.connector == 'OR':
                 q.connector = 'AND'
             else:
-                raise NotImplementedError('demorgan for %s not yet implemented' % q.connector)
+                raise NotImplementedError('de morgan for %s not yet implemented' % q.connector)
             q.negated = False
 
             for child_index in range(len(q.children)):
                 child = q.children[child_index]
                 if hasattr(child, 'connector'):
                     child.negated = not child.negated
-                    self._demorgan(child)
+                    self._de_morgan(child)
                 else:
-                    q.children[child_index] = self._demorgan_primitive(child)
+                    q.children[child_index] = self._de_morgan_primitive(child)
         else:
             for child_index in range(len(q.children)):
                 child = q.children[child_index]
                 if hasattr(child, 'connector'):
-                    self._demorgan(child)
+                    self._de_morgan(child)
 
-    def _demorgan_primitive(self, val):
+    @staticmethod
+    def _de_morgan_primitive(val):
         if len(val) == 3:
-            return (val[0], val[1], not val[2])
+            return val[0], val[1], not val[2]
         else:
-            return (val[0], val[1], True)
+            return val[0], val[1], True
 
     def _is_filter(self, q):
 
@@ -197,11 +153,11 @@ class ElasticIndexer(Indexer):
             return container
 
         if q.connector == 'AND':
-            container = gc(container, 'bool', {})
-            container = gc(container, 'must', [])
+            container = container.setdefault('bool', {})
+            container = container.setdefault('must', [])
         else:
-            container = gc(container, 'bool', {})
-            container = gc(container, 'should', [])
+            container = container.setdefault('bool', {})
+            container = container.setdefault('should', [])
 
         by_prefix = {}
         for c in q.children:
@@ -213,16 +169,16 @@ class ElasticIndexer(Indexer):
             if prefix:
                 nested = {}
                 container.append(nested)
-                nested = gc(nested, "nested", {})
+                nested = nested.setdefault("nested", {})
                 nested['path'] = '.'.join([x for x in map(lambda x: fld2id[x], prefix)])
-                nested = gc(nested, 'query', {})
+                nested = nested.setdefault('query', {})
 
                 if q.connector == 'AND':
-                    nested = gc(nested, 'bool', {})
-                    nested = gc(nested, 'must', [])
+                    nested = nested.setdefault('bool', {})
+                    nested = nested.setdefault('must', [])
                 else:
-                    nested = gc(nested, 'bool', {})
-                    nested = gc(nested, 'should', [])
+                    nested = nested.setdefault('bool', {})
+                    nested = nested.setdefault('should', [])
 
                 cont = nested
             else:
@@ -239,20 +195,21 @@ class ElasticIndexer(Indexer):
     def _build_primitive(self, q, fld2id, ret, inside_fulltext_query=True):
         if len(q) == 3:
             if q[2]:
-                ret = gc(ret, 'bool', {})
-                ret = gc(ret, 'must_not', {})
-        prefix, name, oper, transformed_name = self._split_name(q[0], fld2id)
+                ret = ret.setdefault('bool', {})
+                ret = ret.setdefault('must_not', {})
+        prefix, name, comparison_operation, transformed_name = self._split_name(q[0], fld2id)
 
-        if not oper or oper == 'exact':
+        if not comparison_operation or comparison_operation == 'exact':
             ret['term'] = {
-                transformed_name + "__exact" : q[1]
+                transformed_name + "__exact": q[1]
             }
-        elif oper == 'fulltext' and inside_fulltext_query:
+        elif comparison_operation == 'fulltext' and inside_fulltext_query:
             ret['match'] = {
-                transformed_name : q[1]
+                transformed_name: q[1]
             }
         else:
-            raise NotImplementedError("operation %s not yet implemented, inside fulltext match %s" % (oper, inside_fulltext_query))
+            raise NotImplementedError("operation %s not yet implemented, inside fulltext match %s" %
+                                      (comparison_operation, inside_fulltext_query))
 
     def _get_common_prefix(self, q):
         if not is_q(q):
@@ -266,7 +223,7 @@ class ElasticIndexer(Indexer):
             if common is None:
                 common = prefix
             else:
-                if len(common)>len(prefix):
+                if len(common) > len(prefix):
                     common = common[:len(prefix)]
                 for i in range(len(common)):
                     if common[i] != prefix[i]:
@@ -282,11 +239,11 @@ class ElasticIndexer(Indexer):
         if not name[0]:
             name = name[1:]
             name[0] = '__' + name[0]
-        oper = None
+        comparison_operation = None
         prefix = ''
-        if len(name)>1 and name[-1] in ('exact', 'iexact', 'contains', 'icontains', 'startswith', 'istartswith',
-                                        'endswith', 'iendswith', 'fulltext', 'gt', 'gte', 'lt', 'lte'):
-            oper = name[-1]
+        if len(name) > 1 and name[-1] in ('exact', 'iexact', 'contains', 'icontains', 'startswith', 'istartswith',
+                                          'endswith', 'iendswith', 'fulltext', 'gt', 'gte', 'lt', 'lte'):
+            comparison_operation = name[-1]
             name = name[:-1]
         if len(name) > 1:
             prefix = '.'.join(name[:-1])
@@ -300,7 +257,7 @@ class ElasticIndexer(Indexer):
         name = '.'.join(name)
         # TODO: fedoralink facets
 
-        return prefix, name, oper, transformed_name
+        return prefix, name, comparison_operation, transformed_name
 
     def _get_all_fields(self, q, fields, fld2id):
         if not is_q(q):
@@ -309,9 +266,10 @@ class ElasticIndexer(Indexer):
             for c in q.children:
                 self._get_all_fields(c, fields, fld2id)
 
+    # noinspection PyProtectedMember
     def search(self, query, model_class, start, end, facets, ordering, values):
 
-        self._demorgan(query)
+        self._de_morgan(query)
         self._flatten_query(query)
 
         fld2id = {}
@@ -336,7 +294,7 @@ class ElasticIndexer(Indexer):
         self._get_all_fields(query, all_fields, fld2id)
 
         filters = []
-        fulltext_matches  = []
+        fulltext_matches = []
 
         if query:
             if query.connector != 'AND':
@@ -378,7 +336,7 @@ class ElasticIndexer(Indexer):
 
         if fulltext_matches:
             built_query['query'] = {
-                'bool' : fulltext_matches.get('bool', [])
+                'bool': fulltext_matches.get('bool', [])
             }
 
         built_query = {
@@ -386,13 +344,13 @@ class ElasticIndexer(Indexer):
             "query": {
                 "filtered": built_query
             },
-            "aggs" : facets_clause,
-            "highlight" : {
-                "fields" : {
+            "aggs": facets_clause,
+            "highlight": {
+                "fields": {
                     k: {} for k in all_fields
                     # '*' : {}
                 },
-                 "require_field_match": False
+                "require_field_match": False
             }
         }
 
@@ -405,9 +363,7 @@ class ElasticIndexer(Indexer):
         instances = []
         for doc in resp['hits']['hits']:
             if values is None:
-                instances.append(self.build_instance(doc, model_class, values, id2fld))
-
-        # print(id2fld)
+                instances.append(self.build_instance(doc, id2fld))
 
         facets = []
         for k, v in resp.get('aggregations', {}).items():
@@ -419,17 +375,18 @@ class ElasticIndexer(Indexer):
                 buckets = v['value']['buckets']
 
             facets.append((
-                        id2fld[k],
-                        [ (vv['key'], vv['doc_count']) for vv in buckets ]
-                    ))
+                id2fld[k],
+                [(vv['key'], vv['doc_count']) for vv in buckets]
+            ))
 
         return {
-            'count'  : resp['hits']['total'],
-            'data'   : iter(instances),
-            'facets' : facets
+            'count': resp['hits']['total'],
+            'data': iter(instances),
+            'facets': facets
         }
 
-    def _generate_facet_clause(self, facets, fld2id):
+    @staticmethod
+    def _generate_facet_clause(facets, fld2id):
         facets_clause = {}
         if facets:
             for f in facets:
@@ -459,55 +416,85 @@ class ElasticIndexer(Indexer):
                     }
         return facets_clause
 
-    def _generate_ordering_clause(self, fld2id, ordering):
+    @staticmethod
+    def _generate_ordering_clause(fld2id, ordering):
         ordering_clause = []
         if ordering:
             for o in ordering:
-                dir = 'asc'
+                sort_direction = 'asc'
                 if o[0] == '-':
-                    dir = 'desc'
+                    sort_direction = 'desc'
                     o = o[1:]
                 ordering_clause.append({
                     fld2id[o]: {
-                        'order': dir
+                        'order': sort_direction
                     }
                 })
         return ordering_clause
 
-    def build_instance(self, doc, model_class, values, id2fld):
+    @staticmethod
+    def build_instance(doc, id2fld):
         source = doc['_source']
         metadata = RDFMetadata(source['_fedora_id'])
 
         metadata[FEDORA.hasParent] = URIRef(source['_fedora_parent'])
         metadata[RDF.type] = [URIRef(x) for x in source['_fedora_type']]
 
-        for fld, fldval in source.items():
+        for fld, field_value in source.items():
             if fld in ('_fedora_type', '_fedora_parent', '_fedora_id', '_fedoralink_model'):
                 continue
 
             fld = id2url(fld)
-            if isinstance(fldval, dict):
+            if isinstance(field_value, dict):
                 # TODO: nested !!!
-                langs = []
-                for lang, val in fldval.items():
+                languages = []
+                for lang, val in field_value.items():
                     if lang == 'all':
                         continue
                     if lang == 'null':
                         lang = None
-                    langs.append(Literal(val, lang=lang))
+                    languages.append(Literal(val, lang=lang))
             else:
-                metadata[URIRef(fld)] = Literal(fldval)
+                metadata[URIRef(fld)] = Literal(field_value)
 
-        highlight = { id2fld[k] : v for k, v in doc.get('highlight', {}).items() if k in id2fld }
+        highlight = {id2fld[k]: v for k, v in doc.get('highlight', {}).items() if k in id2fld}
 
-        return (metadata, highlight)
+        return metadata, highlight
 
-    def _get_elastic_class(self, model_class):
+    @staticmethod
+    def _get_elastic_class(model_class):
         return model_class.__module__.replace('.', '_') + "_" + model_class.__name__
 
 
 def is_q(x):
     return isinstance(x, Q)
+
+
+def convert(data, field):
+    if isinstance(data, Literal):
+        data = data.value
+
+    if isinstance(data, URIRef):
+        return str(data)
+
+    if 'lang' in field.field_type:
+        lng = {}
+        for d in data:
+            lang = d.language
+            if not lang:
+                lang = 'null'
+            lng[lang] = str(d)
+        return lng
+
+    if isinstance(data, list):
+        return [convert(x, field) for x in data]
+
+    elif 'date' in field.field_type:
+        if isinstance(data, str):
+            data = parse(data)
+        return data.strftime('%Y-%m-%dT%H:%M:%S')
+
+    return data
 
 
 if __name__ == '__main__':
@@ -516,21 +503,25 @@ if __name__ == '__main__':
         import django
         django.setup()
 
-        from fedoralink.common_namespaces.dc import DCObject
+        # noinspection PyUnresolvedReferences
         from zaverecne_prace.models import QualificationWork
         from django.db.models import Q
 
-        indexer = ElasticIndexer({
-            'SEARCH_URL': 'http://localhost:9200/vscht'
-        })
-
-        # resp = QualificationWork.objects.filter(creator__fulltext='Motejlková').order_by('creator').request_facets('department_code')
+        # resp = QualificationWork.objects.filter(creator__fulltext='Motejlková').
+        #                                  order_by('creator').request_facets('department_code')
         # resp = QualificationWork.objects.all().order_by('creator').request_facets('department_code')
-        resp = QualificationWork.objects.filter(faculty__cs__fulltext="ochrana").request_facets('faculty__cs', 'faculty_code')
+        resp = QualificationWork.objects.filter(faculty__cs__fulltext="ochrana").request_facets('faculty__cs',
+                                                                                                'faculty_code')
         print("Facets", resp.facets)
         for o in resp:
+            # noinspection PyProtectedMember
             print("Object: ", o, o._highlighted)
 
+        # indexer = ElasticIndexer({
+        #     'SEARCH_URL': 'http://localhost:9200/vscht'
+        # })
+        #
         # print(indexer.search(Q(creator__fulltext='Motejlková'), DCObject, None, None, None, None, None))
+
 
     test()
