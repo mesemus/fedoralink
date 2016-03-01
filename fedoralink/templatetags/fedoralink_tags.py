@@ -126,7 +126,6 @@ def render_links(context, object, link_name):
 def get_form_fields(form):
     object = form.instance
     meta_fields = object._meta.fields
-    print(meta_fields)
     fields = ()
     for meta in meta_fields:
         meta_name = getattr(meta, "name")

@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 
 def do_index(sender, **kwargs):
 
-    from fedoralink.models import IndexableFedoraObject
+    from fedoralink.indexer.models import IndexableFedoraObject
     from django.db import connections
     from django.conf import settings
 
@@ -15,14 +15,14 @@ def do_index(sender, **kwargs):
     print("do_index called", db, instance, settings.DATABASES[db].get('USE_INTERNAL_INDEXER', False))
 
     if settings.DATABASES[db].get('USE_INTERNAL_INDEXER', False) and isinstance(instance, IndexableFedoraObject):
-        print("Running indexer")
         indexer = connections[db].indexer
         indexer.reindex(instance)
 
 
 def upload_binary_files(sender, **kwargs):
 
-    from fedoralink.models import fedoralink_clear_streams, UploadedFileStream
+    from fedoralink.models import UploadedFileStream
+    from fedoralink.indexer.models import fedoralink_clear_streams
     from django.core.files.uploadedfile import UploadedFile
     from fedoralink.utils import TypedStream
     from rdflib import URIRef
@@ -30,7 +30,7 @@ def upload_binary_files(sender, **kwargs):
     instance = kwargs['instance']
 
     save_required = False
-    from fedoralink.models import fedoralink_streams
+    from fedoralink.indexer.models import fedoralink_streams
     for fld, streams in fedoralink_streams(instance):
         ids = []
         print(type(streams))

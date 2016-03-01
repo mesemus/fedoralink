@@ -11,10 +11,22 @@ from elasticsearch import Elasticsearch
 from rdflib import Literal, URIRef, RDF
 
 from fedoralink.fedorans import FEDORA
-from fedoralink.indexer import Indexer, FEDORA_TYPE_FIELD, FEDORA_PARENT_FIELD
-from fedoralink.models import IndexableFedoraObject, fedoralink_classes
+from fedoralink.indexer import Indexer
+from fedoralink.indexer.fields import IndexedTextField, IndexedLanguageField, IndexedDateField
+from fedoralink.indexer.models import IndexableFedoraObject, fedoralink_classes
 from fedoralink.rdfmetadata import RDFMetadata
 from fedoralink.utils import url2id, id2url
+
+
+class _ITF(IndexedTextField):
+    def __init__(self, rdf_name, name):
+        super().__init__(rdf_name)
+        self.name = name
+
+FEDORALINK_TYPE_FIELD = _ITF(FEDORA.fedoralink, name='_fedoralink_model')
+FEDORA_TYPE_FIELD = _ITF(RDF.type, name='type')
+FEDORA_PARENT_FIELD = _ITF(FEDORA.hasParent, name='parent')
+FEDORA_ID_FIELD = _ITF(FEDORA.id, name='id')
 
 
 class ElasticIndexer(Indexer):
@@ -50,7 +62,7 @@ class ElasticIndexer(Indexer):
         doc_type = self._get_elastic_class(clz)
 
         indexer_data = {}
-        for field in clz.indexed_fields:
+        for field in clz._meta.fields:
             data = getattr(obj, field.name)
             if data is None:
                 continue
@@ -477,7 +489,7 @@ def convert(data, field):
     if isinstance(data, URIRef):
         return str(data)
 
-    if 'lang' in field.field_type:
+    if isinstance(field, IndexedLanguageField):
         lng = {}
         for d in data:
             lang = d.language
@@ -489,7 +501,7 @@ def convert(data, field):
     if isinstance(data, list):
         return [convert(x, field) for x in data]
 
-    elif 'date' in field.field_type:
+    elif isinstance(field, IndexedDateField):
         if isinstance(data, str):
             data = parse(data)
         return data.strftime('%Y-%m-%dT%H:%M:%S')

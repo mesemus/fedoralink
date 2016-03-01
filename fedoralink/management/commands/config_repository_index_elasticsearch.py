@@ -5,7 +5,8 @@ from django.conf import settings
 from django.core.management import BaseCommand
 from django.db import connections
 
-from fedoralink.indexer import FEDORA_ID_FIELD, FEDORA_PARENT_FIELD, FEDORA_TYPE_FIELD, FEDORALINK_TYPE_FIELD
+from fedoralink.indexer.elastic import FEDORA_ID_FIELD, FEDORA_PARENT_FIELD, FEDORA_TYPE_FIELD, FEDORALINK_TYPE_FIELD
+from fedoralink.indexer.fields import IndexedLanguageField, IndexedIntegerField, IndexedDateField, IndexedTextField
 from fedoralink.type_manager import FedoraTypeManager
 from fedoralink.utils import url2id, id2url
 
@@ -50,7 +51,7 @@ class Command(BaseCommand):
             class_for_name(module_name, split_model_name)
             modelclz = FedoraTypeManager.get_model_class(split_model_name)
 
-            for field in modelclz.indexed_fields:
+            for field in modelclz._meta.fields:
                 fldname = url2id(field.rdf_name)
                 if fldname not in fields:
                     fields[fldname] = field
@@ -75,27 +76,24 @@ class Command(BaseCommand):
                 if fldname in existing_properties:
                     continue
 
-                if 'binary' in field.field_type:
-                    continue
-
                 props = {}
                 new_properties[fldname] = props
 
-                if 'lang' in field.field_type:
+                if isinstance(field, IndexedLanguageField):
                     props['type'] = 'nested'
                     props["include_in_root"] = 'true'
                     props['properties'] = self.gen_languages_mapping(fldname + ".")
-                elif 'text' in field.field_type or 'string' in field.field_type:
+                elif isinstance(field, IndexedTextField):
                     props['type'] = 'string'
                     props['copy_to'] = fldname + "__exact"
                     new_properties[fldname + "__exact"] = {
                         'type': 'string',
                         'index': 'not_analyzed'
                     }
-                elif 'date' in field.field_type:
+                elif isinstance(field, IndexedDateField):
                     props['type'] = 'date'
                     props['index'] = 'not_analyzed'
-                elif 'int' in field.field_type:
+                elif isinstance(field, IndexedIntegerField):
                     props['type'] = 'long'
                     props['index'] = 'not_analyzed'
                 else:

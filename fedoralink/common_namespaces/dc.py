@@ -2,7 +2,7 @@ from rdflib.namespace import DC
 from django.utils.translation import ugettext_lazy as _
 
 from fedoralink.indexer.fields import IndexedLanguageField, IndexedTextField, IndexedDateField
-from fedoralink.models import IndexableFedoraObject
+from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.type_manager import FedoraTypeManager
 
 
@@ -35,7 +35,5 @@ class DCObject(IndexableFedoraObject):
     dateAvailable = IndexedDateField(DC.dateAvailable, required=True,
                                      verbose_name=_('Date available (dublin core)'))
 
-#
-# register it so that FedoraObject.objects.get(...) knows which class to instantiate
-#
-FedoraTypeManager.register_model(DCObject, on_has_predicate=[DC.title])
+    class Meta:
+        rdf_types = (DC.object,)

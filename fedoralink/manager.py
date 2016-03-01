@@ -139,8 +139,8 @@ class FedoraManager:
         clz = FedoraTypeManager.get_object_class(rdf_metadata, self._model_class)
         ret = clz(__metadata=rdf_metadata, __connection=self.connection)
 
-        for hook in ret.post_fetch_hooks:
-            hook(ret, self)
+        from fedoralink.models import fedora_object_fetched
+        fedora_object_fetched.send(clz, instance=ret, manager=self)
 
         return ret
 

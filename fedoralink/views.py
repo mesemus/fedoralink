@@ -144,7 +144,6 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
     def get_object(self, queryset=None):
         pk = self.prefix + self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
         self.kwargs[self.pk_url_kwarg] = pk
-        print(self.kwargs)
         return super().get_object(queryset)
 
 
