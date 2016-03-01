@@ -325,32 +325,6 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
 
             return property(getter, setter)
 
-        """
-        def file_saving_hook(inst, manager):
-            # print("IndexableFedoraObjectPostSaveHook called, streams", getattr(inst, '__streams', []))
-            # inst has id, can start creating streams
-            save_required = False
-            for fld, streams in getattr(inst, '__streams', {}).items():
-                ids = []
-                print(type(streams))
-                for stream_id, stream in enumerate(streams):
-
-                    if isinstance(stream, UploadedFile):
-                        stream = TypedStream(UploadedFileStream(stream), stream.content_type, stream.name)
-
-                    stream_inst = inst.create_child("%s_%s" % (fld.name, stream_id))
-                    stream_inst.set_local_bitstream(stream)
-                    stream_inst.save()
-                    ids.append(URIRef(stream_inst.id))
-
-                setattr(inst, fld.name, ids)
-                save_required = True
-
-            if save_required:
-                setattr(inst, '__streams', {})
-                inst.save()
-                """
-
         for p in cls.indexed_fields:
             setattr(cls, p.name, create_property(p))
 
@@ -359,8 +333,6 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
 
         # fetch and store all indexed fields
         cls.indexed_fields = tuple(IndexableFedoraObjectMetaclass.all_indexed_fields(cls))
-
-        print("TODO: fix upload bitstreams")
 
 
 class IndexableFedoraObject(FedoraObject, metaclass=IndexableFedoraObjectMetaclass):
@@ -401,3 +373,24 @@ def fedoralink_classes(obj):
     """
     # noinspection PyProtectedMember
     return obj._type
+
+
+def fedoralink_streams(obj):
+    """
+    Return an iterator of tuples (field, instance of TypedStream or UploadedFile)
+    that were registered (via setting an instance of these classes
+    to any property) with the object.
+
+    :param obj: an instance of FedoraObject
+    :return:    iterator of tuples
+    """
+    return getattr(obj, '__streams', {}).items()
+
+
+def fedoralink_clear_streams(obj):
+    """
+    Removes registered streams from an instance of FedoraObject
+
+    :param obj: instance of FedoraObject
+    """
+    setattr(obj, '__streams', {})
