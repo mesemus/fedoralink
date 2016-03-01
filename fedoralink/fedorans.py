@@ -1,5 +1,4 @@
-from rdflib import Namespace
-
+from rdflib import Namespace, URIRef
 
 NAMESPACES = {
             "premis"        :   "http://www.loc.gov/premis/rdf/v1#",
@@ -28,6 +27,12 @@ NAMESPACES = {
 
 FEDORA          =   Namespace(NAMESPACES['fedora'])
 FEDORA_INDEX    =   Namespace(NAMESPACES['fedora_index'])
+FEDORA_CREATED_METADATA = URIRef(FEDORA.created)
+FEDORA_LAST_MODIFIED_BY_METADATA = URIRef(FEDORA.lastModifiedBy)
+FEDORA_PRIMARY_TYPE_METADATA = URIRef(FEDORA.primaryType)
+FEDORA_MIXIN_TYPES_METADATA = URIRef(FEDORA.mixinTypes)
+FEDORA_LAST_MODIFIED_METADATA = URIRef(FEDORA.lastModified)
+
 RDF             =   Namespace(NAMESPACES['rdf'])
 LDP             =   Namespace(NAMESPACES['ldp'])
 

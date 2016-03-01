@@ -31,7 +31,12 @@ class DCObject(IndexableFedoraObject):
                      verbose_name=_('Datum zpřístupnění (dublin core)')),
     ]
 
+
+    def created(self):
+        super().created()
+        self.types.add(DC.Object)
 #
 # register it so that FedoraObject.objects.get(...) knows which class to instantiate
 #
-FedoraTypeManager.register_model(DCObject, on_has_predicate=[DC.title])
+# FedoraTypeManager.register_model(DCObject, on_has_predicate=[DC.title])
+FedoraTypeManager.register_model(DCObject, on_rdf_type=[DC.Object])

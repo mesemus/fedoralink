@@ -141,6 +141,7 @@ class FedoraConnection:
 
     def _update_single_resource(self, url, metadata):
         payload = metadata.serialize_sparql()
+        print(payload.decode('utf-8'))
         log.info("Updating object %s", url)
         log.debug("      payload %s", payload)
         try:

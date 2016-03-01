@@ -1,3 +1,8 @@
+from rdflib import URIRef
+
+from fedoralink.fedorans import FEDORA, FEDORA_LAST_MODIFIED_BY_METADATA, FEDORA_CREATED_METADATA, \
+    FEDORA_PRIMARY_TYPE_METADATA, FEDORA_MIXIN_TYPES_METADATA, FEDORA_LAST_MODIFIED_METADATA
+
 __author__ = 'simeki'
 
 from rdflib.plugins.serializers.turtle import TurtleSerializer, VERB, OBJECT
@@ -37,6 +42,8 @@ class SparqlSerializer(TurtleSerializer):
         self.write('INSERT {\n')
 
         for predicate, objects in self.inserted_triplets.items():
+            if str(predicate).startswith(str(FEDORA)):
+                continue
             for object in objects:
                 self.write('    <> ')
                 self.path(predicate, VERB)
