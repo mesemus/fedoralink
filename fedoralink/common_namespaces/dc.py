@@ -1,7 +1,7 @@
 from rdflib.namespace import DC
 from django.utils.translation import ugettext_lazy as _
 
-from fedoralink.indexer.fields import IndexedMultiLangField, IndexedTextField, IndexedDateField
+from fedoralink.indexer.fields import IndexedLanguageField, IndexedTextField, IndexedDateField
 from fedoralink.models import IndexableFedoraObject
 from fedoralink.type_manager import FedoraTypeManager
 
@@ -12,16 +12,16 @@ from fedoralink.type_manager import FedoraTypeManager
 #
 class DCObject(IndexableFedoraObject):
 
-    title         = IndexedMultiLangField(DC.title, required=True,
-                                          verbose_name=_('Title (dublin core)'),
-                                          attrs={'presentation': 'textarea'})
+    title         = IndexedLanguageField(DC.title, required=True,
+                                         verbose_name=_('Title (dublin core)'),
+                                         attrs={'presentation': 'textarea'})
 
     alternative   = IndexedTextField(DC.alternative, required=True,
                                      verbose_name=_('Alternative title (dublin core)'))
 
-    abstract      = IndexedMultiLangField(DC.abstract, required=True,
-                                          verbose_name=_('Abstract (dublin core)'),
-                                          attrs={'presentation': 'textarea'})
+    abstract      = IndexedLanguageField(DC.abstract, required=True,
+                                         verbose_name=_('Abstract (dublin core)'),
+                                         attrs={'presentation': 'textarea'})
 
     creator       = IndexedTextField(DC.creator, required=True,
                                      verbose_name=_('Creator (dublin core)'))

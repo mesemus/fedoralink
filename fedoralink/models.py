@@ -10,6 +10,7 @@ from rdflib.namespace import DC, RDF
 import inflection as inflection
 
 from fedoralink.fields import DjangoMetadataBridge
+from fedoralink.indexer.fields import IndexedField, IndexedLanguageField
 
 from .utils import StringLikeList, OrderableModelList, TypedStream
 from .type_manager import FedoraTypeManager
@@ -282,10 +283,23 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
 
     @staticmethod
     def all_indexed_fields(cls):
+        vars = set()
         for clazz in inspect.getmro(cls):
-            if hasattr(clazz, 'indexed_fields'):
-                for fld in clazz.indexed_fields:
+            # un-metaclassed class has fields directly
+            for name, fld in inspect.getmembers(clazz, lambda x: isinstance(x, IndexedField)):
+                if name not in vars:
+                    vars.add(name)
+                    fld.name = name
                     yield fld
+
+            # after metaclass, the fields are turned into properties, the original fields are in _meta
+            clazz_meta = getattr(clazz, '_meta', None)
+            if clazz_meta:
+                for fld in clazz_meta.fields:
+                    if not fld.name: raise Exception('Name not set, wrong implementation !')
+                    if fld.name not in vars:
+                        vars.add(fld.name)
+                        yield fld
 
     def __init__(cls, name, bases, attrs):
         super(IndexableFedoraObjectMetaclass, cls).__init__(name, list(bases), attrs)
@@ -293,7 +307,8 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
         def create_property(prop):
 
             def getter(self):
-                if 'lang' not in prop.field_type and 'multi' not in prop.field_type:
+                if not isinstance(prop, IndexedLanguageField):
+                    print("TODO: multiple valued fields ...")
                     # simple type -> return the first item only
                     ret = self.metadata[prop.rdf_name]
                     if len(ret):
@@ -325,15 +340,12 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
 
             return property(getter, setter)
 
-        for p in cls.indexed_fields:
+        indexed_fields = tuple(IndexableFedoraObjectMetaclass.all_indexed_fields(cls))
+        for p in indexed_fields:
             setattr(cls, p.name, create_property(p))
 
         # store django _meta
-        cls._meta = DjangoMetadataBridge(cls, tuple(IndexableFedoraObjectMetaclass.all_indexed_fields(cls)))
-
-        # fetch and store all indexed fields
-        cls.indexed_fields = tuple(IndexableFedoraObjectMetaclass.all_indexed_fields(cls))
-
+        cls._meta = DjangoMetadataBridge(cls, indexed_fields)
 
 class IndexableFedoraObject(FedoraObject, metaclass=IndexableFedoraObjectMetaclass):
     def created(self):
