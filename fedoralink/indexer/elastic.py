@@ -368,44 +368,9 @@ class ElasticIndexer(Indexer):
             filters = self._build_filter(filters, fld2id, None)
             fulltext_matches = {}
 
-        ordering_clause = []
-        if ordering:
-            for o in ordering:
-                dir = 'asc'
-                if o[0] == '-':
-                    dir = 'desc'
-                    o = o[1:]
-                ordering_clause.append({
-                    fld2id[o] : {
-                        'order': dir
-                    }
-                })
+        ordering_clause = self._generate_ordering_clause(fld2id, ordering)
 
-        facets_clause = {}
-        if facets:
-            for f in facets:
-                facets_clause[fld2id[f.replace('__', '.')]] = {
-                    "terms" : {
-                        "field": fld2id[f.replace('__', '.')] + "__exact",
-                        "size": 0
-                    }
-                }
-#
-# TODO: facets for nested elements
-#
-# "http__3a__2f__2fcis__2evscht__2ecz__2fns__2frepository__23faculty": {
-#             "nested": {
-#                 "path": "http__3a__2f__2fcis__2evscht__2ecz__2fns__2frepository__23faculty"
-#             },
-#             "aggs": {
-#                 "cs": {
-#                     "terms": {
-#                         "field": "http__3a__2f__2fcis__2evscht__2ecz__2fns__2frepository__23faculty.cs__exact",
-#                         "size": 0
-#                     }
-#                 }
-#             }
-#         }
+        facets_clause = self._generate_facet_clause(facets, fld2id)
 
         built_query = {}
         if filters:
@@ -415,6 +380,7 @@ class ElasticIndexer(Indexer):
             built_query['query'] = {
                 'bool' : fulltext_matches.get('bool', [])
             }
+
         built_query = {
             "sort": ordering_clause,
             "query": {
@@ -430,7 +396,7 @@ class ElasticIndexer(Indexer):
             }
         }
 
-        print(json.dumps(built_query, indent=4))
+        # print(json.dumps(built_query, indent=4))
 
         resp = self.es.search(body=built_query)
 
@@ -443,16 +409,70 @@ class ElasticIndexer(Indexer):
 
         # print(id2fld)
 
+        facets = []
+        for k, v in resp.get('aggregations', {}).items():
+            if 'buckets' in v:
+                # normal value
+                buckets = v['buckets']
+            else:
+                # nested value, always called "value" - defined above
+                buckets = v['value']['buckets']
+
+            facets.append((
+                        id2fld[k],
+                        [ (vv['key'], vv['doc_count']) for vv in buckets ]
+                    ))
+
         return {
             'count'  : resp['hits']['total'],
             'data'   : iter(instances),
-            'facets' : [
-                    (
-                        id2fld[k],
-                        [ (vv['key'], vv['doc_count']) for vv in v['buckets'] ]
-                    ) for k, v in resp.get('aggregations', {}).items()
-            ]
+            'facets' : facets
         }
+
+    def _generate_facet_clause(self, facets, fld2id):
+        facets_clause = {}
+        if facets:
+            for f in facets:
+                field_in_elastic = fld2id[f.replace('__', '.')]
+                if '__' in f:
+                    li = f.rfind('__')
+                    path = fld2id[f[:li].replace('__', '.')]
+                    facets_clause[field_in_elastic] = {
+                        "nested": {
+                            "path": path
+                        },
+                        "aggs": {
+                            "value": {
+                                "terms": {
+                                    "field": field_in_elastic + "__exact",
+                                    "size": 0
+                                }
+                            }
+                        }
+                    }
+                else:
+                    facets_clause[field_in_elastic] = {
+                        "terms": {
+                            "field": field_in_elastic + "__exact",
+                            "size": 0
+                        }
+                    }
+        return facets_clause
+
+    def _generate_ordering_clause(self, fld2id, ordering):
+        ordering_clause = []
+        if ordering:
+            for o in ordering:
+                dir = 'asc'
+                if o[0] == '-':
+                    dir = 'desc'
+                    o = o[1:]
+                ordering_clause.append({
+                    fld2id[o]: {
+                        'order': dir
+                    }
+                })
+        return ordering_clause
 
     def build_instance(self, doc, model_class, values, id2fld):
         source = doc['_source']
@@ -506,7 +526,7 @@ if __name__ == '__main__':
 
         # resp = QualificationWork.objects.filter(creator__fulltext='Motejlková').order_by('creator').request_facets('department_code')
         # resp = QualificationWork.objects.all().order_by('creator').request_facets('department_code')
-        resp = QualificationWork.objects.filter(faculty__cs__fulltext="ochrana").request_facets('faculty__cs')
+        resp = QualificationWork.objects.filter(faculty__cs__fulltext="ochrana").request_facets('faculty__cs', 'faculty_code')
         print("Facets", resp.facets)
         for o in resp:
             print("Object: ", o, o._highlighted)
