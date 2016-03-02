@@ -272,6 +272,8 @@ class ElasticIndexer(Indexer):
         return prefix, name, comparison_operation, transformed_name
 
     def _get_all_fields(self, q, fields, fld2id):
+        if not q:
+            return
         if not is_q(q):
             fields.add(self._split_name(q[0], fld2id)[3])
         else:
@@ -287,9 +289,9 @@ class ElasticIndexer(Indexer):
         fld2id = {}
         id2fld = {}
         for fld in model_class._meta.fields:
-            id_in_elasticsearch = url2id(fld.fedora_field.rdf_name)
+            id_in_elasticsearch = url2id(fld.rdf_name)
 
-            if 'lang' in fld.fedora_field.field_type:
+            if isinstance(fld, IndexedLanguageField):
                 for lang in settings.LANGUAGES:
                     nested_id_in_elasticsearch = id_in_elasticsearch + '.' + lang[0]
 
@@ -430,6 +432,7 @@ class ElasticIndexer(Indexer):
 
     @staticmethod
     def _generate_ordering_clause(fld2id, ordering):
+        print(fld2id)
         ordering_clause = []
         if ordering:
             for o in ordering:
@@ -437,6 +440,7 @@ class ElasticIndexer(Indexer):
                 if o[0] == '-':
                     sort_direction = 'desc'
                     o = o[1:]
+                o = o.replace('@', '.')        # replace blah@cs with blah.cs
                 ordering_clause.append({
                     fld2id[o]: {
                         'order': sort_direction
