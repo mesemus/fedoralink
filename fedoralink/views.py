@@ -18,13 +18,16 @@ class GenericIndexView(View):
     def get(self, request):
         return HttpResponseRedirect(reverse(self.app_name + ':rozsirene_hledani', kwargs={'parametry': ''}))
 
-class FedoraTemplateMixin():
+
+# noinspection PyUnresolvedReferences
+class FedoraTemplateMixin:
     def get_template_names(self):
         if self.object:
-            templates = [fullname(x).replace('.', '/') + '/_'+self.template_type+'.html' for x in inspect.getmro(type(self.object))]
+            templates = [fullname(x).replace('.', '/') + '/_' + self.template_type + '.html'
+                         for x in inspect.getmro(type(self.object))]
             templates.append(self.template_name)
             return templates
-        return super(GenericDetailView, self).get_template_names()
+        return super().get_template_names()
 
 
 class GenericDownloadView(View):
@@ -47,6 +50,7 @@ class GenericIndexerView(View):
     default_ordering = ''
     facets = None
 
+    # noinspection PyCallingNonCallable
     def get(self, request, parametry):
         if isinstance(self.model, str):
             self.model = get_class(self.model)
@@ -57,7 +61,6 @@ class GenericIndexerView(View):
             requested_facets = self.facets
 
         requested_facet_ids = [x[0] for x in requested_facets]
-        requested_facet_names = [x[1] for x in requested_facets]
 
         data = self.model.objects.all()
 
@@ -69,10 +72,10 @@ class GenericIndexerView(View):
 
         for k in request.GET:
             if k.startswith('facet__'):
-                vals = request.GET.getlist(k)
+                values = request.GET.getlist(k)
                 k = k[len('facet__'):]
                 q = None
-                for v in vals:
+                for v in values:
                     if not q:
                         q = Q(**{k: v})
                     else:
@@ -108,6 +111,7 @@ class GenericIndexerView(View):
         })
 
 
+# noinspection PyAttributeOutsideInit,PyCallingNonCallable
 class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
     model = None
     fields = '__all__'
@@ -148,8 +152,6 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
         if not isinstance(retrieved_object, IndexableFedoraObject):
             raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
         return retrieved_object
-
-
 
 
 class GenericEditView(UpdateView, FedoraTemplateMixin):
