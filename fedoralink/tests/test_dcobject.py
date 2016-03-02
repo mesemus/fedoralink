@@ -7,7 +7,7 @@ django.setup()
 import logging
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 from unittest import TestCase
 
@@ -21,7 +21,9 @@ from fedoralink.utils import StringLikeList
 
 class DCObjectTestCase(TestCase):
     def setUp(self):
-        pass
+        root = FedoraObject.objects.get(pk='')
+        dco = root.create_child('hello%s' % random.randint(0, 100000), flavour=DCObject)
+        dco.save()
 
     def test_dcobject_creation(self):
         dco = DCObject()
@@ -76,3 +78,18 @@ class DCObjectTestCase(TestCase):
         self.assertEquals(len(dcb[DC.title]), 1)
         self.assertEquals(dcb.title, dco.title)
 
+    def test_meta(self):
+
+        root = FedoraObject.objects.get(pk='')
+        dco = root.create_child('hello%s' % random.randint(0, 100000), flavour=DCObject)
+        dco.save()
+
+        dco.title = 'Hello world'
+        dco.save()
+
+        dcb = DCObject.objects.get(pk=dco.pk)
+        self.assertIsNotNone(dcb._meta)
+
+    def test_meta_search(self):
+        dco = list(DCObject.objects.all())[0]
+        self.assertIsNotNone(dco._meta)

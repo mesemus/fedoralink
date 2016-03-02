@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect, FileResponse
 from django.shortcuts import render
 from django.views.generic import View, CreateView, DetailView, UpdateView
 
+from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
 from .utils import get_class, fullname
 
@@ -143,7 +144,10 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
     def get_object(self, queryset=None):
         pk = self.prefix + self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
         self.kwargs[self.pk_url_kwarg] = pk
-        return super().get_object(queryset)
+        retrieved_object = super().get_object(queryset)
+        if not isinstance(retrieved_object, IndexableFedoraObject):
+            raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
+        return retrieved_object
 
 
 
@@ -165,6 +169,7 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
         print(self.kwargs)
         print('model:')
         print(self.model)
-        get_object = super().get_object(queryset)
-        print(get_object)
-        return get_object
+        retrieved_object = super().get_object(queryset)
+        if not isinstance(retrieved_object, IndexableFedoraObject):
+            raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
+        return retrieved_object
