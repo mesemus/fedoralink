@@ -1,4 +1,5 @@
 from rdflib import Literal
+from fedoralink.fedorans import FEDORA
 
 __author__ = 'simeki'
 
@@ -39,6 +40,8 @@ class SparqlSerializer(TurtleSerializer):
         self.write('INSERT {\n')
 
         for predicate, objects in self.inserted_triplets.items():
+            if str(predicate).startswith(str(FEDORA)):
+                continue
             for object in objects:
                 self.write('    <> ')
                 self.path(predicate, VERB)

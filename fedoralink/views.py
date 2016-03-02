@@ -117,8 +117,7 @@ class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
         inst = form.save(commit=False)
         inst.save()
         self.object = inst
-
-        return HttpResponseRedirect(self.get_success_url())
+        return HttpResponseRedirect(reverse(self.get_success_url()))
 
     def get_form_kwargs(self):
         ret = super().get_form_kwargs()
@@ -150,11 +149,12 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
 
 
 class GenericEditView(UpdateView, FedoraTemplateMixin):
+    model = None
     fields = '__all__'
     template_name = None
     template_type = 'edit'
-
     prefix = None
+    template_name_suffix = None
 
     def get_queryset(self):
         return FedoraObject.objects.all()
@@ -163,4 +163,8 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
         pk = self.prefix + self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
         self.kwargs[self.pk_url_kwarg] = pk
         print(self.kwargs)
-        return super().get_object(queryset)
+        print('model:')
+        print(self.model)
+        get_object = super().get_object(queryset)
+        print(get_object)
+        return get_object
