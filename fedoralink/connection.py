@@ -142,7 +142,7 @@ class FedoraConnection:
     def _update_single_resource(self, url, metadata):
         payload = metadata.serialize_sparql()
         log.info("Updating object %s", url)
-        log.debug("      payload %s", payload)
+        log.debug("      payload %s", payload.decode('utf-8'))
         try:
             resp = requests.patch(url + "/fcr:metadata", data=payload,
                                   headers={'Content-Type': 'application/sparql-update; encoding=utf-8'})

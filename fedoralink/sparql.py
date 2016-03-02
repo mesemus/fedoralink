@@ -1,3 +1,5 @@
+from rdflib import Literal
+
 __author__ = 'simeki'
 
 from rdflib.plugins.serializers.turtle import TurtleSerializer, VERB, OBJECT
@@ -59,3 +61,12 @@ class SparqlSerializer(TurtleSerializer):
         if ns_list and self._spacious:
             self.write('\n')
 
+
+    def label(self, node, position):
+        if isinstance(node, Literal):
+            if node.datatype:
+                node = Literal(node.value, lang=node.language)
+            return node._literal_n3(
+                use_plain=True,
+                qname_callback=lambda dt: None)
+        return super().label(node, position)

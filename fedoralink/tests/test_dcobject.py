@@ -1,6 +1,13 @@
 import django
 import random
+from rdflib.namespace import DC
+
 django.setup()
+
+import logging
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+logging.basicConfig(level=logging.DEBUG)
 
 from unittest import TestCase
 
@@ -49,3 +56,23 @@ class DCObjectTestCase(TestCase):
 
         dcc = FedoraObject.objects.get(pk=dco.pk)
         self.assertEquals(dcc.title, dco.title)
+
+    def test_dcobject_update(self):
+        root = FedoraObject.objects.get(pk='')
+        dco = root.create_child('hello%s' % random.randint(0, 100000), flavour=DCObject)
+        dco.save()
+
+        dco.title = 'Hello world'
+        dco.save()
+
+        dcb = DCObject.objects.get(pk=dco.pk)
+        self.assertEquals(len(dcb[DC.title]), 1)
+        self.assertEquals(dcb.title, dco.title)
+
+        dco.title = 'Blah'
+        dco.save()
+
+        dcb = DCObject.objects.get(pk=dco.pk)
+        self.assertEquals(len(dcb[DC.title]), 1)
+        self.assertEquals(dcb.title, dco.title)
+

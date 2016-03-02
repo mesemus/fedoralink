@@ -83,7 +83,7 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
         meta_inner_class = getattr(cls, 'Meta', None)
         if meta_inner_class:
             cls._meta.rdf_types = getattr(meta_inner_class, 'rdf_types', None)
-            if cls._meta.rdf_types:
+            if cls._meta.rdf_types and not cls.__name__.endswith('_bound'):
                 FedoraTypeManager.register_model(cls, on_rdf_type=cls._meta.rdf_types)
         else:
             cls._meta.rdf_types = ()
