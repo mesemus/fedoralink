@@ -1,4 +1,5 @@
 import django.db.models
+import django.forms
 
 from fedoralink.forms import LangFormTextField, LangFormTextAreaField, RepositoryFormMultipleFileField
 
@@ -108,5 +109,12 @@ class IndexedBinaryField(IndexedField, django.db.models.Field):
 
         self.model = model
 
+    def formfield(self, **kwargs):
+        # This is a fairly standard way to set up some defaults
+        # while letting the caller override them.
+        defaults = {'form_class': django.forms.FileField}
+        defaults.update(kwargs)
+        return super(IndexedBinaryField, self).formfield(**defaults)
+
     def get_internal_type(self):
-        return 'TextField'
+        return 'FileField'

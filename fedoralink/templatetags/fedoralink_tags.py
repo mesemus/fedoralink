@@ -137,8 +137,8 @@ def get_fields(object):
 
 @register.simple_tag(takes_context=True)
 def render_links(context, object, link_name):
-    templates = [fullname(x).replace('.', '/') + '/' + link_name + '.html' for x in inspect.getmro(type(object))]
-    templates.append('fedoralink/partials/link_view.html')
+    templates = [fullname(x).replace('.', '/') + '/' + link_name + '_link.html' for x in inspect.getmro(type(object))]
+    templates.append('fedoralink/partials/link.html')
     context = Context(context)
     context['links'] = getattr(object, link_name)
     chosen_template = select_template(templates)
@@ -168,7 +168,7 @@ def render_field_view(context, object, meta_name, name, value):
 
     fieldtype = object._meta.fields_by_name[meta_name]
 
-    templates += [fullname(x).replace('.', '/') + '/detail_' + fullname(fieldtype.__class__).replace('.', '_') + '_view.html' for x in inspect.getmro(type(object))
+    templates += [fullname(x).replace('.', '/') + '/' + fullname(fieldtype.__class__).replace('.', '_') + '_view.html' for x in inspect.getmro(type(object))
                  if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject')]
 
     templates.append('{0}_view.html'.format(fullname(fieldtype.__class__).replace('.', '/')))
@@ -182,9 +182,10 @@ def render_field_view(context, object, meta_name, name, value):
 @register.simple_tag(takes_context=True)
 def render_field_edit(context, form, meta_name, name, field):
     templates = [fullname(x).replace('.', '/') + '/' + meta_name + '_edit.html' for x in
-                 inspect.getmro(type(form.instance))]
+                 inspect.getmro(type(form.instance))
+                 if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject')]
 
-    fieldtype = object._meta.fields_by_name[meta_name]
+    fieldtype = form.instance._meta.fields_by_name[meta_name]
 
     templates += [fullname(x).replace('.', '/') + '/' + fullname(fieldtype.__class__).replace('.', '_') + '_edit.html' for x in inspect.getmro(type(object))
                  if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject')]
@@ -192,7 +193,7 @@ def render_field_edit(context, form, meta_name, name, field):
     templates.append('{0}_edit.html'.format(fullname(fieldtype.__class__).replace('.', '/')))
 
     templates.append('fedoralink/partials/edit.html')
-
+    print(templates)
     context = Context(context)
     context['field'] = field
     chosen_template = select_template(templates)
@@ -202,8 +203,7 @@ def render_field_edit(context, form, meta_name, name, field):
 @register.filter
 def get_dir_obj(object):
     print(dir(object))
-    print('Typ:', type(object
-                       ))
+    print('Typ:', type(object))
     return ''
 
 

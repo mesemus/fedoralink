@@ -1,0 +1,12 @@
+<div class="form-group">
+    <label for="{{ field.html_id}}" class="control-label">{{field.label}}</label>
+
+    <div class="input-group">
+        <span class="input-group-btn">
+            <span class="btn btn-primary btn-file">
+                Browse <input type="file" value="" title="" name="{{field.name}}" id="{{field.html_id}}" />
+            </span>
+        </span>
+        <input type="text" readonly="" class="form-control file-notify">
+    </div>
+</div>
