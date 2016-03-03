@@ -9,6 +9,7 @@ from django.views.generic import View, CreateView, DetailView, UpdateView
 
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
+from fedoralink.templatetags.fedoralink_tags import id_from_path
 from .utils import get_class, fullname
 
 
@@ -110,32 +111,6 @@ class GenericIndexerView(View):
         })
 
 
-# noinspection PyAttributeOutsideInit,PyCallingNonCallable
-class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
-    model = None
-    fields = '__all__'
-    template_name = None
-    parent_collection = None
-
-    def form_valid(self, form):
-        inst = form.save(commit=False)
-        inst.save()
-        self.object = inst
-        return HttpResponseRedirect(reverse(self.get_success_url()))
-
-    def get_form_kwargs(self):
-        ret = super().get_form_kwargs()
-
-        if callable(self.parent_collection):
-            parent = self.parent_collection(self)
-        else:
-            parent = self.parent_collection
-
-        self.object = ret['instance'] = parent.create_child('', flavour=self.model)
-
-        return ret
-
-
 class GenericDetailView(DetailView, FedoraTemplateMixin):
     prefix = None
     template_name = None
@@ -161,6 +136,7 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
     template_type = 'edit'
     prefix = None
     template_name_suffix = None
+    success_url_param_names = ()
 
     def get_queryset(self):
         return FedoraObject.objects.all()
@@ -168,10 +144,46 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
     def get_object(self, queryset=None):
         pk = self.prefix + self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
         self.kwargs[self.pk_url_kwarg] = pk
-        print(self.kwargs)
-        print('model:')
-        print(self.model)
         retrieved_object = super().get_object(queryset)
         if not isinstance(retrieved_object, IndexableFedoraObject):
             raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
         return retrieved_object
+
+    def get_success_url(self):
+        return reverse(self.success_url, kwargs={k:_convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
+
+
+# noinspection PyAttributeOutsideInit,PyCallingNonCallable
+class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
+    model = None
+    fields = '__all__'
+    template_name = None
+    parent_collection = None
+    success_url_param_names = ()
+
+
+    def form_valid(self, form):
+        inst = form.save(commit=False)
+        inst.save()
+        self.object = inst
+        return HttpResponseRedirect(reverse(self.get_success_url()))
+
+    def get_form_kwargs(self):
+        ret = super().get_form_kwargs()
+
+        if callable(self.parent_collection):
+            parent = self.parent_collection(self)
+        else:
+            parent = self.parent_collection
+
+        self.object = ret['instance'] = parent.create_child('', flavour=self.model)
+
+        return ret
+
+    def get_success_url(self):
+        return reverse(self.success_url, kwargs={k:_convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
+
+def _convert(name, value):
+    if name == 'pk' or name == 'id':
+        return id_from_path(value)
+    return value

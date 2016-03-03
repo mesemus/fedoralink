@@ -33,23 +33,26 @@ class IndexedLanguageField(IndexedField, django.db.models.Field):
 
         defaults.update(kwargs)
         return super().formfield(**defaults)
+    #
+    # for debugging
+    #
+    # def __getattribute__(self,name):
+    #     attr = object.__getattribute__(self, name)
+    #     if hasattr(attr, '__call__') and name not in ('__class__', ):
+    #         def newfunc(*args, **kwargs):
+    #             print('before calling %s' %attr.__name__)
+    #             result = attr(*args, **kwargs)
+    #             print('done calling %s: %s' %(attr.__name__, result))
+    #             try:
+    #                 if len(result) == 2:
+    #                     print("in")
+    #             except:
+    #                 pass
+    #             return result
+    #         return newfunc
+    #     else:
+    #         return attr
 
-    def __getattribute__(self,name):
-        attr = object.__getattribute__(self, name)
-        if hasattr(attr, '__call__') and name not in ('__class__', ):
-            def newfunc(*args, **kwargs):
-                print('before calling %s' %attr.__name__)
-                result = attr(*args, **kwargs)
-                print('done calling %s: %s' %(attr.__name__, result))
-                try:
-                    if len(result) == 2:
-                        print("in")
-                except:
-                    pass
-                return result
-            return newfunc
-        else:
-            return attr
 
 class IndexedTextField(IndexedField, django.db.models.Field):
 
