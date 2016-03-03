@@ -36,7 +36,7 @@
         </div>
         {% if not selected_values %}
             <div class="panel-footer">
-                <a data-toggle="modal" data-target="#__facet_dialog_{{ esc_id }}">{% trans "Více hodnot ..." %}</a>
+                <a data-toggle="modal" data-target="#__facet_dialog_{{ esc_id }}">{% trans "More values ..." %}</a>
             </div>
 
         {% endif %}
@@ -51,7 +51,7 @@
                 <h4 class="modal-title"><i class="fa fa-fw fa-search"></i> {{ name }}</h4>
             </div>
             <div class="modal-body">
-                <p>{% trans "Vyberte hodnoty k filtrování" %}</p>
+                <p>{% trans "Choose values for filter" %}</p>
                 <div class="facet-selection-dialog-list">
                     {% for value in all_values %}
                         {% if value.1 %}
@@ -73,8 +73,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">{% trans "Skrýt dialog" %}</button>
-                <button type="submit" class="btn btn-primary">{% trans "Filtrovat výsledky" %}</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">{% trans "Hide" %}</button>
+                <button type="submit" class="btn btn-primary">{% trans "Filter" %}</button>
             </div>
         </div>
     </div>

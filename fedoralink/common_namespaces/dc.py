@@ -3,7 +3,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from fedoralink.indexer.fields import IndexedLanguageField, IndexedTextField, IndexedDateField
 from fedoralink.indexer.models import IndexableFedoraObject
-from fedoralink.type_manager import FedoraTypeManager
+
 
 
 #
