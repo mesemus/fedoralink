@@ -366,7 +366,9 @@ class ElasticIndexer(Indexer):
                     # '*' : {}
                 },
                 "require_field_match": False
-            }
+            },
+            "from": start if start else 0,
+            "size": (end - start) if start and end else 10
         }
 
         # print(json.dumps(built_query, indent=4))
