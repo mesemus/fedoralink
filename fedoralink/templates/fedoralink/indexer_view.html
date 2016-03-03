@@ -27,18 +27,11 @@
 
 {% block ordering %}
     <div class="panel panel-default facet-box ordering-box">
-        <div class="panel-heading">
-            <h4>
-                <i class="fa fa-fw fa-sort-alpha-asc"></i> {% trans "Sort by" %}
-            </h4>
-        </div>
-        <div class="panel-body">
             <select class="form-control" name="sort">
                 {% for order in orderings %}
                     <option value="{{ order.0 }}" {% if ordering == order.0 %}selected{% endif %}>{{ order.1 }}</option>
                 {% endfor %}
             </select>
-        </div>
     </div>
 {% endblock %}
 
