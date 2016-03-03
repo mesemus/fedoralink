@@ -164,7 +164,7 @@ class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
         inst = form.save(commit=False)
         inst.save()
         self.object = inst
-        return HttpResponseRedirect(reverse(self.get_success_url()))
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_form_kwargs(self):
         ret = super().get_form_kwargs()
