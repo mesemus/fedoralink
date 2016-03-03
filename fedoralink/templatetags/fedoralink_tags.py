@@ -76,6 +76,10 @@ class FacetContainmentNode(template.Node):
 
 @register.filter
 def rdf2lang(rdfliteral, lang=None):
+
+    if not isinstance(rdfliteral, Literal) and not isinstance(rdfliteral, list) and not isinstance(rdfliteral, tuple):
+        return rdfliteral
+
     default_value = ''
     try:
         if lang is None:
@@ -84,8 +88,12 @@ def rdf2lang(rdfliteral, lang=None):
             lang = lang.split("-")[0]
         if isinstance(rdfliteral, Literal):
             rdfliteral = [rdfliteral]
+
         if len(rdfliteral):
             for l in rdfliteral:
+                if not isinstance(l, Literal):
+                    return l                        # fallback for multi non-literals
+
                 if lang and l.language == lang or (not lang and (l.language is None or l.language == '')):
                     return l.value
                 elif not l.language:

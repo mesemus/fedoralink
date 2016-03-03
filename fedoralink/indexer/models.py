@@ -1,5 +1,6 @@
 import datetime
 import inspect
+import traceback
 
 import inflection as inflection
 from django.core.exceptions import ValidationError
@@ -64,8 +65,19 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                     if data.value:
                         if isinstance(data.value, datetime.datetime):
                             return data.value
-                        raise AttributeError("Conversion of %s to datetime is not supported in "
-                                             "fedoralink/indexer/models.py" % type(data.value))
+                        try:
+                            # handle 2005-06-08 00:00:00+00:00
+                            val = data.value
+                            if val[-3] == ':':
+                                val = val[:-3] + val[-2:]
+                            val = datetime.datetime.strptime(val, '%Y-%m-%d %H:%M:%S%z')
+                            return val
+                        except:
+                            traceback.print_exc()
+                            pass
+
+                        raise AttributeError("Conversion of %s [%s] to datetime is not supported in "
+                                             "fedoralink/indexer/models.py" % (type(data.value), data.value))
 
                 if isinstance(prop, IndexedIntegerField):
                     return data.value
