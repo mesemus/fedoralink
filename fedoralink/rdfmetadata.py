@@ -74,10 +74,13 @@ class RDFMetadata:
         :param predicate:   the predicate
         :param value:       the value, must be rdflib.URIRef or rdflib.Literal
         """
-        self.__metadata.add((self.__id, predicate, value))
+        self.__add_to_metadata_only(predicate, value)
         if predicate not in self.__added_triplets:
             self.__added_triplets[predicate] = []
         self.__added_triplets[predicate].append(value)
+
+    def __add_to_metadata_only(self, predicate, value):
+        self.__metadata.add((self.__id, predicate, value))
 
     def add_type(self, a_type):
         """
@@ -98,7 +101,7 @@ class RDFMetadata:
         uriref = rdflib.term.URIRef(uri)
         ret = RDFMetadata(uri, None) # TODO: add metadata from self
         for fact in self.__metadata[uriref:]:
-            ret.add(*fact)
+            ret.__add_to_metadata_only(*fact)
         # the parent uri is not present, so add it ...
         ret.add(FEDORA.hasParent, self.id)
         return ret
@@ -139,27 +142,34 @@ class RDFMetadata:
 
         if not isinstance(value, list) and not isinstance(value, tuple):
             value = [value]
-        del self[predicate]
+        value = [rdflib.Literal(v) if not isinstance(v, rdflib.Literal) and not isinstance(v, rdflib.URIRef) else v for v in value ]
+        self.__delete_predicate(predicate,set(value))
+        existing_values = set(self[predicate])
         added = []
         for v in value:
-            if not isinstance(v, rdflib.Literal) and not isinstance(v, rdflib.URIRef):
-                v = rdflib.Literal(v)
-            self.__metadata.add((self.__id, predicate, v))
-            added.append(v)
-
-        self.__added_triplets[predicate] = added
+            if v not in existing_values:
+                self.__metadata.add((self.__id, predicate, v))
+                added.append(v)
+        if added:
+            self.__added_triplets[predicate] = added
 
     def __delitem__(self, predicate):
-        removed = []
-        for val in self[predicate]:
-            removed.append(val)
-            self.__metadata.remove((self.__id, predicate, val))
+        self.__delete_predicate(predicate)
 
+    def __delete_predicate(self, predicate, ignored_values = None):
+        removed = []
+        if ignored_values is None:
+            ignored_values = set()
+        for val in self[predicate]:
+            if val not in ignored_values:
+                removed.append(val)
+                self.__metadata.remove((self.__id, predicate, val))
         if predicate not in self.__removed_triplets:
             self.__removed_triplets[predicate] = removed
-
         if predicate in self.__added_triplets:
-            del self.__added_triplets[predicate]
+            self.__added_triplets[predicate]=[x for x in self.__added_triplets[predicate] if x not in ignored_values]
+            if not self.__added_triplets[predicate]:
+                del self.__added_triplets[predicate]
 
     def __contains__(self, predicate):
         return len(self[predicate]) > 0        # TODO: optimize this

@@ -35,4 +35,4 @@ class DCObject(IndexableFedoraObject):
                                      verbose_name=_('Date available'))
 
     class Meta:
-        rdf_types = (DC.object,)
+        rdf_types = (DC.Object,)

@@ -65,6 +65,8 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                     if data.value:
                         if isinstance(data.value, datetime.datetime):
                             return data.value
+                        if data.value=="None": #TODO:  neskor odstranit
+                            return None
                         try:
                             # handle 2005-06-08 00:00:00+00:00
                             val = data.value

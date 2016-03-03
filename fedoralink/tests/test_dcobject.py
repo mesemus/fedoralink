@@ -92,8 +92,8 @@ class DCObjectTestCase(TestCase):
         dcb = DCObject.objects.get(pk=dco.pk)
         self.assertIsNotNone(dcb._meta)
 
-        self.assertTrue(DC.object in dcb._meta.rdf_types)
-        self.assertTrue(DC.object in dcb[RDF.type])
+        self.assertTrue(DC.Object in dcb._meta.rdf_types)
+        self.assertTrue(DC.Object in dcb[RDF.type])
 
     def test_unicode(self):
         root = FedoraObject.objects.get(pk='')
