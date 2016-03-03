@@ -13,26 +13,25 @@ from fedoralink.type_manager import FedoraTypeManager
 class DCObject(IndexableFedoraObject):
 
     title         = IndexedLanguageField(DC.title, required=True,
-                                         verbose_name=_('Title'),
-                                         attrs={'presentation': 'textarea'})
+                                         verbose_name=_('Title'))
 
-    alternative   = IndexedTextField(DC.alternative, required=True,
+    alternative   = IndexedTextField(DC.alternative,
                                      verbose_name=_('Alternative title'))
 
-    abstract      = IndexedLanguageField(DC.abstract, required=True,
+    abstract      = IndexedLanguageField(DC.abstract,
                                          verbose_name=_('Abstract'),
                                          attrs={'presentation': 'textarea'})
 
-    creator       = IndexedTextField(DC.creator, required=True,
+    creator       = IndexedTextField(DC.creator,
                                      verbose_name=_('Creator'))
 
-    contributor   = IndexedTextField(DC.contributor, required=True,
+    contributor   = IndexedTextField(DC.contributor,
                                      verbose_name=_('Contributor'))
 
-    dateSubmitted = IndexedDateField(DC.dateSubmitted, required=True,
+    dateSubmitted = IndexedDateField(DC.dateSubmitted,
                                      verbose_name=_('Date submitted'))
 
-    dateAvailable = IndexedDateField(DC.dateAvailable, required=True,
+    dateAvailable = IndexedDateField(DC.dateAvailable,
                                      verbose_name=_('Date available'))
 
     class Meta:

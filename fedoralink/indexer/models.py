@@ -18,9 +18,11 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
     @staticmethod
     def all_indexed_fields(cls):
         vars = set()
-        for clazz in inspect.getmro(cls):
+        for clazz in reversed(inspect.getmro(cls)):
             # un-metaclassed class has fields directly
-            for name, fld in inspect.getmembers(clazz, lambda x: isinstance(x, IndexedField)):
+            flds = list(inspect.getmembers(clazz, lambda x: isinstance(x, IndexedField)))
+            flds.sort(key=lambda x: x[1].order)
+            for name, fld in flds:
                 if name not in vars:
                     vars.add(name)
                     fld.name = name

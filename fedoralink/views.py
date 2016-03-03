@@ -86,7 +86,6 @@ class GenericIndexerView(View):
         sort = request.GET.get('sort', self.default_ordering or self.orderings[0][0])
         if sort:
             data = data.order_by(*[x.strip() for x in sort.split(',')])
-
         page = request.GET.get('page')
         paginator = Paginator(data, 10)
 
@@ -151,6 +150,7 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
         retrieved_object = super().get_object(queryset)
         if not isinstance(retrieved_object, IndexableFedoraObject):
             raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
+        print(retrieved_object._meta.fields)
         return retrieved_object
 
 

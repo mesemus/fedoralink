@@ -26,7 +26,6 @@ class DjangoMetadataBridge:
         self.many_to_many    = []
         self.verbose_name = getattr(model_class, "verbose_name", model_class.__name__)
         self.model_class = model_class
-
         process_fields=set()
         for fld in fields:
             if fld.name in process_fields:

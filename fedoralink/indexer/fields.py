@@ -4,12 +4,16 @@ from fedoralink.forms import LangFormTextField, LangFormTextAreaField, Repositor
 
 
 class IndexedField:
+    __global_order = 0
+
     def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None):
         self.rdf_name     = rdf_name
         self.required     = required
         self.verbose_name = verbose_name
         self.attrs        = attrs if attrs else {}
         self.multi_valued = multi_valued
+        self.order = IndexedField.__global_order
+        IndexedField.__global_order += 1
 
 
 class IndexedLanguageField(IndexedField, django.db.models.Field):
