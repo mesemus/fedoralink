@@ -111,11 +111,14 @@ def rdf2lang(rdfliteral, lang=None):
 
 @register.filter
 def id_from_path(idval):
-    if idval.startswith(settings.DATABASES['repository']['REPO_URL']): #TODO: edit to use more repositories
-        if settings.DATABASES['repository']['REPO_URL'].endswith("/"):
-            return quote(idval[len(settings.DATABASES['repository']['REPO_URL']):]).replace('/', '_')
+    repository_url = settings.DATABASES['repository']['REPO_URL']
+    if idval.startswith(repository_url): #TODO: edit to use more repositories
+        if repository_url.endswith("/"):
+            return quote(idval[len(repository_url):]).replace('/', '_')
         else:
-            return quote(idval[len(settings.DATABASES['repository']['REPO_URL']) + 1:]).replace('/', '_')
+            return quote(idval[len(repository_url) + 1:]).replace('/', '_')
+    else:
+        raise AttributeError('%s is not from repository %s' %(idval, repository_url) )
 
 
 @register.filter
