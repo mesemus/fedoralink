@@ -1,6 +1,8 @@
+{% load fedoralink_tags %}
+
 <div class="row">
     <div class="col-md-3 nazev_property">{{ name }}</div>
     <div class="col-md-9 hodnota_property">
-        {{ value }}
+        {{ value|rdf2lang }}
     </div>
 </div>

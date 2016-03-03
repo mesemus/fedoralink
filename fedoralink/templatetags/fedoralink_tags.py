@@ -8,6 +8,9 @@ from django.utils.safestring import mark_safe
 import django.utils.translation
 from dateutil import parser as dateparser
 import logging
+
+from rdflib import Literal
+
 from fedoralink.auth import AuthManager
 from urllib.parse import quote
 from django.template import Context
@@ -79,13 +82,19 @@ def rdf2lang(rdfliteral, lang=None):
             lang = django.utils.translation.get_language()
         if lang:
             lang = lang.split("-")[0]
-        for l in rdfliteral:
-            if lang and l.language == lang or (not lang and (l.language is None or l.language == '')):
-                return l.value
-            elif not l.language:
-                default_value = l.value
+        if isinstance(rdfliteral, Literal):
+            rdfliteral = [rdfliteral]
+        if len(rdfliteral):
+            for l in rdfliteral:
+                if lang and l.language == lang or (not lang and (l.language is None or l.language == '')):
+                    return l.value
+                elif not l.language:
+                    default_value = l.value
+            if default_value is None:
+                return rdfliteral[0].value
     except:
         pass
+
     return default_value
 
 

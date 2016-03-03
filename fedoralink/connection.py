@@ -174,7 +174,7 @@ class FedoraConnection:
             req_url = self._get_request_url(object_id)
             log.info('Requesting url %s', req_url)
             headers = {
-                'Accept' : 'application/rdf+xml',
+                'Accept' : 'application/rdf+xml; encoding=utf-8',
             }
             if fetch_child_metadata:
                 headers['Prefer'] ='return=representation; ' + \
@@ -184,6 +184,8 @@ class FedoraConnection:
 
                 g = rdflib.Graph()
                 log.debug("making request to %s", req_url)
+                log.debug(r.headers)
+                log.debug(r.raw)
                 data = r.text
                 if r.status_code//100 != 2:
                     raise RepositoryException(url=req_url, code=r.status_code,

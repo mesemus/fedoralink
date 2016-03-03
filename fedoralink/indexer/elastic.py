@@ -1,4 +1,5 @@
 import inspect
+import json
 import traceback
 import urllib
 import urllib.parse
@@ -470,6 +471,7 @@ class ElasticIndexer(Indexer):
                     if lang == 'null':
                         lang = None
                     languages.append(Literal(val, lang=lang))
+                metadata[URIRef(fld)] = languages
             else:
                 metadata[URIRef(fld)] = Literal(field_value)
 

@@ -24,6 +24,7 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                 if name not in vars:
                     vars.add(name)
                     fld.name = name
+                    fld.editable = True
                     yield fld
 
             # after metaclass, the fields are turned into properties, the original fields are in _meta
@@ -33,7 +34,22 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                     if not fld.name: raise Exception('Name not set, wrong implementation !')
                     if fld.name not in vars:
                         vars.add(fld.name)
+                        fld.editable = True
                         yield fld
+
+    @staticmethod
+    def fill_rdf_types(cls):
+        rdf_types = set()
+        for clazz in inspect.getmro(cls):
+            clazz_meta = getattr(clazz, '_meta', None)
+            if clazz_meta:
+                for rt in getattr(clazz_meta, 'rdf_types', []):
+                    rdf_types.add(rt)
+            clazz_meta = getattr(clazz, 'Meta', None)
+            if clazz_meta:
+                for rt in getattr(clazz_meta, 'rdf_types', []):
+                    rdf_types.add(rt)
+        return tuple(rdf_types)
 
     def __init__(cls, name, bases, attrs):
         super(IndexableFedoraObjectMetaclass, cls).__init__(name, list(bases), attrs)
@@ -80,13 +96,10 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
         # store django _meta
         cls._meta = DjangoMetadataBridge(cls, indexed_fields)
 
-        meta_inner_class = getattr(cls, 'Meta', None)
-        if meta_inner_class:
-            cls._meta.rdf_types = getattr(meta_inner_class, 'rdf_types', None)
-            if cls._meta.rdf_types and not cls.__name__.endswith('_bound'):
-                FedoraTypeManager.register_model(cls, on_rdf_type=cls._meta.rdf_types)
-        else:
-            cls._meta.rdf_types = ()
+        cls._meta.rdf_types = IndexableFedoraObjectMetaclass.fill_rdf_types(cls)
+
+        if cls._meta.rdf_types and not cls.__name__.endswith('_bound'):
+            FedoraTypeManager.register_model(cls, on_rdf_type=cls._meta.rdf_types)
 
 
 class IndexableFedoraObject(FedoraObject, metaclass=IndexableFedoraObjectMetaclass):
@@ -103,7 +116,7 @@ class IndexableFedoraObject(FedoraObject, metaclass=IndexableFedoraObjectMetacla
 
     def full_clean(self, exclude=[], validate_unique=False):
         errors = {}
-        for fld in self.indexed_fields:
+        for fld in self._meta.fields:
             if fld.required:
                 if not getattr(self, fld.name):
                     errors[fld.name] = "Field %s is required" % fld.name

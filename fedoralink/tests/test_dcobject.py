@@ -1,13 +1,13 @@
 import django
 import random
-from rdflib.namespace import DC
+from rdflib.namespace import DC, RDF
 
 django.setup()
 
 import logging
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 from unittest import TestCase
 
@@ -89,6 +89,29 @@ class DCObjectTestCase(TestCase):
 
         dcb = DCObject.objects.get(pk=dco.pk)
         self.assertIsNotNone(dcb._meta)
+
+        self.assertTrue(DC.object in dcb._meta.rdf_types)
+        self.assertTrue(DC.object in dcb[RDF.type])
+
+    def test_unicode(self):
+        root = FedoraObject.objects.get(pk='')
+        dco = root.create_child('blah', flavour=DCObject)
+        dco.save()
+
+        dco.title = [
+            Literal('Nové peptické námelové alkoloidy a jejich deriváty', lang='cs')
+        ]
+        print("dco title", dco[DC.title])
+        dco.save()
+        print("dco title after save", dco[DC.title])
+
+        print("dcb title", DCObject.objects.get(pk=dco.pk)[DC.title])
+
+        dco.title = [
+            Literal('Nové peptické námelové alkoloidy', lang='cs')
+        ]
+        dco.save()
+
 
     def test_meta_search(self):
         dco = list(DCObject.objects.all())[0]
