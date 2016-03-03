@@ -125,7 +125,6 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
         retrieved_object = super().get_object(queryset)
         if not isinstance(retrieved_object, IndexableFedoraObject):
             raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
-        print(retrieved_object._meta.fields)
         return retrieved_object
 
 

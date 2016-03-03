@@ -158,8 +158,8 @@ class OrderableModelList(list):
         return OrderableModelList(lst, self._model)
 
 
-def fullname(o):
-    return o.__module__ + "." + o.__name__
+def fullname(o, prefix_before_name=''):
+    return o.__module__ + "." + prefix_before_name + o.__name__
 
 known_prefixes = {
     'http://purl.org/dc/elements/1.1/': '1'

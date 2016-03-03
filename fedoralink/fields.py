@@ -38,6 +38,7 @@ class DjangoMetadataBridge:
             self.concrete_fields.append(fld)
 
         self.fields = self.concrete_fields
+        self.fields_by_name = {x.name:x for x in self.fields}
         self.app_label = model_class.__module__
         self.object_name = model_class.__name__
 
