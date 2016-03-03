@@ -82,3 +82,15 @@ class IndexedDateField(IndexedField, django.db.models.DateTimeField):
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs)
         # WHY is Field's constructor not called without this?
         django.db.models.DateTimeField.__init__(self, verbose_name=verbose_name)
+
+
+class IndexedForeignField(IndexedField, django.db.models.Field):
+
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None):
+        super().__init__(rdf_name, required=required,
+                         verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs)
+        # WHY is Field's constructor not called without this?
+        django.db.models.Field.__init__(self, verbose_name=verbose_name)
+
+    def get_internal_type(self):
+        return 'TextField'

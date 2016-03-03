@@ -98,8 +98,11 @@ def rdf2lang(rdfliteral, lang=None):
                     return l.value
                 elif not l.language:
                     default_value = l.value
+
             if default_value is None:
-                return rdfliteral[0].value
+                for l in rdfliteral:
+                    if l.value:
+                        return l.value
     except:
         pass
 
