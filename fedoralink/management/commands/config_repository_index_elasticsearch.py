@@ -6,7 +6,8 @@ from django.core.management import BaseCommand
 from django.db import connections
 
 from fedoralink.indexer.elastic import FEDORA_ID_FIELD, FEDORA_PARENT_FIELD, FEDORA_TYPE_FIELD, FEDORALINK_TYPE_FIELD
-from fedoralink.indexer.fields import IndexedLanguageField, IndexedIntegerField, IndexedDateField, IndexedTextField
+from fedoralink.indexer.fields import IndexedLanguageField, IndexedIntegerField, IndexedDateField, IndexedTextField, \
+    IndexedLinkedField
 from fedoralink.type_manager import FedoraTypeManager
 from fedoralink.utils import url2id, id2url
 
@@ -83,7 +84,7 @@ class Command(BaseCommand):
                     props['type'] = 'nested'
                     props["include_in_root"] = 'true'
                     props['properties'] = self.gen_languages_mapping(fldname + ".")
-                elif isinstance(field, IndexedTextField):
+                elif isinstance(field, IndexedTextField) or isinstance(field, IndexedLinkedField):
                     props['type'] = 'string'
                     props['copy_to'] = fldname + "__exact"
                     new_properties[fldname + "__exact"] = {

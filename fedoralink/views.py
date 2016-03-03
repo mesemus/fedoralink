@@ -161,7 +161,6 @@ class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
     parent_collection = None
     success_url_param_names = ()
 
-
     def form_valid(self, form):
         inst = form.save(commit=False)
         inst.save()
