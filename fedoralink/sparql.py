@@ -62,7 +62,8 @@ class SparqlSerializer(TurtleSerializer):
         self._started = True
         ns_list = sorted(self.namespaces.items())
         for prefix, uri in ns_list:
-            self.write(self.indent() + 'PREFIX %s: <%s>\n' % (prefix, uri))
+            if prefix:
+                self.write(self.indent() + 'PREFIX %s: <%s>\n' % (prefix, uri))
         if ns_list and self._spacious:
             self.write('\n')
 

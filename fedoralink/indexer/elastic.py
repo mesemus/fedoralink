@@ -443,7 +443,7 @@ class ElasticIndexer(Indexer):
                     o = o[1:]
                 o = o.replace('@', '.')        # replace blah@cs with blah.cs
                 ordering_clause.append({
-                    fld2id[o]: {
+                    fld2id[o] + "__exact": {
                         'order': sort_direction
                     }
                 })
