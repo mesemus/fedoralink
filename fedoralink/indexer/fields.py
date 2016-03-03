@@ -96,3 +96,17 @@ class IndexedLinkedField(IndexedField, django.db.models.Field):
 
     def get_internal_type(self):
         return 'TextField'
+
+
+class IndexedBinaryField(IndexedField, django.db.models.Field):
+
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, model=None):
+        super().__init__(rdf_name, required=required,
+                         verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs)
+        # WHY is Field's constructor not called without this?
+        django.db.models.Field.__init__(self, verbose_name=verbose_name)
+
+        self.model = model
+
+    def get_internal_type(self):
+        return 'TextField'
