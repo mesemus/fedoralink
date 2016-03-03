@@ -1,3 +1,5 @@
+import datetime
+
 import django
 import random
 from rdflib.namespace import DC, RDF
@@ -7,7 +9,7 @@ django.setup()
 import logging
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.ERROR)
 
 from unittest import TestCase
 
@@ -116,3 +118,21 @@ class DCObjectTestCase(TestCase):
     def test_meta_search(self):
         dco = list(DCObject.objects.all())[0]
         self.assertIsNotNone(dco._meta)
+
+    def test_datetime(self):
+
+        root = FedoraObject.objects.get(pk='')
+        dco = root.create_child('blah', flavour=DCObject)
+
+        dco.dateSubmitted = datetime.datetime.now()
+        self.assertTrue(isinstance(dco.dateSubmitted, datetime.datetime), "Expected an instance of datetime")
+        dco.save()
+
+        self.assertTrue(isinstance(dco.dateSubmitted, datetime.datetime), "Expected an instance of datetime after save")
+
+        dcb = DCObject.objects.get(pk=dco.pk)
+        print(type(dcb.dateSubmitted))
+        self.assertTrue(isinstance(dcb.dateSubmitted, datetime.datetime), "Expected an instance of datetime after GET")
+
+
+

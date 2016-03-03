@@ -1,3 +1,4 @@
+import datetime
 import inspect
 
 import inflection as inflection
@@ -7,7 +8,7 @@ from rdflib import Literal
 
 from fedoralink.fedorans import FEDORA_INDEX
 from fedoralink.fields import DjangoMetadataBridge
-from fedoralink.indexer.fields import IndexedField, IndexedLanguageField
+from fedoralink.indexer.fields import IndexedField, IndexedLanguageField, IndexedDateField, IndexedIntegerField
 from fedoralink.models import FedoraObjectMetaclass, FedoraObject
 from fedoralink.type_manager import FedoraTypeManager
 from fedoralink.utils import StringLikeList, TypedStream
@@ -58,16 +59,43 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
 
         def create_property(prop):
 
+            def _convert_from_rdf(data):
+                if isinstance(prop, IndexedDateField):
+                    if data.value:
+                        if isinstance(data.value, datetime.datetime):
+                            return data.value
+                        raise AttributeError("Conversion of %s to datetime is not supported in "
+                                             "fedoralink/indexer/models.py" % type(data.value))
+
+                if isinstance(prop, IndexedIntegerField):
+                    return data.value
+
+                return data
+
+            def _convert_to_rdf(data):
+                if isinstance(prop, IndexedDateField):
+                    if data:
+                        if isinstance(data, datetime.datetime):
+                            return Literal(data)
+                        raise AttributeError("Conversion of %s to datetime is not supported in "
+                                             "fedoralink/indexer/models.py" % type(data))
+
+                if isinstance(prop, IndexedIntegerField):
+                    return Literal(data)
+
+                return Literal(data)
+
             def getter(self):
                 if not isinstance(prop, IndexedLanguageField) and not prop.multi_valued:
                     # simple type -> return the first item only
+
                     ret = self.metadata[prop.rdf_name]
                     if len(ret):
-                        return ret[0]
+                        return _convert_from_rdf(ret[0])
                     else:
                         return None
 
-                return StringLikeList(self.metadata[prop.rdf_name])
+                return StringLikeList([_convert_from_rdf(x) for x in self.metadata[prop.rdf_name]])
 
             def setter(self, value):
                 collected_streams = __get_streams(value)
@@ -77,6 +105,11 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                     streams = getattr(self, '__streams')
                     streams[prop] = collected_streams
                 else:
+                    if isinstance(value, list) or isinstance(value, tuple):
+                        value = [_convert_to_rdf(x) for x in value]
+                    else:
+                        value = _convert_to_rdf(value)
+
                     self.metadata[prop.rdf_name] = value
 
             def __get_streams(value):
