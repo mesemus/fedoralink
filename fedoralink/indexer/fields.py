@@ -1,7 +1,7 @@
 import django.db.models
 import django.forms
 
-from fedoralink.forms import LangFormTextField, LangFormTextAreaField, RepositoryFormMultipleFileField
+from fedoralink.forms import LangFormTextField, LangFormTextAreaField, MultiValuedFedoraField
 
 
 class IndexedField:
@@ -63,7 +63,18 @@ class IndexedTextField(IndexedField, django.db.models.Field):
         # WHY is Field's constructor not called without this?
         django.db.models.Field.__init__(self, verbose_name=verbose_name)
 
+    def formfield(self, **kwargs):
+        if self.multi_valued:
+            defaults = {'form_class': MultiValuedFedoraField }
+        else:
+            defaults = {'form_class': django.forms.CharField}
+
+        defaults.update(kwargs)
+        return super().formfield(**defaults)
+
     def get_internal_type(self):
+        if self.multi_valued:
+            return None
         return 'TextField'
 
 

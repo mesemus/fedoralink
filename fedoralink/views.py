@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect, FileResponse
 from django.shortcuts import render
 from django.views.generic import View, CreateView, DetailView, UpdateView
 
+from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
 from fedoralink.templatetags.fedoralink_tags import id_from_path
@@ -148,6 +149,12 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
             raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
         return retrieved_object
 
+    def get_form_class(self):
+        meta = type('Meta', (object, ), {'model': self.model, 'fields': '__all__'})
+        return type(self.model.__name__ + 'Form', (FedoraForm,), {
+            'Meta': meta
+        })
+
     def get_success_url(self):
         return reverse(self.success_url, kwargs={k:_convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
 
@@ -177,6 +184,12 @@ class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
         self.object = ret['instance'] = parent.create_child('', flavour=self.model)
 
         return ret
+
+    def get_form_class(self):
+        meta = type('Meta', (object, ), {'model': self.model, 'fields': '__all__'})
+        return type(self.model.__name__ + 'Form', (FedoraForm,), {
+            'Meta': meta
+        })
 
     def get_success_url(self):
         return reverse(self.success_url, kwargs={k:_convert(k, getattr(self.object, k)) for k in self.success_url_param_names})

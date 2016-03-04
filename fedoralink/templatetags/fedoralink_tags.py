@@ -108,7 +108,6 @@ def rdf2lang(rdfliteral, lang=None):
 
     return default_value
 
-
 @register.filter
 def id_from_path(idval):
     repository_url = settings.DATABASES['repository']['REPO_URL']
@@ -175,7 +174,11 @@ def render_field_view(context, object, meta_name, name, value):
 
     templates.append('fedoralink/partials/view.html')
 
+    context = Context(context)
+    context['field'] = object._meta.fields_by_name[meta_name]
+
     chosen_template = select_template(templates)
+
     return chosen_template.template.render(context)
 
 

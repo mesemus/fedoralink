@@ -3,6 +3,12 @@
 <div class="row">
     <div class="col-md-3 property_name">{{ name|rdf2lang }}</div>
     <div class="col-md-9 property_value">
-        {{ value|rdf2lang }}
+        {% if field.multi_valued %}
+            {% for val in value %}
+                {{val|rdf2lang}}<br>
+            {% endfor %}
+        {% else %}
+            {{ value|rdf2lang }}
+        {% endif %}
     </div>
 </div>
