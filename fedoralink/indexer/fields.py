@@ -19,11 +19,11 @@ class IndexedField:
 
 class IndexedLanguageField(IndexedField, django.db.models.Field):
 
-    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None):
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs)
         # WHY is Field's constructor not called without this?
-        django.db.models.Field.__init__(self, verbose_name=verbose_name)
+        django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
 
     def formfield(self, **kwargs):
@@ -57,11 +57,11 @@ class IndexedLanguageField(IndexedField, django.db.models.Field):
 
 class IndexedTextField(IndexedField, django.db.models.Field):
 
-    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None):
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs)
         # WHY is Field's constructor not called without this?
-        django.db.models.Field.__init__(self, verbose_name=verbose_name)
+        django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
     def formfield(self, **kwargs):
         if self.multi_valued:
@@ -80,29 +80,29 @@ class IndexedTextField(IndexedField, django.db.models.Field):
 
 class IndexedIntegerField(IndexedField, django.db.models.IntegerField):
 
-    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None):
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs)
         # WHY is Field's constructor not called without this?
-        django.db.models.IntegerField.__init__(self, verbose_name=verbose_name)
+        django.db.models.IntegerField.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
 
 class IndexedDateField(IndexedField, django.db.models.DateTimeField):
 
-    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None):
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs)
         # WHY is Field's constructor not called without this?
-        django.db.models.DateTimeField.__init__(self, verbose_name=verbose_name)
+        django.db.models.DateTimeField.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
 
 class IndexedLinkedField(IndexedField, django.db.models.Field):
 
-    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, model=None):
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, model=None, help_text=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs)
         # WHY is Field's constructor not called without this?
-        django.db.models.Field.__init__(self, verbose_name=verbose_name)
+        django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
         self.model = model
 
@@ -112,11 +112,11 @@ class IndexedLinkedField(IndexedField, django.db.models.Field):
 
 class IndexedBinaryField(IndexedField, django.db.models.Field):
 
-    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, model=None):
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, model=None, help_text=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs)
         # WHY is Field's constructor not called without this?
-        django.db.models.Field.__init__(self, verbose_name=verbose_name)
+        django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
         self.model = model
 
