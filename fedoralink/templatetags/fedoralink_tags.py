@@ -213,3 +213,22 @@ def get_dir_obj(object):
 @register.filter
 def get_languages_data(bound_field):
     return zip (range(len(bound_field.data)),bound_field.data, bound_field.field.languages)
+
+
+def url(value):
+    if (value.startswith("http")):
+        return value
+    else:
+        return "http://"+value
+
+
+@register.filter
+def get_urls(value):
+    value=set(value)
+    values=[]
+    for v in value:
+        v=v.replace('[','')
+        v=v.replace(']','')
+        values=[url(x) for x in v.split(",")]
+
+    return values
