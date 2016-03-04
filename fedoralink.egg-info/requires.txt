@@ -1,7 +1,0 @@
-django
-inflection
-isodate
-pyparsing
-rdflib
-requests
-django-bootstrap-pagination
