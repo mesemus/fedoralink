@@ -51,6 +51,8 @@ class GenericIndexerView(View):
     orderings = ()
     default_ordering = ''
     facets = None
+    title = None
+    create_button_title = None
 
     # noinspection PyCallingNonCallable
     def get(self, request, parametry):
@@ -108,7 +110,9 @@ class GenericIndexerView(View):
             'facet_names': {k: v for k, v in requested_facets},
             'searchstring': request.GET.get('searchstring', ''),
             'orderings': self.orderings,
-            'ordering': sort
+            'ordering': sort,
+            'title': self.title,
+            'create_button_title' : self.create_button_title
         })
 
 
@@ -166,6 +170,7 @@ class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
     template_name = None
     parent_collection = None
     success_url_param_names = ()
+    title = None
 
     def form_valid(self, form):
         inst = form.save(commit=False)
