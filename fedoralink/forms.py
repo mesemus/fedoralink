@@ -175,6 +175,18 @@ class RepositoryFormMultipleFileField(forms.MultiValueField):
         return data_list
 
 
+class GPSWidget(forms.TextInput):
+    def render(self, name, value, attrs=None):
+        return render_to_string('fedoralink/partials/google_map_input_field.html', context=Context({
+            'widget': super().render(name, value, attrs)
+        }))
+
+class GPSField(forms.CharField):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.widget = GPSWidget()
+
+
 class FedoraForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         inst = kwargs.get('instance', None)

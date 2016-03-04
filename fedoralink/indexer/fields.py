@@ -1,7 +1,8 @@
 import django.db.models
 import django.forms
+from django import forms
 
-from fedoralink.forms import LangFormTextField, LangFormTextAreaField, MultiValuedFedoraField
+from fedoralink.forms import LangFormTextField, LangFormTextAreaField, MultiValuedFedoraField, GPSField
 
 
 class IndexedField:
@@ -129,3 +130,21 @@ class IndexedBinaryField(IndexedField, django.db.models.Field):
 
     def get_internal_type(self):
         return 'FileField'
+
+
+class IndexedGPSField(IndexedField, django.db.models.Field):
+
+    def __init__(self, rdf_name, required=False, verbose_name=None, attrs=None, help_text=None):
+        super().__init__(rdf_name, required=required,
+                         verbose_name=verbose_name, multi_valued=False, attrs=attrs)
+        # WHY is Field's constructor not called without this?
+        django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text)
+
+    def formfield(self, **kwargs):
+        defaults = {'form_class': GPSField}
+
+        defaults.update(kwargs)
+        return super().formfield(**defaults)
+
+    def get_internal_type(self):
+        return 'TextField'
