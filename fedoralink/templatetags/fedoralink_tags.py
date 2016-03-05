@@ -120,10 +120,12 @@ def id_from_path(idval):
 
 
 @register.filter
-def get_fields(object):
+def get_fields(object, level=None):
     meta_fields = object._meta.fields
     fields = ()
     for meta in meta_fields:
+        if level is not None and meta.level != level:
+            continue
         meta_name = getattr(meta, "name")
         name = getattr(meta, "verbose_name")
         if name is None:
@@ -144,11 +146,13 @@ def render_links(context, object, link_name):
 
 
 @register.filter
-def get_form_fields(form):
+def get_form_fields(form, level=None):
     object = form.instance
     meta_fields = object._meta.fields
     fields = ()
     for meta in meta_fields:
+        if level is not None and meta.level != level:
+            continue
         meta_name = getattr(meta, "name")
         name = getattr(meta, "verbose_name")
         if name is None:

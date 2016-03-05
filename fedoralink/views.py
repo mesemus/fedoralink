@@ -141,6 +141,7 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
     prefix = None
     template_name_suffix = None
     success_url_param_names = ()
+    title = None
 
     def get_queryset(self):
         return FedoraObject.objects.all()
