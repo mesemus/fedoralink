@@ -1,0 +1,18 @@
+{% load fedoralink_tags %}
+
+<div class="row">
+    <div class="col-md-3 property_name">{{ name|rdf2lang }}</div>
+    <div class="col-md-9 property_value">
+        {% if field.multi_valued %}
+            {% for val in value %}
+                {{val|rdf2lang}}<br>
+            {% endfor %}
+        {% else %}
+            {{ value|rdf2lang }}
+        {% endif %}
+        <br>
+        <iframe width="300" height="200" frameborder="0" style="border:0"
+                src="https://www.google.com/maps/embed/v1/place?key=AIzaSyAZIruvU8_AvyLEZ1YcG_49mOFND8wOWmk&q={{value|rdf2lang|cut:' '}}&zoom=14" allowfullscreen>
+        </iframe>
+    </div>
+</div>

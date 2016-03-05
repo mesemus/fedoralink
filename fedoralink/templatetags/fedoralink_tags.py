@@ -173,6 +173,7 @@ def render_field_view(context, object, meta_name, name, value):
     templates.append('{0}_view.html'.format(fullname(fieldtype.__class__).replace('.', '/')))
 
     templates.append('fedoralink/partials/view.html')
+    print(templates)
 
     context = Context(context)
     context['field'] = object._meta.fields_by_name[meta_name]

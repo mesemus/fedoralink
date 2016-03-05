@@ -152,6 +152,8 @@ class MultiValuedFedoraField(forms.MultiValueField):
         fields = []
         for i in range(max(1, count)):
             fld, widget = get_preferred_presentation(fedora_field)
+            if self.required:
+                fld.required = self.required
             fields.append(fld)
             widgets.append(widget)
         self.fields = tuple(fields)
