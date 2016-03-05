@@ -5,14 +5,20 @@
     <div class="col-md-9 property_value">
         {% if field.multi_valued %}
             {% for val in value %}
-                {{val|rdf2lang}}<br>
+                {{val|rdf2lang}}
             {% endfor %}
         {% else %}
             {{ value|rdf2lang }}
         {% endif %}
-        <br>
-        <iframe width="300" height="200" frameborder="0" style="border:0"
-                src="https://www.google.com/maps/embed/v1/place?key=AIzaSyAZIruvU8_AvyLEZ1YcG_49mOFND8wOWmk&q={{value|rdf2lang|cut:' '}}&zoom=10" allowfullscreen>
-        </iframe>
     </div>
 </div>
+
+<script>
+    $(document).ready(function() {
+        var addon = $('#left-addon');
+        $('<iframe>').attr('width', addon.width()).attr('height', addon.width()*3/5).
+                      attr('frameborder', 0).attr('allowfullscreen', 'true').
+                      addClass('detail-view-map').
+                      attr('src', "https://www.google.com/maps/embed/v1/place?key=AIzaSyAZIruvU8_AvyLEZ1YcG_49mOFND8wOWmk&q={{value|rdf2lang|cut:' '}}&zoom=10").appendTo(addon);
+    });
+</script>

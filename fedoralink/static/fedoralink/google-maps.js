@@ -139,8 +139,74 @@ $(document).ready(function () {
                 label: 'Save location',
                 cssClass: 'btn-primary',
                 action: function (dialogItself) {
-                    dialogItself.close();
                     inp.val(lastLatLong[0] + "," + lastLatLong[1]);
+                    $.ajax("https://maps.googleapis.com/maps/api/geocode/json?latlng=" +
+                        lastLatLong[0] + "," + lastLatLong[1] + "&key=" + google_key).
+                        then(function(data) {
+                        dialogItself.close();
+                        if (data['status'] == 'OK') {
+                            var results = data['results'];
+                            if (results.length>0) {
+                                var res = results[0];
+                                var components = {};
+                                $(res['address_components']).each(function() {
+                                    var val = this['long_name'];
+                                    $(this['types']).each(function() {
+                                        components[String(this)] = val;
+                                    });
+                                });
+
+                                function c(x) {
+                                    if (x) return x;
+                                    return '';
+                                }
+
+                                BootstrapDialog.confirm('The map server returned the following address. Use it?<br><br>' +
+                                    c(components['route']) + " " + c(components['street_number']) + "<br>" +
+                                    c(components["sublocality"]) + "<br>" +
+                                    c(components["postal_code"]) + " " + c(components["locality"]) + "<br>" +
+                                    c(components["country"]),
+                                    function(result) {
+                                        if (result) {
+                                            if (components['route']) {
+                                                $('#id_street').val(components['route']);
+                                            } else {
+                                                $('#id_street').val('');
+                                            }
+                                            if (components['street_number']) {
+                                                $('#id_house_number').val(components['street_number']);
+                                            } else {
+                                                $('#id_house_number').val('');
+                                            }
+                                            if (components['postal_code']) {
+                                                $('#id_zip').val(components['postal_code']);
+                                            } else {
+                                                $('#id_zip').val('');
+                                            }
+                                            if (components['sublocality']) {
+                                                $('#id_region').val(components['sublocality']);
+                                            } else {
+                                                $('#id_region').val('');
+                                            }
+                                            if (components['locality']) {
+                                                $('#id_town').val(components['locality']);
+                                            } else {
+                                                $('#id_town').val('');
+                                            }
+                                            if (components['country']) {
+                                                $('#id_country').val(components['country']);
+                                            } else {
+                                                $('#id_country').val('');
+                                            }
+                                        }
+                                    });
+                            } else {
+                                BootstrapDialog.alert("Map server did not return street data, please fill them yourself.");
+                            }
+                        } else {
+                            BootstrapDialog.alert("Can not convert map coordinates to street data, please fill them yourself.");
+                        }
+                    });
                 }
             },
                 {
