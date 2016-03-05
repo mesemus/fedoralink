@@ -186,7 +186,7 @@ class FedoraConnection:
                 log.debug("making request to %s", req_url)
                 log.debug(r.headers)
                 log.debug(r.raw)
-                data = r.text
+                data = r.content.decode('utf-8')
                 if r.status_code//100 != 2:
                     raise RepositoryException(url=req_url, code=r.status_code,
                                               msg='Error accessing repository: %s' % data,

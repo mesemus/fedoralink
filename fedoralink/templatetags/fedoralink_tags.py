@@ -76,7 +76,6 @@ class FacetContainmentNode(template.Node):
 
 @register.filter
 def rdf2lang(rdfliteral, lang=None):
-
     if not isinstance(rdfliteral, Literal) and not isinstance(rdfliteral, list) and not isinstance(rdfliteral, tuple):
         return rdfliteral
 
