@@ -5,6 +5,7 @@ import traceback
 import inflection as inflection
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
+from django.db.models.signals import class_prepared
 from rdflib import Literal
 
 from fedoralink.fedorans import FEDORA_INDEX
@@ -149,6 +150,9 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
 
         if cls._meta.rdf_types and not cls.__name__.endswith('_bound'):
             FedoraTypeManager.register_model(cls, on_rdf_type=cls._meta.rdf_types)
+
+        class_prepared.send(sender=cls)
+
 
 
 class IndexableFedoraObject(FedoraObject, metaclass=IndexableFedoraObjectMetaclass):

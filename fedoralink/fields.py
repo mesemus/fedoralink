@@ -1,7 +1,7 @@
-import inspect
-
-from fedoralink.forms import LangFormTextField, LangFormTextAreaField, RepositoryFormMultipleFileField
 import django.db.models
+from django.apps import apps
+
+from fedoralink.forms import RepositoryFormMultipleFileField
 
 
 class RepositoryMultipleFileField(django.db.models.Field):
@@ -40,5 +40,8 @@ class DjangoMetadataBridge:
         self.fields = self.concrete_fields
         self.fields_by_name = {x.name:x for x in self.fields}
         self.app_label = model_class.__module__
+        if self.app_label.endswith('.models'):
+            self.app_label = self.app_label[:-7]
         self.object_name = model_class.__name__
+        self.apps = apps
 

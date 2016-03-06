@@ -16,6 +16,7 @@ from urllib.parse import quote
 from django.template import Context
 from django.template.loader import select_template
 
+from fedoralink.indexer.fields import IndexedLinkedField, IndexedBinaryField
 from fedoralink.utils import fullname
 
 register = template.Library()
@@ -162,17 +163,26 @@ def get_form_fields(form, level=None):
     return fields
 
 
+def model_name(model):
+    return model._meta.app_label + "/" + model._meta.object_name
 
 @register.simple_tag(takes_context=True)
 def render_field_view(context, object, meta_name, name, value):
-    templates = [fullname(x).replace('.', '/') + '/' + meta_name + '_view.html' for x in inspect.getmro(type(object))
+    templates = [model_name(x) + '/' + meta_name + '_view.html' for x in inspect.getmro(type(object))
                  if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject')]
 
     fieldtype = object._meta.fields_by_name[meta_name]
 
-    templates += [fullname(x).replace('.', '/') + '/' + fullname(fieldtype.__class__).replace('.', '_') + '_view.html' for x in inspect.getmro(type(object))
+    if isinstance(fieldtype, IndexedLinkedField) or isinstance(fieldtype, IndexedBinaryField):
+        templates += [model_name(x) + '/' + fieldtype.__class__.__name__ + '/' +
+                      model_name(fieldtype.related_model) + '_view.html' for x in inspect.getmro(type(object))
+                     if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject')]
+
+    templates += [model_name(x) + '/' + fieldtype.__class__.__name__ + '_view.html' for x in inspect.getmro(type(object))
                  if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject')]
 
+    if isinstance(fieldtype, IndexedLinkedField) or isinstance(fieldtype, IndexedBinaryField):
+        templates.append('{0}/{1}_view.html'.format(fullname(fieldtype.__class__).replace('.', '/'), model_name(fieldtype.related_model)))
     templates.append('{0}_view.html'.format(fullname(fieldtype.__class__).replace('.', '/')))
 
     templates.append('fedoralink/partials/view.html')
