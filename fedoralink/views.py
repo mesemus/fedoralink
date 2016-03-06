@@ -204,3 +204,21 @@ def _convert(name, value):
     if name == 'pk' or name == 'id':
         return id_from_path(value)
     return value
+
+
+class ModelViewRegistry:
+
+    views = {}
+
+    @classmethod
+    def register_view(cls, model, view_type, app_name, view_name):
+        cls.views[(model, view_type)] = app_name + ':' + view_name
+
+
+    @classmethod
+    def get_view(cls, model, view_type):
+        for model_cls in inspect.getmro(model):
+            r = cls.views.get((model_cls, view_type), None)
+            if r is not None:
+                return r
+        raise Exception('View for %s, %s is not registered. Use ModelViewRegistry.register_view to register it.' % (model, view_type))

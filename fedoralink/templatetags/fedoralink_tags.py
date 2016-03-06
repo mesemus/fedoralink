@@ -1,20 +1,15 @@
 # -*- coding: utf-8 -*-
 import inspect
+import logging
+from urllib.parse import quote
 
-import bleach
+import django.utils.translation
 from django import template
 from django.conf import settings
-from django.utils.safestring import mark_safe
-import django.utils.translation
-from dateutil import parser as dateparser
-import logging
-
-from rdflib import Literal
-
-from fedoralink.auth import AuthManager
-from urllib.parse import quote
+from django.core.urlresolvers import reverse
 from django.template import Context
 from django.template.loader import select_template
+from rdflib import Literal
 
 from fedoralink.indexer.fields import IndexedLinkedField, IndexedBinaryField
 from fedoralink.models import FedoraObject
@@ -111,7 +106,13 @@ def rdf2lang(rdfliteral, lang=None):
 
 @register.filter
 def id_from_path(idval):
+    idval = str(idval)
     repository_url = settings.DATABASES['repository']['REPO_URL']
+
+    # won't be the case in production, but in development django treats these two interchangeably
+    idval = idval.replace('127.0.0.1', 'localhost')
+    repository_url = repository_url.replace('127.0.0.1', 'localhost')
+
     if idval.startswith(repository_url): #TODO: edit to use more repositories
         if repository_url.endswith("/"):
             return quote(idval[len(repository_url):]).replace('/', '_')
@@ -255,6 +256,12 @@ def render_linked_field(context, linked_object, field_name, containing_object):
     chosen_template = select_template(templates)
 
     return chosen_template.template.render(context)
+
+
+@register.filter
+def get_fedora_object_page_link(linked_object, view_type):
+    from fedoralink.views import ModelViewRegistry
+    return reverse(ModelViewRegistry.get_view(type(linked_object), view_type), kwargs={'pk': id_from_path(linked_object.pk)})
 
 
 @register.filter
