@@ -17,6 +17,7 @@ from django.template import Context
 from django.template.loader import select_template
 
 from fedoralink.indexer.fields import IndexedLinkedField, IndexedBinaryField
+from fedoralink.models import FedoraObject
 from fedoralink.utils import fullname
 
 register = template.Library()
@@ -121,6 +122,10 @@ def id_from_path(idval):
 
 
 @register.filter
+def download_object_from_fedora(pk):
+    return FedoraObject.objects.get(pk=str(pk))
+
+@register.filter
 def get_fields(object, level=None):
     meta_fields = object._meta.fields
     fields = ()
@@ -166,20 +171,24 @@ def get_form_fields(form, level=None):
 def model_name(model):
     return model._meta.app_label + "/" + model._meta.object_name
 
-@register.simple_tag(takes_context=True)
-def render_field_view(context, object, meta_name, name, value):
-    templates = [model_name(x) + '/' + meta_name + '_view.html' for x in inspect.getmro(type(object))
-                 if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject')]
 
-    fieldtype = object._meta.fields_by_name[meta_name]
+def fedora_user_classes(inst):
+    for x in inspect.getmro(type(inst)):
+         if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject'):
+             yield x
+
+
+@register.simple_tag(takes_context=True)
+def render_field_view(context, containing_object, meta_name, name, value):
+    templates = [model_name(x) + '/' + meta_name + '_view.html' for x in fedora_user_classes(containing_object)]
+
+    fieldtype = containing_object._meta.fields_by_name[meta_name]
 
     if isinstance(fieldtype, IndexedLinkedField) or isinstance(fieldtype, IndexedBinaryField):
         templates += [model_name(x) + '/' + fieldtype.__class__.__name__ + '/' +
-                      model_name(fieldtype.related_model) + '_view.html' for x in inspect.getmro(type(object))
-                     if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject')]
+                      model_name(fieldtype.related_model) + '_view.html' for x in fedora_user_classes(containing_object)]
 
-    templates += [model_name(x) + '/' + fieldtype.__class__.__name__ + '_view.html' for x in inspect.getmro(type(object))
-                 if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject')]
+    templates += [model_name(x) + '/' + fieldtype.__class__.__name__ + '_view.html' for x in fedora_user_classes(containing_object)]
 
     if isinstance(fieldtype, IndexedLinkedField) or isinstance(fieldtype, IndexedBinaryField):
         templates.append('{0}/{1}_view.html'.format(fullname(fieldtype.__class__).replace('.', '/'), model_name(fieldtype.related_model)))
@@ -189,7 +198,7 @@ def render_field_view(context, object, meta_name, name, value):
     print(templates)
 
     context = Context(context)
-    context['field'] = object._meta.fields_by_name[meta_name]
+    context['field'] = containing_object._meta.fields_by_name[meta_name]
 
     chosen_template = select_template(templates)
 
@@ -199,13 +208,12 @@ def render_field_view(context, object, meta_name, name, value):
 @register.simple_tag(takes_context=True)
 def render_field_edit(context, form, meta_name, name, field):
     templates = [fullname(x).replace('.', '/') + '/' + meta_name + '_edit.html' for x in
-                 inspect.getmro(type(form.instance))
-                 if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject')]
+                 fedora_user_classes(form.instance)]
 
     fieldtype = form.instance._meta.fields_by_name[meta_name]
 
-    templates += [fullname(x).replace('.', '/') + '/' + fullname(fieldtype.__class__).replace('.', '_') + '_edit.html' for x in inspect.getmro(type(object))
-                 if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject')]
+    templates += [fullname(x).replace('.', '/') + '/' + fullname(fieldtype.__class__).replace('.', '_') + '_edit.html'
+                    for x in fedora_user_classes(object)]
 
     templates.append('{0}_edit.html'.format(fullname(fieldtype.__class__).replace('.', '/')))
 
@@ -214,6 +222,38 @@ def render_field_edit(context, form, meta_name, name, field):
     context = Context(context)
     context['field'] = field
     chosen_template = select_template(templates)
+    return chosen_template.template.render(context)
+
+
+@register.simple_tag(takes_context=True)
+def render_linked_field(context, linked_object, field_name, containing_object):
+
+    templates = [model_name(x) + '/' + field_name + '_linked_view.html' for x in fedora_user_classes(containing_object)]
+
+    fieldtype = containing_object._meta.fields_by_name[field_name]
+
+    for y in fedora_user_classes(containing_object):
+        templates.extend([
+            '{0}/{1}_linked_view.html'.format(model_name(y),
+                                              model_name(x)) for x in fedora_user_classes(linked_object)
+        ])
+
+    templates.extend([
+        '{0}/{1}_linked_view.html'.format(fullname(fieldtype.__class__).replace('.', '/'),
+                                          model_name(x)) for x in fedora_user_classes(linked_object)
+    ])
+    templates.append('{0}_linked_view.html'.format(fullname(fieldtype.__class__).replace('.', '/')))
+
+    templates.append('fedoralink/partials/linked_view.html')
+    print(templates)
+
+    context = Context(context)
+    context['field'] = containing_object._meta.fields_by_name[field_name]
+    context['value'] = linked_object
+    context['containing_object'] = containing_object
+
+    chosen_template = select_template(templates)
+
     return chosen_template.template.render(context)
 
 
