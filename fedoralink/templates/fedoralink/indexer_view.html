@@ -17,12 +17,16 @@
 {% endblock %}
 
 {% block search_results %}
-    <table class="search-results">
-    {% for item in page %}
-        {% include item_template %}
-    {% endfor %}
-    </table>
-    {% bootstrap_paginate page range=15 %}
+    <div class="search-results-without-pagination">
+        <table class="search-results">
+        {% for item in page %}
+            {% include item_template %}
+        {% endfor %}
+        </table>
+    </div>
+    {% if page.has_other_pages %}
+        {% bootstrap_paginate page range=15 %}
+    {% endif %}
 {% endblock %}
 
 {% block ordering %}
