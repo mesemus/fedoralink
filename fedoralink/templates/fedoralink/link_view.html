@@ -4,25 +4,18 @@
 {% load fedoralink_tags %}
 
 {% block search_bar %}
-    <div class="row space-below">
-        <div class="col-lg-8">
-            <div class="input-group">
-              <input type="text" class="form-control" id="searchstring" name=searchstring placeholder="{% trans "Text to search" %}" value="{{ searchstring }}">
-              <span class="input-group-btn">
-                    <button class="btn btn-default" type="submit">{% trans "Search" %}</button>
-              </span>
-            </div>
-        </div>
-    </div>
+      <input type="text" class="form-control" id="searchstring" name=searchstring placeholder="{% trans "Text to search" %}" value="{{ searchstring }}">
+{% endblock %}
+
+{% block bodyclasses %}
+link-view-body
 {% endblock %}
 
 {% block search_results %}
     <div class="search-results-without-pagination">
         <table class="search-results">
         {% for item in page %}
-            <a href="{% detail_view_url item %}">
-                {% include item_template %}
-            </a>
+            {% include item_template %}
         {% endfor %}
         </table>
     </div>

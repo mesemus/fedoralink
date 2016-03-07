@@ -15,3 +15,18 @@ h3.fedoralink-edit-region {
     padding-top: 0px;
     margin-top: -50px;
 }
+
+.linked-field-label {
+    cursor: pointer;
+}
+
+#linked-field-selector {
+    border: 0px;
+    width: 100%;
+    min-height: 400px;
+    overflow-x: hidden;
+}
+
+.link-view-body {
+    overflow-x: hidden;
+}

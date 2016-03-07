@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
+import base64
 import inspect
+import json
 import logging
 from urllib.parse import quote
 
 import django.utils.translation
+import zlib
 from django import template
 from django.conf import settings
+from django.core.signing import TimestampSigner
 from django.core.urlresolvers import reverse
 from django.template import Context
 from django.template.loader import select_template
@@ -274,3 +278,35 @@ def get_dir_obj(object):
 @register.filter
 def get_languages_data(bound_field):
     return zip (range(len(bound_field.data)),bound_field.data, bound_field.field.languages)
+
+@register.simple_tag
+def linked_form_field_model(model_form, field):
+    model_class = model_form._meta.model
+    model_field = model_class._meta.fields_by_name[field.name]
+    related_model = model_field.related_model
+
+    # 'related_app'          : related_model._meta.app_label,
+    # 'related_class'        : related_model._meta.object_name,
+
+    data_url = [{
+        'referencing_app'      : model_class._meta.app_label,
+        'referencing_class'    : model_class._meta.object_name,
+        'referencing_field'    : field.name,
+        'referencing_instance' : model_form.instance.pk,
+        'current_value'        : field.value()
+    }]
+
+    from fedoralink.views import ModelViewRegistry
+    link_view = ModelViewRegistry.get_view(related_model, 'link')
+
+    data_url = base64.b64encode(zlib.compress(json.dumps(data_url).encode('utf-8')))
+    signer = TimestampSigner(salt='linked_form_field_model')
+    data_url = signer.sign(data_url)
+
+    return reverse(link_view, kwargs={'parametry': ''}) + '?linking=' + data_url
+
+@register.simple_tag
+def detail_view_url(obj):
+    from fedoralink.views import ModelViewRegistry
+
+    return reverse(ModelViewRegistry.get_view(type(obj), 'detail'), kwargs={'pk': id_from_path(obj.pk)})

@@ -1,0 +1,19 @@
+{% load fedoralink_tags %}
+
+<div class="form-group">
+    <label for="{{ field.html_id}}" class="control-label">{{field.label}}</label>
+
+    <div class="input-group">
+        <span class="form-control linked-field-label"></span>
+        <input type="hidden"
+               value="{{ field.value }}"
+               title=""
+               name="{{field.name}}"
+               id="{{field.html_id}}"
+               data-chooser="{% linked_form_field_model form field %}"
+        />
+        <span class="input-group-btn">
+            <button type="button" class="btn btn-warning linked-field-button">&nbsp;<span class="glyphicon glyphicon-link"></span>&nbsp;</button>
+        </span>
+    </div>
+</div>
