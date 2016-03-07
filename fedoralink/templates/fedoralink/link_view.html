@@ -15,7 +15,11 @@ link-view-body
     <div class="search-results-without-pagination">
         <table class="search-results">
         {% for item in page %}
-            {% include item_template %}
+            <a href="" data-link-location="{{item.pk}}" data-link-id="{{item.pk|id_from_path}}" class="linked-field-pass-link">
+                {% with object=item %}
+                    {% include item_template %}
+                {% endwith %}
+            </a>
         {% endfor %}
         </table>
     </div>

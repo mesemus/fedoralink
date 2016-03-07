@@ -9,11 +9,13 @@
                value="{{ field.value }}"
                title=""
                name="{{field.name}}"
-               id="{{field.html_id}}"
+               id="{{ field.html_id }}"
                data-chooser="{% linked_form_field_model form field %}"
+               data-label-url="{% linked_form_field_label_url form field %}"
         />
         <span class="input-group-btn">
             <button type="button" class="btn btn-warning linked-field-button">&nbsp;<span class="glyphicon glyphicon-link"></span>&nbsp;</button>
+            <button type="button" class="btn btn-danger linked-field-button-remove">&nbsp;<span class="glyphicon glyphicon-remove"></span>&nbsp;</button>
         </span>
     </div>
 </div>

@@ -21,7 +21,9 @@
         <table class="search-results">
         {% for item in page %}
             <a href="{% detail_view_url item %}">
-                {% include item_template %}
+                {% with object=item %}
+                    {% include item_template %}
+                {% endwith %}
             </a>
         {% endfor %}
         </table>

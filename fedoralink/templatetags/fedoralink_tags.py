@@ -262,6 +262,25 @@ def render_linked_field(context, linked_object, field_name, containing_object):
     return chosen_template.template.render(context)
 
 
+@register.simple_tag(takes_context=True)
+def render_linked_standalone_field(context, linked_object):
+
+    templates = []
+
+    for y in fedora_user_classes(linked_object):
+        templates.append('fedoralink/indexer/fields/IndexedLinkedField/{0}_linked_view.html'.format(model_name(y).replace('.', '/')))
+    templates.append('fedoralink/partials/linked_view.html')
+
+    print(templates)
+
+    context = Context(context)
+    context['value'] = linked_object
+
+    chosen_template = select_template(templates)
+
+    return chosen_template.template.render(context)
+
+
 @register.filter
 def get_fedora_object_page_link(linked_object, view_type):
     from fedoralink.views import ModelViewRegistry
@@ -304,6 +323,22 @@ def linked_form_field_model(model_form, field):
     data_url = signer.sign(data_url)
 
     return reverse(link_view, kwargs={'parametry': ''}) + '?linking=' + data_url
+
+@register.simple_tag
+def linked_form_field_label_url(model_form, field):
+    model_class = model_form._meta.model
+    model_field = model_class._meta.fields_by_name[field.name]
+    related_model = model_field.related_model
+
+    from fedoralink.views import ModelViewRegistry
+    title_view = ModelViewRegistry.get_view(related_model, 'link_title')
+
+    if field.value():
+        return reverse(title_view, kwargs={'pk': id_from_path(field.value())})
+    else:
+        return reverse(title_view, kwargs={'pk': '0'})[:-1]
+
+
 
 @register.simple_tag
 def detail_view_url(obj):
