@@ -1,0 +1,14 @@
+{% load fedoralink_tags %}
+
+<div class="row">
+    <div class="col-md-3 property_name">{{ name|rdf2lang }}</div>
+    <div class="col-md-9 property_value">
+        {% if field.multi_valued %}
+            {% for val in value %}
+                {{val|date:"M d, Y"}}
+            {% endfor %}
+        {% else %}
+            {{ value|date:"M d, Y" }}
+        {% endif %}
+    </div>
+</div>

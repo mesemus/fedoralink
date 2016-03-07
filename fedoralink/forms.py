@@ -92,11 +92,11 @@ class LangFormTextAreaField(LangFormField):
 
 
 def get_preferred_presentation(fedora_field):
-    from fedoralink.indexer.fields import IndexedIntegerField, IndexedDateField
+    from fedoralink.indexer.fields import IndexedIntegerField, IndexedDateTimeField
 
     if isinstance(fedora_field, IndexedIntegerField):
         return forms.IntegerField(), forms.NumberInput()
-    if isinstance(fedora_field, IndexedDateField):
+    if isinstance(fedora_field, IndexedDateTimeField):
         return forms.DateTimeField(), forms.DateTimeInput()
     if fedora_field.attrs.get('presentation', '') == 'textarea':
         return forms.CharField(), forms.Textarea()

@@ -100,13 +100,22 @@ class IndexedIntegerField(IndexedField, django.db.models.IntegerField):
         django.db.models.IntegerField.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
 
-class IndexedDateField(IndexedField, django.db.models.DateTimeField):
+class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
 
     def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None, level=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
         django.db.models.DateTimeField.__init__(self, verbose_name=verbose_name, help_text=help_text)
+
+
+class IndexedDateField(IndexedField, django.db.models.DateField):
+
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None, level=None):
+        super().__init__(rdf_name, required=required,
+                         verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
+        # WHY is Field's constructor not called without this?
+        django.db.models.DateField.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
 
 def register_model_lookup(field, related_model):

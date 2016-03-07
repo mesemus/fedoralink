@@ -1,7 +1,7 @@
 from rdflib.namespace import DC
 from django.utils.translation import ugettext_lazy as _
 
-from fedoralink.indexer.fields import IndexedLanguageField, IndexedTextField, IndexedDateField
+from fedoralink.indexer.fields import IndexedLanguageField, IndexedTextField, IndexedDateTimeField
 from fedoralink.indexer.models import IndexableFedoraObject
 
 
@@ -28,11 +28,11 @@ class DCObject(IndexableFedoraObject):
     contributor   = IndexedTextField(DC.contributor,
                                      verbose_name=_('Contributor'))
 
-    dateSubmitted = IndexedDateField(DC.dateSubmitted,
-                                     verbose_name=_('Date submitted'))
+    dateSubmitted = IndexedDateTimeField(DC.dateSubmitted,
+                                         verbose_name=_('Date submitted'))
 
-    dateAvailable = IndexedDateField(DC.dateAvailable,
-                                     verbose_name=_('Date available'))
+    dateAvailable = IndexedDateTimeField(DC.dateAvailable,
+                                         verbose_name=_('Date available'))
 
     class Meta:
         rdf_types = (DC.Object,)

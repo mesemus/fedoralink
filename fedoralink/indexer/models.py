@@ -10,7 +10,8 @@ from rdflib import Literal
 
 from fedoralink.fedorans import FEDORA_INDEX
 from fedoralink.fields import DjangoMetadataBridge
-from fedoralink.indexer.fields import IndexedField, IndexedLanguageField, IndexedDateField, IndexedIntegerField
+from fedoralink.indexer.fields import IndexedField, IndexedLanguageField, IndexedDateTimeField, IndexedIntegerField, \
+    IndexedDateField
 from fedoralink.models import FedoraObjectMetaclass, FedoraObject
 from fedoralink.type_manager import FedoraTypeManager
 from fedoralink.utils import StringLikeList, TypedStream
@@ -62,7 +63,7 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
         def create_property(prop):
 
             def _convert_from_rdf(data):
-                if isinstance(prop, IndexedDateField):
+                if isinstance(prop, IndexedDateTimeField):
                     if data.value:
                         if isinstance(data.value, datetime.datetime):
                             return data.value
@@ -82,13 +83,33 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                         raise AttributeError("Conversion of %s [%s] to datetime is not supported in "
                                              "fedoralink/indexer/models.py" % (type(data.value), data.value))
 
+                if isinstance(prop, IndexedDateField):
+                    if data.value:
+                        if isinstance(data.value, datetime.datetime):
+                            return data.value.date()
+                        if isinstance(data.value, datetime.date):
+                            return data.value
+                        if data.value=="None": #TODO:  neskor odstranit
+                            return None
+                        try:
+                            # handle 2005-06-08
+                            val = data.value
+                            val = datetime.datetime.strptime(val, '%Y-%m-%d').date()
+                            return val
+                        except:
+                            traceback.print_exc()
+                            pass
+
+                        raise AttributeError("Conversion of %s [%s] to date is not supported in "
+                                             "fedoralink/indexer/models.py" % (type(data.value), data.value))
+
                 if isinstance(prop, IndexedIntegerField):
                     return data.value
 
                 return data
 
             def _convert_to_rdf(data):
-                if isinstance(prop, IndexedDateField):
+                if isinstance(prop, IndexedDateTimeField):
                     if data:
                         if isinstance(data, datetime.datetime):
                             return Literal(data)

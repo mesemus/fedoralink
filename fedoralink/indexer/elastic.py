@@ -13,7 +13,7 @@ from rdflib import Literal, URIRef, RDF
 
 from fedoralink.fedorans import FEDORA
 from fedoralink.indexer import Indexer
-from fedoralink.indexer.fields import IndexedTextField, IndexedLanguageField, IndexedDateField
+from fedoralink.indexer.fields import IndexedTextField, IndexedLanguageField, IndexedDateTimeField
 from fedoralink.indexer.models import IndexableFedoraObject, fedoralink_classes
 from fedoralink.rdfmetadata import RDFMetadata
 from fedoralink.utils import url2id, id2url
@@ -509,7 +509,7 @@ def convert(data, field):
     if isinstance(data, list):
         return [convert(x, field) for x in data]
 
-    elif isinstance(field, IndexedDateField):
+    elif isinstance(field, IndexedDateTimeField):
         if isinstance(data, str):
             data = parse(data)
         return data.strftime('%Y-%m-%dT%H:%M:%S')

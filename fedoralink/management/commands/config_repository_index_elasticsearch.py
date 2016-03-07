@@ -6,7 +6,7 @@ from django.core.management import BaseCommand
 from django.db import connections
 
 from fedoralink.indexer.elastic import FEDORA_ID_FIELD, FEDORA_PARENT_FIELD, FEDORA_TYPE_FIELD, FEDORALINK_TYPE_FIELD
-from fedoralink.indexer.fields import IndexedLanguageField, IndexedIntegerField, IndexedDateField, IndexedTextField, \
+from fedoralink.indexer.fields import IndexedLanguageField, IndexedIntegerField, IndexedDateTimeField, IndexedTextField, \
     IndexedLinkedField, IndexedBinaryField
 from fedoralink.type_manager import FedoraTypeManager
 from fedoralink.utils import url2id, id2url
@@ -92,7 +92,7 @@ class Command(BaseCommand):
                         'type': 'string',
                         'index': 'not_analyzed'
                     }
-                elif isinstance(field, IndexedDateField):
+                elif isinstance(field, IndexedDateTimeField):
                     props['type'] = 'date'
                     props['index'] = 'not_analyzed'
                 elif isinstance(field, IndexedIntegerField):
