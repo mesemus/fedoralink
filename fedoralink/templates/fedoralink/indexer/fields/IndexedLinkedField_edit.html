@@ -6,7 +6,7 @@
     <div class="input-group">
         <span class="form-control linked-field-label"></span>
         <input type="hidden"
-               value="{{ field.value }}"
+               value="{{ field.value|default_if_none:'' }}"
                title=""
                name="{{field.name}}"
                id="{{ field.html_id }}"
