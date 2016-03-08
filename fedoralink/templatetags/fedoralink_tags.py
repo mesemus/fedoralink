@@ -128,7 +128,10 @@ def id_from_path(idval):
 
 @register.filter
 def download_object_from_fedora(pk):
-    return FedoraObject.objects.get(pk=str(pk))
+    try:
+        return FedoraObject.objects.get(pk=str(pk))
+    except:
+        return None
 
 @register.filter
 def get_fields(object, level=None):
@@ -233,6 +236,9 @@ def render_field_edit(context, form, meta_name, name, field):
 @register.simple_tag(takes_context=True)
 def render_linked_field(context, linked_object, field_name, containing_object):
 
+    if linked_object is None:
+        return "Unable to get linked object from %s" % getattr(containing_object, field_name)
+
     templates = [model_name(x) + '/' + field_name + '_linked_view.html' for x in fedora_user_classes(containing_object)]
 
     fieldtype = containing_object._meta.fields_by_name[field_name]
@@ -333,10 +339,15 @@ def linked_form_field_label_url(model_form, field):
     from fedoralink.views import ModelViewRegistry
     title_view = ModelViewRegistry.get_view(related_model, 'link_title')
 
+
     if field.value():
-        return reverse(title_view, kwargs={'pk': id_from_path(field.value())})
-    else:
-        return reverse(title_view, kwargs={'pk': '0'})[:-1]
+        try:
+            return reverse(title_view, kwargs={'pk': id_from_path(field.value())})
+        except AttributeError:
+            # url not in repository, use default value
+            pass
+
+    return reverse(title_view, kwargs={'pk': '0'})[:-1]
 
 
 
