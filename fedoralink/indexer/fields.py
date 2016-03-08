@@ -1,8 +1,11 @@
+import datetime
+
 import django.db.models
 import django.forms
 from django.apps import apps
 from django.db.models.signals import class_prepared
 from django.utils.translation import ugettext_lazy as _
+from rdflib import Literal, XSD
 
 from fedoralink.forms import LangFormTextField, LangFormTextAreaField, MultiValuedFedoraField, GPSField
 
@@ -28,6 +31,13 @@ class IndexedField:
                 level = IndexedField.OPTIONAL
         self.level = level
         IndexedField.__global_order += 1
+
+    def convert_to_rdf(self, value):
+        raise Exception("Conversion to RDF on %s not supported yet" % type(self))
+
+    def convert_from_rdf(self, value):
+        raise Exception("Conversion from RDF on %s not supported yet" % type(self))
+
 
 
 class IndexedLanguageField(IndexedField, django.db.models.Field):
@@ -90,6 +100,11 @@ class IndexedTextField(IndexedField, django.db.models.Field):
             return None
         return 'TextField'
 
+    def convert_to_rdf(self, value):
+        if value is None or not value.strip():
+            return []
+        return Literal(value, datatype=XSD.string)
+
 
 class IndexedIntegerField(IndexedField, django.db.models.IntegerField):
 
@@ -98,6 +113,11 @@ class IndexedIntegerField(IndexedField, django.db.models.IntegerField):
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
         django.db.models.IntegerField.__init__(self, verbose_name=verbose_name, help_text=help_text)
+
+    def convert_to_rdf(self, value):
+        if value is None:
+            return []
+        return Literal(value, datatype=XSD.integer)
 
 
 class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
@@ -108,6 +128,14 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
         # WHY is Field's constructor not called without this?
         django.db.models.DateTimeField.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
+    def convert_to_rdf(self, value):
+        if value is None:
+            return []
+        if isinstance(value, datetime.datetime):
+            return Literal(value, datatype=XSD.datetime)
+        else:
+             raise AttributeError("Conversion of %s to datetime is not supported in "
+                                  "fedoralink/indexer/fields.py" % type(value))
 
 class IndexedDateField(IndexedField, django.db.models.DateField):
 
@@ -116,6 +144,17 @@ class IndexedDateField(IndexedField, django.db.models.DateField):
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
         django.db.models.DateField.__init__(self, verbose_name=verbose_name, help_text=help_text)
+
+    def convert_to_rdf(self, value):
+        if value is None:
+            return []
+        if isinstance(value, datetime.datetime):
+            return Literal(value.date(), datatype=XSD.date)
+        elif isinstance(value, datetime.date):
+            return Literal(value, datatype=XSD.date)
+        else:
+             raise AttributeError("Conversion of %s to date is not supported in "
+                                  "fedoralink/indexer/fields.py" % type(value))
 
 
 def register_model_lookup(field, related_model):
@@ -135,7 +174,6 @@ def register_model_lookup(field, related_model):
         field.related_model = related_model
 
 
-
 class IndexedLinkedField(IndexedField, django.db.models.Field):
 
     def __init__(self, rdf_name, related_model, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None, level=None):
@@ -148,6 +186,11 @@ class IndexedLinkedField(IndexedField, django.db.models.Field):
 
     def get_internal_type(self):
         return 'TextField'
+
+    def convert_to_rdf(self, value):
+        if value is None or not value.strip():
+            return []
+        return Literal(value, datatype=XSD.string)
 
 
 class IndexedBinaryField(IndexedField, django.db.models.Field):
@@ -170,6 +213,11 @@ class IndexedBinaryField(IndexedField, django.db.models.Field):
     def get_internal_type(self):
         return 'FileField'
 
+    def convert_to_rdf(self, value):
+        if value is None or not value.strip():
+            return []
+        return Literal(value, datatype=XSD.string)
+
 
 class IndexedGPSField(IndexedField, django.db.models.Field):
 
@@ -187,3 +235,8 @@ class IndexedGPSField(IndexedField, django.db.models.Field):
 
     def get_internal_type(self):
         return 'TextField'
+
+    def convert_to_rdf(self, value):
+        if value is None or not value.strip():
+            return []
+        return Literal(value, datatype=XSD.string)

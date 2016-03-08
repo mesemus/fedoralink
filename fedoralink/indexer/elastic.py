@@ -456,8 +456,9 @@ class ElasticIndexer(Indexer):
         source = doc['_source']
         metadata = RDFMetadata(source['_fedora_id'])
 
-        metadata[FEDORA.hasParent] = URIRef(source['_fedora_parent'])
-        metadata[RDF.type] = [URIRef(x) for x in source['_fedora_type']]
+        metadata.rdf_metadata.set((metadata.id, FEDORA.hasParent, URIRef(source['_fedora_parent'])))
+        for x in source['_fedora_type']:
+            metadata.rdf_metadata.set((metadata.id, RDF.type, URIRef(x)))
 
         for fld, field_value in source.items():
             if fld in ('_fedora_type', '_fedora_parent', '_fedora_id', '_fedoralink_model'):
@@ -472,10 +473,9 @@ class ElasticIndexer(Indexer):
                         continue
                     if lang == 'null':
                         lang = None
-                    languages.append(Literal(val, lang=lang))
-                metadata[URIRef(fld)] = languages
+                    metadata.rdf_metadata.set((metadata.id, URIRef(fld), Literal(val, lang=lang)))
             else:
-                metadata[URIRef(fld)] = Literal(field_value)
+                metadata.rdf_metadata.set((metadata.id, URIRef(fld), Literal(field_value)))
 
         highlight = {id2fld[k]: v for k, v in doc.get('highlight', {}).items() if k in id2fld}
 

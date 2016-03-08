@@ -6,12 +6,12 @@ import inflection as inflection
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
 from django.db.models.signals import class_prepared
-from rdflib import Literal
+from rdflib import Literal, XSD
 
 from fedoralink.fedorans import FEDORA_INDEX
 from fedoralink.fields import DjangoMetadataBridge
 from fedoralink.indexer.fields import IndexedField, IndexedLanguageField, IndexedDateTimeField, IndexedIntegerField, \
-    IndexedDateField
+    IndexedDateField, IndexedTextField
 from fedoralink.models import FedoraObjectMetaclass, FedoraObject
 from fedoralink.type_manager import FedoraTypeManager
 from fedoralink.utils import StringLikeList, TypedStream
@@ -109,17 +109,10 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                 return data
 
             def _convert_to_rdf(data):
-                if isinstance(prop, IndexedDateTimeField):
-                    if data:
-                        if isinstance(data, datetime.datetime):
-                            return Literal(data)
-                        raise AttributeError("Conversion of %s to datetime is not supported in "
-                                             "fedoralink/indexer/models.py" % type(data))
+                if data is None:
+                    return []
 
-                if isinstance(prop, IndexedIntegerField):
-                    return Literal(data)
-
-                return Literal(data)
+                return prop.convert_to_rdf(data)
 
             def getter(self):
                 if not isinstance(prop, IndexedLanguageField) and not prop.multi_valued:
@@ -161,7 +154,11 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
             return property(getter, setter)
 
         indexed_fields = tuple(IndexableFedoraObjectMetaclass.all_indexed_fields(cls))
+        processed_rdf_names = set()
         for p in indexed_fields:
+            if p.rdf_name in processed_rdf_names:
+                raise AttributeError("Property with rdf name %s already implemented" % p.rdf_name)
+            processed_rdf_names.add(p.rdf_name)
             setattr(cls, p.name, create_property(p))
 
         # store django _meta

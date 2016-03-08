@@ -142,7 +142,14 @@ class RDFMetadata:
 
         if not isinstance(value, list) and not isinstance(value, tuple):
             value = [value]
-        value = [rdflib.Literal(v) if not isinstance(v, rdflib.Literal) and not isinstance(v, rdflib.URIRef) else v for v in value ]
+
+        for it in value:
+            if isinstance(it, rdflib.Literal):
+                if it.datatype is None:
+                    raise Exception("Expected datatype on literal %s" % it)
+            elif not isinstance(it, rdflib.URIRef):
+                raise Exception("Expected only Literal or URIRef or a list of these types")
+
         self.__delete_predicate(predicate,set(value))
         existing_values = set(self[predicate])
         added = []
