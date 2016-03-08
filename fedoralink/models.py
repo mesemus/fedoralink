@@ -5,7 +5,7 @@ import django.dispatch
 import rdflib
 from io import BytesIO
 from rdflib import Literal
-from rdflib.namespace import DC, RDF
+from rdflib.namespace import DC, RDF, XSD
 
 from .fedorans import FEDORA, EBUCORE
 from .manager import FedoraManager
@@ -192,17 +192,26 @@ class FedoraObject(metaclass=FedoraObjectMetaclass):
             for t in additional_types:
                 child.types.add(t)
 
-        if isinstance(child_name, str):
-            child[DC.title] = Literal(child_name)
-        elif isinstance(child_name, Literal):
-            child[DC.title] = child_name
-        else:
-            for c in child_name:
-                child.metadata.add(DC.title, c)
+        for r in FedoraObject.__convert_name_to_literal(child_name):
+            child.metadata.add(DC.title, r)
 
         child.created()
 
         return child
+
+    @staticmethod
+    def __convert_name_to_literal(child_name):
+        rr = []
+        if isinstance(child_name, str):
+            rr.append(Literal(child_name, datatype=XSD.string))
+        elif isinstance(child_name, Literal):
+            if child_name.datatype is None:
+                child_name = Literal(child_name.value, datatype=XSD.string)
+            rr.append(child_name)
+        else:
+            for c in child_name:
+                rr.extend(FedoraObject.__convert_name_to_literal(c))
+        return rr
 
     def create_subcollection(self, collection_name, additional_types=None, flavour=None, slug=None):
         types = [EBUCORE.Collection]

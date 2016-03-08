@@ -180,7 +180,7 @@ class IndexableFedoraObject(FedoraObject, metaclass=IndexableFedoraObjectMetacla
         for rdf_type in self._meta.rdf_types:
             self.types.add(rdf_type)
 
-        self[FEDORA_INDEX.hasIndexingTransformation] = Literal(self.get_indexer_transform())
+        self[FEDORA_INDEX.hasIndexingTransformation] = Literal(self.get_indexer_transform(), datatype=XSD.string)
 
     def get_indexer_transform(self):
         return inflection.underscore(type(self).__name__.replace('_bound', ''))
