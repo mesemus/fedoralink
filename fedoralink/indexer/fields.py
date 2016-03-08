@@ -2,12 +2,14 @@ import datetime
 
 import django.db.models
 import django.forms
+from django import forms
 from django.apps import apps
 from django.db.models.signals import class_prepared
 from django.utils.translation import ugettext_lazy as _
 from rdflib import Literal, XSD
 
-from fedoralink.forms import LangFormTextField, LangFormTextAreaField, MultiValuedFedoraField, GPSField
+from fedoralink.forms import LangFormTextField, LangFormTextAreaField, MultiValuedFedoraField, GPSField, \
+    FedoraChoiceField
 
 
 class IndexedField:
@@ -80,25 +82,25 @@ class IndexedLanguageField(IndexedField, django.db.models.Field):
 
 class IndexedTextField(IndexedField, django.db.models.Field):
 
-    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None, level=None):
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False,
+                 attrs=None, help_text=None, level=None, choices=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
-        django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text)
+        django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text, choices=choices)
 
     def formfield(self, **kwargs):
         if self.multi_valued:
             defaults = {'form_class': MultiValuedFedoraField }
+        elif self.choices:
+            defaults = {'choices_form_class': FedoraChoiceField}
         else:
             defaults = {'form_class': django.forms.CharField}
-
         defaults.update(kwargs)
         return super().formfield(**defaults)
 
     def get_internal_type(self):
-        if self.multi_valued:
-            return None
-        return 'TextField'
+        return None
 
     def convert_to_rdf(self, value):
         if value is None or not value.strip():

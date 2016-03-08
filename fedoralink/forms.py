@@ -91,8 +91,20 @@ class LangFormTextAreaField(LangFormField):
                                 ])
 
 
+class FedoraChoiceField(forms.TypedChoiceField):
+    def __init__(self, *args, **kwargs):
+        kwargs.update({'widget': ChoiceWidget})
+        super().__init__(*args, **kwargs)
+
+
+class ChoiceWidget(forms.Select):
+    def render_options(self, choices, selected_choices):
+        return super().render_options(choices, [str(x) for x in selected_choices])
+
+
 def get_preferred_presentation(fedora_field):
     from fedoralink.indexer.fields import IndexedIntegerField, IndexedDateTimeField
+    choices=getattr(fedora_field, 'choices')
 
     if isinstance(fedora_field, IndexedIntegerField):
         return forms.IntegerField(), forms.NumberInput()
@@ -100,6 +112,8 @@ def get_preferred_presentation(fedora_field):
         return forms.DateTimeField(), forms.DateTimeInput()
     if fedora_field.attrs.get('presentation', '') == 'textarea':
         return forms.CharField(), forms.Textarea()
+    if choices:
+        return forms.ChoiceField(choices=choices), ChoiceWidget(choices=choices)
     return forms.CharField(), forms.TextInput()
 
 
