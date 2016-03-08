@@ -5,9 +5,10 @@ from django.conf import settings
 from django.core.management import BaseCommand
 from django.db import connections
 
-from fedoralink.indexer.elastic import FEDORA_ID_FIELD, FEDORA_PARENT_FIELD, FEDORA_TYPE_FIELD, FEDORALINK_TYPE_FIELD
+from fedoralink.indexer.elastic import FEDORA_ID_FIELD, FEDORA_PARENT_FIELD, FEDORA_TYPE_FIELD, FEDORALINK_TYPE_FIELD, \
+    FEDORA_CREATED_FIELD, FEDORA_LAST_MODIFIED_FIELD
 from fedoralink.indexer.fields import IndexedLanguageField, IndexedIntegerField, IndexedDateTimeField, IndexedTextField, \
-    IndexedLinkedField, IndexedBinaryField
+    IndexedLinkedField, IndexedBinaryField, IndexedDateField, IndexedGPSField
 from fedoralink.type_manager import FedoraTypeManager
 from fedoralink.utils import url2id, id2url
 
@@ -68,10 +69,12 @@ class Command(BaseCommand):
             new_properties = {
             }
 
-            fields['_fedora_id']       = FEDORA_ID_FIELD
-            fields['_fedora_parent']   = FEDORA_PARENT_FIELD
-            fields['_fedora_type']     = FEDORA_TYPE_FIELD
-            fields['_fedoralink_model'] = FEDORALINK_TYPE_FIELD
+            fields['_fedora_id']            = FEDORA_ID_FIELD
+            fields['_fedora_parent']        = FEDORA_PARENT_FIELD
+            fields['_fedora_type']          = FEDORA_TYPE_FIELD
+            fields['_fedoralink_model']     = FEDORALINK_TYPE_FIELD
+            fields['_fedora_created']       = FEDORA_CREATED_FIELD
+            fields['_fedora_last_modified'] = FEDORA_LAST_MODIFIED_FIELD
 
             for fldname, field in fields.items():
                 if fldname in existing_properties:
@@ -95,11 +98,17 @@ class Command(BaseCommand):
                 elif isinstance(field, IndexedDateTimeField):
                     props['type'] = 'date'
                     props['index'] = 'not_analyzed'
+                elif isinstance(field, IndexedDateField):
+                    props['type'] = 'date'
+                    props['index'] = 'not_analyzed'
                 elif isinstance(field, IndexedIntegerField):
                     props['type'] = 'long'
                     props['index'] = 'not_analyzed'
+                elif isinstance(field, IndexedGPSField):
+                    props['type'] = 'string'
+                    props['index'] = 'not_analyzed'
                 else:
-                    raise Exception("Mapping type %s not handled yet" % field.field_type)
+                    raise Exception("Mapping type %s not handled yet" % type(field))
 
             new_mapping['_all'] = {
                 "store": True

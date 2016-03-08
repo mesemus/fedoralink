@@ -24,10 +24,17 @@ class _ITF(IndexedTextField):
         super().__init__(rdf_name)
         self.name = name
 
+class _IDF(IndexedDateTimeField):
+    def __init__(self, rdf_name, name):
+        super().__init__(rdf_name)
+        self.name = name
+
 FEDORALINK_TYPE_FIELD = _ITF(FEDORA.fedoralink, name='_fedoralink_model')
 FEDORA_TYPE_FIELD = _ITF(RDF.type, name='type')
 FEDORA_PARENT_FIELD = _ITF(FEDORA.hasParent, name='parent')
 FEDORA_ID_FIELD = _ITF(FEDORA.id, name='id')
+FEDORA_CREATED_FIELD = _IDF(FEDORA.created, name='_fedora_created')
+FEDORA_LAST_MODIFIED_FIELD = _IDF(FEDORA.lastModified, name='_fedora_last_modified')
 
 
 class ElasticIndexer(Indexer):
@@ -76,6 +83,8 @@ class ElasticIndexer(Indexer):
         indexer_data['_fedora_parent'] = convert(obj[FEDORA.hasParent], FEDORA_PARENT_FIELD)
         indexer_data['_fedoralink_model'] = [ self._get_elastic_class(x) for x in inspect.getmro(clz) ]
         indexer_data['_fedora_type'] = [ convert(x, FEDORA_TYPE_FIELD) for x in obj[RDF.type] ]
+        indexer_data['_fedora_created'] = [ convert(x, FEDORA_CREATED_FIELD) for x in obj[FEDORA.created] ]
+        indexer_data['_fedora_last_modified'] = [ convert(x, FEDORA_LAST_MODIFIED_FIELD) for x in obj[FEDORA.lastModified] ]
 
         # noinspection PyBroadException
         try:
@@ -444,11 +453,18 @@ class ElasticIndexer(Indexer):
                     sort_direction = 'desc'
                     o = o[1:]
                 o = o.replace('@', '.')        # replace blah@cs with blah.cs
-                ordering_clause.append({
-                    fld2id[o] + "__exact": {
-                        'order': sort_direction
-                    }
-                })
+                if o in ('_fedora_created', '_fedora_last_modified'):
+                    ordering_clause.append({
+                        o: {
+                            'order': sort_direction
+                        }
+                    })
+                else:
+                    ordering_clause.append({
+                        fld2id[o] + "__exact": {
+                            'order': sort_direction
+                        }
+                    })
         return ordering_clause
 
     @staticmethod
@@ -461,7 +477,7 @@ class ElasticIndexer(Indexer):
             metadata.rdf_metadata.set((metadata.id, RDF.type, URIRef(x)))
 
         for fld, field_value in source.items():
-            if fld in ('_fedora_type', '_fedora_parent', '_fedora_id', '_fedoralink_model'):
+            if fld in ('_fedora_type', '_fedora_parent', '_fedora_id', '_fedoralink_model', '_fedora_created', '_fedora_last_modified'):
                 continue
 
             fld = id2url(fld)

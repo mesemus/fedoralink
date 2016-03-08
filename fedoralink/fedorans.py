@@ -22,7 +22,7 @@ NAMESPACES = {
             "dc"            :   "http://purl.org/dc/elements/1.1/",
             "dcterms"       :   "http://purl.org/dc/terms/",
             "cis"           :   "http://cis.vscht.cz/ns/repository#",
-            "cesnet"           :   "http://cesnet.cz/ns/repository#"
+            "cesnet"        :   "http://cesnet.cz/ns/repository#",
 }
 
 FEDORA          =   Namespace(NAMESPACES['fedora'])
