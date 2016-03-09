@@ -44,18 +44,33 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                         yield fld
 
     @staticmethod
-    def fill_rdf_types(cls):
-        rdf_types = set()
+    def fill_from_meta(cls):
+
+        props = {}
         for clazz in inspect.getmro(cls):
             clazz_meta = getattr(clazz, '_meta', None)
             if clazz_meta:
-                for rt in getattr(clazz_meta, 'rdf_types', []):
-                    rdf_types.add(rt)
+                IndexableFedoraObjectMetaclass._merge_meta(clazz_meta, props)
             clazz_meta = getattr(clazz, 'Meta', None)
             if clazz_meta:
-                for rt in getattr(clazz_meta, 'rdf_types', []):
-                    rdf_types.add(rt)
-        return tuple(rdf_types)
+                IndexableFedoraObjectMetaclass._merge_meta(clazz_meta, props)
+
+        return props
+
+    @staticmethod
+    def _merge_meta(clazz_meta, props):
+        for prop in dir(clazz_meta):
+            if prop.startswith('_'):
+                continue
+            val = getattr(clazz_meta, prop)
+            vals = props.setdefault(prop, [])
+            if isinstance(val, list) or isinstance(val, tuple):
+                for v in val:
+                    if v not in vals:
+                        vals.append(v)
+            else:
+                if not val in vals:
+                    vals.append(val)
 
     def __init__(cls, name, bases, attrs):
         super(IndexableFedoraObjectMetaclass, cls).__init__(name, list(bases), attrs)
@@ -164,7 +179,16 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
         # store django _meta
         cls._meta = DjangoMetadataBridge(cls, indexed_fields)
 
-        cls._meta.rdf_types = IndexableFedoraObjectMetaclass.fill_rdf_types(cls)
+        for k, v in IndexableFedoraObjectMetaclass.fill_from_meta(cls).items():
+            if not hasattr(cls._meta, k):
+                # print("Setting on %s: %s -> %s" % (cls, k, v))
+                setattr(cls._meta, k, v)
+            else:
+                # print("Ignoring on %s: %s" % (cls, k))
+                pass
+
+        if not hasattr(cls._meta, 'rdf_types'):
+            setattr(cls._meta, 'rdf_types', ())
 
         if cls._meta.rdf_types and not cls.__name__.endswith('_bound'):
             FedoraTypeManager.register_model(cls, on_rdf_type=cls._meta.rdf_types)
