@@ -134,6 +134,10 @@ def download_object_from_fedora(pk):
         return None
 
 @register.filter
+def split_to_array(val, separator=','):
+    return val.split(separator)
+
+@register.filter
 def get_fields(object, level=None):
     meta_fields = object._meta.fields
     fields = ()
