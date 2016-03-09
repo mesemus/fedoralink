@@ -26,8 +26,6 @@ class RDFMetadata:
 
         if metadata is None:
             metadata = rdflib.Graph()
-            for k, v in NAMESPACES.items():
-                metadata.bind(k, rdflib.URIRef(v))
         else:
             if not len(list(metadata[self.__id])):
                 if self_id.endswith('/'):
@@ -40,6 +38,9 @@ class RDFMetadata:
                     self.__id = test_id
                 else:
                     log.warning('Strange thing happened - REST call did not return metadata for %s', self.id)
+
+        for k, v in NAMESPACES.items():
+            metadata.bind(k, rdflib.URIRef(v), override=False)
 
         self.__metadata = metadata
 

@@ -70,9 +70,8 @@ class SparqlSerializer(TurtleSerializer):
 
     def label(self, node, position):
         if isinstance(node, Literal):
-            # the datatype doesn't work in DELETE clause
-            if node.datatype:
-                node = Literal(node.value, lang=node.language)
+            if not node.datatype:
+                raise AttributeError("Datatype required on RDF node")
 
             return node._literal_n3(
                 use_plain=True,

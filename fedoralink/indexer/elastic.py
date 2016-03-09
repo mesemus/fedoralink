@@ -292,7 +292,6 @@ class ElasticIndexer(Indexer):
 
     # noinspection PyProtectedMember
     def search(self, query, model_class, start, end, facets, ordering, values):
-
         self._de_morgan(query)
         self._flatten_query(query)
 
@@ -444,7 +443,6 @@ class ElasticIndexer(Indexer):
 
     @staticmethod
     def _generate_ordering_clause(fld2id, ordering):
-        print(fld2id)
         ordering_clause = []
         if ordering:
             for o in ordering:

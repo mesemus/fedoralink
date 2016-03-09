@@ -23,6 +23,8 @@ NAMESPACES = {
             "dcterms"       :   "http://purl.org/dc/terms/",
             "cis"           :   "http://cis.vscht.cz/ns/repository#",
             "cesnet"        :   "http://cesnet.cz/ns/repository#",
+            "cesnet_state"  :   "http://cesnet.cz/ns/repository/state#",
+            "acl"           :   "http://www.w3.org/ns/auth/acl#"
 }
 
 FEDORA          =   Namespace(NAMESPACES['fedora'])
@@ -34,12 +36,15 @@ FEDORA_MIXIN_TYPES_METADATA = URIRef(FEDORA.mixinTypes)
 FEDORA_LAST_MODIFIED_METADATA = URIRef(FEDORA.lastModified)
 
 RDF             =   Namespace(NAMESPACES['rdf'])
+RDFS            =   Namespace(NAMESPACES['rdfs'])
 LDP             =   Namespace(NAMESPACES['ldp'])
 
 EBUCORE         =   Namespace(NAMESPACES['ebucore'])
 
 CIS             =   Namespace(NAMESPACES['cis'])
 CESNET          =   Namespace(NAMESPACES['cesnet'])
+CESNET_STATE    =   Namespace(NAMESPACES['cesnet_state'])
+ACL             =   Namespace(NAMESPACES['acl'])
 
 
 

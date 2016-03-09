@@ -144,7 +144,21 @@ def get_fields(object, level=None):
         name = getattr(meta, "verbose_name")
         if name is None:
             name = meta_name
-        fields += ((name, getattr(object, meta_name), meta_name),)
+
+        val = getattr(object, meta_name)
+
+        if not val:
+            val = None
+        elif isinstance(val, list):
+            for x in val:
+                print("val",  x.value)
+                if str(x):
+                    break
+            else:
+                val = None
+        else:
+            print(val, type(val))
+        fields += ((name, val, meta_name),)
 
     return fields
 
