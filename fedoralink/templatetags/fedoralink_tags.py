@@ -206,6 +206,8 @@ def fedora_user_classes(inst):
 
 @register.simple_tag(takes_context=True)
 def render_field_view(context, containing_object, meta_name, name, value):
+    if value is None or containing_object is None:
+        return ''
     templates = [model_name(x) + '/' + meta_name + '_view.html' for x in fedora_user_classes(containing_object)]
 
     fieldtype = containing_object._meta.fields_by_name[meta_name]
