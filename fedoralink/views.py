@@ -43,6 +43,13 @@ class GenericDownloadView(View):
         return resp
 
 
+class GenericChangeStateView(View):
+    model = None
+
+    def post(self, request, pk):
+        raise Exception("Not implemented yet ...")
+
+
 class GenericIndexerView(View):
     model = FedoraObject
     template_name = 'fedoralink/indexer_view.html'
