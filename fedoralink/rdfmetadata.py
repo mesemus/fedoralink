@@ -146,7 +146,7 @@ class RDFMetadata:
 
         for it in value:
             if isinstance(it, rdflib.Literal):
-                if it.datatype is None:
+                if it.datatype is None and it.language is None:
                     raise Exception("Expected datatype on literal %s" % it)
             elif not isinstance(it, rdflib.URIRef):
                 raise Exception("Expected only Literal or URIRef or a list of these types")

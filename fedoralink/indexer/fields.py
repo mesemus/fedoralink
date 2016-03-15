@@ -1,15 +1,16 @@
 import datetime
+import traceback
 
 import django.db.models
 import django.forms
-from django import forms
+from dateutil import parser
 from django.apps import apps
 from django.db.models.signals import class_prepared
-from django.utils.translation import ugettext_lazy as _
 from rdflib import Literal, XSD
 
 from fedoralink.forms import LangFormTextField, LangFormTextAreaField, MultiValuedFedoraField, GPSField, \
     FedoraChoiceField
+from fedoralink.utils import StringLikeList
 
 
 class IndexedField:
@@ -59,25 +60,23 @@ class IndexedLanguageField(IndexedField, django.db.models.Field):
 
         defaults.update(kwargs)
         return super().formfield(**defaults)
-    #
-    # for debugging
-    #
-    # def __getattribute__(self,name):
-    #     attr = object.__getattribute__(self, name)
-    #     if hasattr(attr, '__call__') and name not in ('__class__', ):
-    #         def newfunc(*args, **kwargs):
-    #             print('before calling %s' %attr.__name__)
-    #             result = attr(*args, **kwargs)
-    #             print('done calling %s: %s' %(attr.__name__, result))
-    #             try:
-    #                 if len(result) == 2:
-    #                     print("in")
-    #             except:
-    #                 pass
-    #             return result
-    #         return newfunc
-    #     else:
-    #         return attr
+
+    @staticmethod
+    def _convert_val_to_rdf(x):
+        if isinstance(x, Literal):
+            if x.datatype:
+                return x
+            if x.language:
+                return Literal(x.value, lang=x.language)
+            return Literal(x.value, datatype=XSD.string)
+        return Literal(x if isinstance(x, str) else str(x), datatype=XSD.string)
+
+    def convert_to_rdf(self, value):
+        print("converting to rdf", value)
+        return IndexedLanguageField._convert_val_to_rdf(value)
+
+    def convert_from_rdf(self, value):
+        return StringLikeList(value)
 
 
 class IndexedTextField(IndexedField, django.db.models.Field):
@@ -107,6 +106,9 @@ class IndexedTextField(IndexedField, django.db.models.Field):
             return []
         return Literal(value, datatype=XSD.string)
 
+    def convert_from_rdf(self, value):
+        return value
+
 
 class IndexedIntegerField(IndexedField, django.db.models.IntegerField):
 
@@ -121,6 +123,9 @@ class IndexedIntegerField(IndexedField, django.db.models.IntegerField):
             return []
         return Literal(value, datatype=XSD.integer)
 
+    def convert_from_rdf(self, value):
+        return value.value
+
 
 class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
 
@@ -131,6 +136,7 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
         django.db.models.DateTimeField.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
     def convert_to_rdf(self, value):
+        print("Converting to rdf", value)
         if value is None:
             return []
         if isinstance(value, datetime.datetime):
@@ -138,6 +144,34 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
         else:
              raise AttributeError("Conversion of %s to datetime is not supported in "
                                   "fedoralink/indexer/fields.py" % type(value))
+
+    def convert_from_rdf(self, data):
+        value = data.toPython()
+        print("Converting from RDF", value)
+        if value:
+            if isinstance(value, datetime.datetime):
+                return value
+            if value == "None": #TODO:  neskor odstranit
+                return None
+            try:
+                # handle 2005-06-08 00:00:00+00:00
+                val = value
+                if val[-3] == ':':
+                    val = val[:-3] + val[-2:]
+                val = datetime.datetime.strptime(val, '%Y-%m-%d %H:%M:%S%z')
+                return val
+            except:
+                try:
+                    if val[-3] == ':':
+                        val = val[:-3] + val[-2:]
+                    return parser.parse(val)
+                except:
+                    traceback.print_exc()
+                    pass
+
+            raise AttributeError("Conversion of %s [%s] to datetime is not supported in "
+                                 "fedoralink/indexer/models.py" % (type(value), value))
+
 
 class IndexedDateField(IndexedField, django.db.models.DateField):
 
@@ -157,6 +191,27 @@ class IndexedDateField(IndexedField, django.db.models.DateField):
         else:
              raise AttributeError("Conversion of %s to date is not supported in "
                                   "fedoralink/indexer/fields.py" % type(value))
+
+    def convert_from_rdf(self, data):
+        if data.value:
+            if isinstance(data.value, datetime.datetime):
+                return data.value.date()
+            if isinstance(data.value, datetime.date):
+                return data.value
+            if data.value=="None": #TODO:  neskor odstranit
+                return None
+            try:
+                # handle 2005-06-08
+                val = data.value
+                val = datetime.datetime.strptime(val, '%Y-%m-%d').date()
+                return val
+            except:
+                traceback.print_exc()
+                pass
+
+            raise AttributeError("Conversion of %s [%s] to date is not supported in "
+                                 "fedoralink/indexer/models.py" % (type(data.value), data.value))
+
 
 
 def register_model_lookup(field, related_model):

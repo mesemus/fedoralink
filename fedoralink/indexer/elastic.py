@@ -75,7 +75,8 @@ class ElasticIndexer(Indexer):
             if data is None:
                 continue
 
-            indexer_data[url2id(field.rdf_name)] = convert(data, field)
+            converted_value = convert(data, field)
+            indexer_data[url2id(field.rdf_name)] = converted_value
 
         encoded_fedora_id = base64.b64encode(str(obj.pk).encode('utf-8')).decode('utf-8')
 
@@ -92,6 +93,7 @@ class ElasticIndexer(Indexer):
         except:
             print("Exception in indexing, data", indexer_data)
             traceback.print_exc()
+        print("reindexing single object ok")
 
     def _flatten_query(self, q):
         if not is_q(q):
@@ -379,7 +381,7 @@ class ElasticIndexer(Indexer):
             "size": (end - start) if start and end else 10
         }
 
-        # print(json.dumps(built_query, indent=4))
+        print(json.dumps(built_query, indent=4))
 
         resp = self.es.search(body=built_query)
 
@@ -521,9 +523,11 @@ def convert(data, field):
         return lng
 
     if isinstance(data, list):
-        return [convert(x, field) for x in data]
+        return [x for x in [convert(x, field) for x in data] if x]
 
     elif isinstance(field, IndexedDateTimeField):
+        if data is None:
+            return None
         if isinstance(data, str):
             data = parse(data)
         return data.strftime('%Y-%m-%dT%H:%M:%S')

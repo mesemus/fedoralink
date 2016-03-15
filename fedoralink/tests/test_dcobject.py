@@ -128,6 +128,7 @@ class DCObjectTestCase(TestCase):
         self.assertTrue(isinstance(dco.dateSubmitted, datetime.datetime), "Expected an instance of datetime")
         dco.save()
 
+        print("Saved datetime type", type(dco.dateSubmitted))
         self.assertTrue(isinstance(dco.dateSubmitted, datetime.datetime), "Expected an instance of datetime after save")
 
         dcb = DCObject.objects.get(pk=dco.pk)

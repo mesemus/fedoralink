@@ -70,8 +70,8 @@ class SparqlSerializer(TurtleSerializer):
 
     def label(self, node, position):
         if isinstance(node, Literal):
-            if not node.datatype:
-                raise AttributeError("Datatype required on RDF node")
+            if not node.datatype and not node.language:
+                raise AttributeError("Datatype or language required on RDF node")
 
             return node._literal_n3(
                 use_plain=True,

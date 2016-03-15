@@ -77,52 +77,6 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
 
         def create_property(prop):
 
-            def _convert_from_rdf(data):
-                if isinstance(prop, IndexedDateTimeField):
-                    if data.value:
-                        if isinstance(data.value, datetime.datetime):
-                            return data.value
-                        if data.value=="None": #TODO:  neskor odstranit
-                            return None
-                        try:
-                            # handle 2005-06-08 00:00:00+00:00
-                            val = data.value
-                            if val[-3] == ':':
-                                val = val[:-3] + val[-2:]
-                            val = datetime.datetime.strptime(val, '%Y-%m-%d %H:%M:%S%z')
-                            return val
-                        except:
-                            traceback.print_exc()
-                            pass
-
-                        raise AttributeError("Conversion of %s [%s] to datetime is not supported in "
-                                             "fedoralink/indexer/models.py" % (type(data.value), data.value))
-
-                if isinstance(prop, IndexedDateField):
-                    if data.value:
-                        if isinstance(data.value, datetime.datetime):
-                            return data.value.date()
-                        if isinstance(data.value, datetime.date):
-                            return data.value
-                        if data.value=="None": #TODO:  neskor odstranit
-                            return None
-                        try:
-                            # handle 2005-06-08
-                            val = data.value
-                            val = datetime.datetime.strptime(val, '%Y-%m-%d').date()
-                            return val
-                        except:
-                            traceback.print_exc()
-                            pass
-
-                        raise AttributeError("Conversion of %s [%s] to date is not supported in "
-                                             "fedoralink/indexer/models.py" % (type(data.value), data.value))
-
-                if isinstance(prop, IndexedIntegerField):
-                    return data.value
-
-                return data
-
             def _convert_to_rdf(data):
                 if data is None:
                     return []
@@ -130,16 +84,20 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
                 return prop.convert_to_rdf(data)
 
             def getter(self):
-                if not isinstance(prop, IndexedLanguageField) and not prop.multi_valued:
-                    # simple type -> return the first item only
 
-                    ret = self.metadata[prop.rdf_name]
+                ret = self.metadata[prop.rdf_name]
+
+                if isinstance(prop, IndexedLanguageField):
+                    return prop.convert_from_rdf(ret)
+
+                if not prop.multi_valued:
+                    # simple type -> return the first item only
                     if len(ret):
-                        return _convert_from_rdf(ret[0])
+                        return prop.convert_from_rdf(ret[0])
                     else:
                         return None
 
-                return StringLikeList([_convert_from_rdf(x) for x in self.metadata[prop.rdf_name]])
+                return StringLikeList([prop.convert_from_rdf(x) for x in self.metadata[prop.rdf_name]])
 
             def setter(self, value):
                 collected_streams = __get_streams(value)
