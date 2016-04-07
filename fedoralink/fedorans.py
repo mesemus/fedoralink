@@ -24,6 +24,7 @@ NAMESPACES = {
             "cis"           :   "http://cis.vscht.cz/ns/repository#",
             "cesnet"        :   "http://cesnet.cz/ns/repository#",
             "cesnet_state"  :   "http://cesnet.cz/ns/repository/state#",
+            "cesnet_type"  :   "http://cesnet.cz/ns/repository/type#",
             "acl"           :   "http://www.w3.org/ns/auth/acl#"
 }
 
@@ -44,6 +45,7 @@ EBUCORE         =   Namespace(NAMESPACES['ebucore'])
 CIS             =   Namespace(NAMESPACES['cis'])
 CESNET          =   Namespace(NAMESPACES['cesnet'])
 CESNET_STATE    =   Namespace(NAMESPACES['cesnet_state'])
+CESNET_TYPE     =   Namespace(NAMESPACES['cesnet_type'])
 ACL             =   Namespace(NAMESPACES['acl'])
 
 

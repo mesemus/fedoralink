@@ -3,7 +3,7 @@ import inspect
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import reverse
 from django.db.models import Q
-from django.http import HttpResponseRedirect, FileResponse
+from django.http import HttpResponseRedirect, FileResponse, Http404
 from django.shortcuts import render
 from django.views.generic import View, CreateView, DetailView, UpdateView
 
@@ -12,6 +12,7 @@ from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
 from fedoralink.templatetags.fedoralink_tags import id_from_path
 from .utils import get_class, fullname
+from django.utils.translation import ugettext as _
 
 
 class GenericIndexView(View):
@@ -277,15 +278,42 @@ class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
 
     def get_form_kwargs(self):
         ret = super().get_form_kwargs()
-
-        if callable(self.parent_collection):
-            parent = self.parent_collection(self)
-        else:
-            parent = self.parent_collection
+        parent=self.get_parent_object()
+        # if callable(self.parent_collection):
+        #     parent = self.parent_collection(self)
+        # else:
+        #     parent = self.parent_collection
 
         self.object = ret['instance'] = parent.create_child('', flavour=self.model)
 
         return ret
+
+    def get_queryset(self):
+        return FedoraObject.objects.all()
+
+    def get_parent_object(self, queryset=None):
+        """
+        Returns the object the view is displaying.
+
+        By default this requires `self.queryset` and a `pk` or `slug` argument
+        in the URLconf, but subclasses can override this to return any object.
+        """
+        # Use a custom queryset if provided; this is required for subclasses
+        # like DateDetailView
+        queryset = self.get_queryset()
+
+        # Next, try looking up by primary key.
+        pk = self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
+        if pk is not None:
+            queryset = queryset.filter(pk=pk)
+
+        try:
+            # Get the single item from the filtered queryset
+            obj = queryset.get()
+        except queryset.model.DoesNotExist:
+            raise Http404(_("No %(verbose_name)s found matching the query") %
+                          {'verbose_name': queryset.model._meta.verbose_name})
+        return obj
 
     def get_form_class(self):
         meta = type('Meta', (object, ), {'model': self.model, 'fields': '__all__'})

@@ -249,6 +249,9 @@ class IndexedLinkedField(IndexedField, django.db.models.Field):
             return []
         return Literal(value, datatype=XSD.string)
 
+    def convert_from_rdf(self, value):
+        return value
+
 
 class IndexedBinaryField(IndexedField, django.db.models.Field):
 
