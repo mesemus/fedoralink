@@ -490,6 +490,9 @@ class ElasticIndexer(Indexer):
                     if lang == 'null':
                         lang = None
                     metadata.rdf_metadata.set((metadata.id, URIRef(fld), Literal(val, lang=lang)))
+            elif isinstance(field_value, list) or isinstance(field_value, tuple):
+                for val in field_value:
+                    metadata.rdf_metadata.set((metadata.id, URIRef(fld), Literal(val)))
             else:
                 metadata.rdf_metadata.set((metadata.id, URIRef(fld), Literal(field_value)))
 

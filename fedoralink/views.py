@@ -1,18 +1,45 @@
 import inspect
 
+import requests
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import reverse
 from django.db.models import Q
-from django.http import HttpResponseRedirect, FileResponse, Http404
+from django.http import HttpResponseRedirect, FileResponse, Http404, request, HttpResponse
 from django.shortcuts import render
+from django.template import Template, RequestContext
 from django.views.generic import View, CreateView, DetailView, UpdateView
+from django.template import Context
 
 from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
 from fedoralink.templatetags.fedoralink_tags import id_from_path
+from fedoralink_ui.models import Type
 from .utils import get_class, fullname
 from django.utils.translation import ugettext as _
+
+
+class GenericGetView():
+    def getChildTemplate(self, type, templateType):
+        # TODO: more templates
+        if templateType == 'edit' or templateType == 'create':
+            return FedoraObject.objects.filter(
+                pk=type.templates_edit[0]).get()
+        if templateType == 'view':
+            return FedoraObject.objects.filter(
+                pk=type.templates_view[0]).get()
+
+    def get(self, rdf_meta, templateType):
+        for rdf_type in rdf_meta:
+            retrieved_type = list(Type.objects.filter(rdf_types=rdf_type))
+            if retrieved_type: break
+        template_url = None
+        for type in retrieved_type:
+            if ('type/' in type.id):
+                child = self.getChildTemplate(type=type, templateType=templateType)
+                for template in child.children:
+                    template_url = template.id
+        return template_url
 
 
 class GenericIndexView(View):
@@ -120,7 +147,7 @@ class GenericIndexerView(View):
             'orderings': self.orderings,
             'ordering': sort,
             'title': self.title,
-            'create_button_title' : self.create_button_title
+            'create_button_title': self.create_button_title
         })
 
 
@@ -209,7 +236,7 @@ class GenericLinkView(View):
             'orderings': self.orderings,
             'ordering': sort,
             'title': self.title,
-            'create_button_title' : self.create_button_title
+            'create_button_title': self.create_button_title
         })
 
 
@@ -217,6 +244,7 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
     prefix = None
     template_name = None
     template_type = 'detail'
+    base_template = 'baseOArepo/detail.html'
 
     def get_queryset(self):
         return FedoraObject.objects.all()
@@ -229,6 +257,18 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
             raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
         return retrieved_object
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        context = self.get_context_data(object=self.object)
+        getView = GenericGetView()
+        template_url = getView.get(rdf_meta=self.object._meta.rdf_types, templateType='view')
+        print(template_url)
+        if template_url:
+            return HttpResponse(
+                Template("{% extends '" + self.base_template + "' %}" + requests.get(template_url).text).render(
+                    RequestContext(request, context)))
+        return super(GenericDetailView, self).get(request, *args, **kwargs)
+
 
 class GenericEditView(UpdateView, FedoraTemplateMixin):
     model = None
@@ -239,6 +279,7 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
     template_name_suffix = None
     success_url_param_names = ()
     title = None
+    base_template = 'baseOArepo/edit.html'
 
     def get_queryset(self):
         return FedoraObject.objects.all()
@@ -252,13 +293,34 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
         return retrieved_object
 
     def get_form_class(self):
-        meta = type('Meta', (object, ), {'model': self.model, 'fields': '__all__'})
+        meta = type('Meta', (object,), {'model': self.model, 'fields': '__all__'})
         return type(self.model.__name__ + 'Form', (FedoraForm,), {
             'Meta': meta
         })
 
+    def render_to_response(self, context, **response_kwargs):
+        """
+        Returns a response, using the `response_class` for this
+        view, with a template rendered with the given context.
+
+        If any keyword arguments are provided, they will be
+        passed to the constructor of the response class.
+        """
+        self.object = self.get_object()
+        form = self.get_form()
+        context = self.get_context_data(object=self.object, form=form, **response_kwargs)
+        getView = GenericGetView()
+        template_url = getView.get(rdf_meta=self.object._meta.rdf_types, templateType='edit')
+        print(template_url)
+        if template_url:
+            return HttpResponse(
+                Template("{% extends '" + self.base_template + "' %}" + requests.get(template_url).text).render(
+                    RequestContext(self.request, context)))
+        return super().render_to_response(context, **response_kwargs)
+
     def get_success_url(self):
-        return reverse(self.success_url, kwargs={k:_convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
+        return reverse(self.success_url,
+                       kwargs={k: _convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
 
 
 # noinspection PyAttributeOutsideInit,PyCallingNonCallable
@@ -269,6 +331,7 @@ class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
     parent_collection = None
     success_url_param_names = ()
     title = None
+    base_template = 'baseOArepo/create.html'
 
     def form_valid(self, form):
         inst = form.save(commit=False)
@@ -278,11 +341,12 @@ class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
 
     def get_form_kwargs(self):
         ret = super().get_form_kwargs()
-        parent=self.get_parent_object()
-        # if callable(self.parent_collection):
-        #     parent = self.parent_collection(self)
-        # else:
-        #     parent = self.parent_collection
+        parent = self.get_parent_object()
+        if parent is None:
+            if callable(self.parent_collection):
+                parent = self.parent_collection(self)
+            else:
+                parent = self.parent_collection
 
         self.object = ret['instance'] = parent.create_child('', flavour=self.model)
 
@@ -303,17 +367,19 @@ class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
         queryset = self.get_queryset()
 
         # Next, try looking up by primary key.
-        pk = self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
+        pk = self.kwargs.get(self.pk_url_kwarg, None)
         if pk is not None:
+            pk=pk.replace("_", "/")
             queryset = queryset.filter(pk=pk)
 
-        try:
-            # Get the single item from the filtered queryset
-            obj = queryset.get()
-        except queryset.model.DoesNotExist:
-            raise Http404(_("No %(verbose_name)s found matching the query") %
-                          {'verbose_name': queryset.model._meta.verbose_name})
-        return obj
+            try:
+                # Get the single item from the filtered queryset
+                obj = queryset.get()
+            except queryset.model.DoesNotExist:
+                raise Http404(_("No %(verbose_name)s found matching the query") %
+                              {'verbose_name': queryset.model._meta.verbose_name})
+            return obj
+        else: return None
 
     def get_form_class(self):
         meta = type('Meta', (object, ), {'model': self.model, 'fields': '__all__'})
@@ -321,8 +387,30 @@ class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
             'Meta': meta
         })
 
+    def render_to_response(self, context, **response_kwargs):
+        """
+        Returns a response, using the `response_class` for this
+        view, with a template rendered with the given context.
+
+        If any keyword arguments are provided, they will be
+        passed to the constructor of the response class.
+        """
+        if self.object:
+            rdf_meta = self.object._meta.rdf_types
+        else:
+            rdf_meta = self.model._meta.rdf_types
+        getView = GenericGetView()
+        template_url = getView.get(rdf_meta=rdf_meta, templateType='create')
+        if template_url:
+            return HttpResponse(
+                Template("{% extends '" + self.base_template + "' %}" + requests.get(template_url).text).render(
+                    RequestContext(self.request, context)))
+        return super().render_to_response(context, **response_kwargs)
+
     def get_success_url(self):
-        return reverse(self.success_url, kwargs={k:_convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
+        return reverse(self.success_url,
+                       kwargs={k: _convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
+
 
 def _convert(name, value):
     if name == 'pk' or name == 'id':
@@ -331,13 +419,11 @@ def _convert(name, value):
 
 
 class ModelViewRegistry:
-
     views = {}
 
     @classmethod
     def register_view(cls, model, view_type, app_name, view_name):
         cls.views[(model, view_type)] = app_name + ':' + view_name
-
 
     @classmethod
     def get_view(cls, model, view_type):
@@ -345,4 +431,5 @@ class ModelViewRegistry:
             r = cls.views.get((model_cls, view_type), None)
             if r is not None:
                 return r
-        raise Exception('View for %s, %s is not registered. Use ModelViewRegistry.register_view to register it.' % (model, view_type))
+        raise Exception('View for %s, %s is not registered. Use ModelViewRegistry.register_view to register it.' % (
+            model, view_type))
