@@ -126,8 +126,15 @@ class FedoraManager:
                 return ret[0].value
             return 'application/binary'
 
+        def get_filename(fedora_object):
+            ret = fedora_object[EBUCORE.filename]
+            if ret:
+                return ret[0].value
+            return None
+
         return TypedStream(self.connection.get_bitstream(obj.id),
-                           mimetype=get_mimetype(obj))
+                           mimetype=get_mimetype(obj),
+                           filename=get_filename(obj))
 
     def construct(self, rdf_metadata):
         """
