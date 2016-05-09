@@ -301,6 +301,7 @@ class ElasticIndexer(Indexer):
 
         fld2id = {}
         id2fld = {}
+        id2fldlang = {}
         for fld in model_class._meta.fields:
             id_in_elasticsearch = url2id(fld.rdf_name)
 
@@ -310,9 +311,11 @@ class ElasticIndexer(Indexer):
 
                     fld2id[fld.name + '.' + lang[0]] = nested_id_in_elasticsearch
                     id2fld[nested_id_in_elasticsearch] = fld.name
+                    id2fldlang[nested_id_in_elasticsearch] = fld.name + '@' + lang[0]
 
             fld2id[fld.name] = id_in_elasticsearch
             id2fld[id_in_elasticsearch] = fld.name
+            id2fldlang[id_in_elasticsearch] = fld.name
 
         fld2id['_fedoralink_model'] = '_fedoralink_model'
         id2fld['_fedoralink_model'] = '_fedoralink_model'
@@ -404,7 +407,7 @@ class ElasticIndexer(Indexer):
                 buckets = v['value']['buckets']
 
             facets.append((
-                id2fld[k],
+                id2fldlang[k],
                 [(vv['key'], vv['doc_count']) for vv in buckets]
             ))
 
@@ -419,6 +422,7 @@ class ElasticIndexer(Indexer):
         facets_clause = {}
         if facets:
             for f in facets:
+                f = f.replace('@', '__')
                 field_in_elastic = fld2id[f.replace('__', '.')]
                 if '__' in f:
                     li = f.rfind('__')
