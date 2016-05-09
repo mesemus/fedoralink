@@ -1,14 +1,13 @@
 import inspect
-
 import requests
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import reverse
 from django.db.models import Q
-from django.http import HttpResponseRedirect, FileResponse, Http404, request, HttpResponse
+from django.http import HttpResponseRedirect, FileResponse, Http404, HttpResponse
 from django.shortcuts import render
 from django.template import Template, RequestContext
+from django.utils.translation import ugettext as _
 from django.views.generic import View, CreateView, DetailView, UpdateView
-from django.template import Context
 
 from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
@@ -16,7 +15,6 @@ from fedoralink.models import FedoraObject
 from fedoralink.templatetags.fedoralink_tags import id_from_path
 from fedoralink_ui.models import Type
 from .utils import get_class, fullname
-from django.utils.translation import ugettext as _
 
 
 class GenericGetView():
