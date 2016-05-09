@@ -6,10 +6,11 @@ import django.forms
 from dateutil import parser
 from django.apps import apps
 from django.db.models.signals import class_prepared
-from rdflib import Literal, XSD
+from rdflib import Literal, XSD, URIRef
 
 from fedoralink.forms import LangFormTextField, LangFormTextAreaField, MultiValuedFedoraField, GPSField, \
     FedoraChoiceField
+from fedoralink.models import FedoraObject
 from fedoralink.utils import StringLikeList
 
 
@@ -42,15 +43,15 @@ class IndexedField:
         raise Exception("Conversion from RDF on %s not supported yet" % type(self))
 
 
-
 class IndexedLanguageField(IndexedField, django.db.models.Field):
 
-    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None, level=None):
+    def __init__(self, rdf_name, required=False, verbose_name=None,
+                 multi_valued=False, attrs=None, help_text=None, level=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
+        # noinspection PyCallByClass,PyTypeChecker
         django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text)
-
 
     def formfield(self, **kwargs):
         if 'textarea' in self.attrs.get('presentation', ''):
@@ -86,11 +87,12 @@ class IndexedTextField(IndexedField, django.db.models.Field):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
+        # noinspection PyCallByClass,PyTypeChecker
         django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text, choices=choices)
 
     def formfield(self, **kwargs):
         if self.multi_valued:
-            defaults = {'form_class': MultiValuedFedoraField }
+            defaults = {'form_class': MultiValuedFedoraField}
         elif self.choices:
             defaults = {'choices_form_class': FedoraChoiceField}
         else:
@@ -112,10 +114,12 @@ class IndexedTextField(IndexedField, django.db.models.Field):
 
 class IndexedIntegerField(IndexedField, django.db.models.IntegerField):
 
-    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None, level=None):
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False,
+                 attrs=None, help_text=None, level=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
+        # noinspection PyCallByClass,PyTypeChecker
         django.db.models.IntegerField.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
     def convert_to_rdf(self, value):
@@ -129,10 +133,12 @@ class IndexedIntegerField(IndexedField, django.db.models.IntegerField):
 
 class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
 
-    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None, level=None):
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False,
+                 attrs=None, help_text=None, level=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
+        # noinspection PyCallByClass,PyTypeChecker
         django.db.models.DateTimeField.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
     def convert_to_rdf(self, value):
@@ -142,8 +148,8 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
         if isinstance(value, datetime.datetime):
             return Literal(value, datatype=XSD.datetime)
         else:
-             raise AttributeError("Conversion of %s to datetime is not supported in "
-                                  "fedoralink/indexer/fields.py" % type(value))
+            raise AttributeError("Conversion of %s to datetime is not supported in "
+                                 "fedoralink/indexer/fields.py" % type(value))
 
     def convert_from_rdf(self, data):
         value = data.toPython()
@@ -151,16 +157,18 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
         if value:
             if isinstance(value, datetime.datetime):
                 return value
-            if value == "None": #TODO:  neskor odstranit
+            if value is "None":         # TODO:  neskor odstranit
                 return None
+            val = value
+            # noinspection PyBroadException
             try:
                 # handle 2005-06-08 00:00:00+00:00
-                val = value
                 if val[-3] == ':':
                     val = val[:-3] + val[-2:]
                 val = datetime.datetime.strptime(val, '%Y-%m-%d %H:%M:%S%z')
                 return val
             except:
+                # noinspection PyBroadException
                 try:
                     if val[-3] == ':':
                         val = val[:-3] + val[-2:]
@@ -175,10 +183,12 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
 
 class IndexedDateField(IndexedField, django.db.models.DateField):
 
-    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None, level=None):
+    def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False,
+                 attrs=None, help_text=None, level=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
+        # noinspection PyCallByClass,PyTypeChecker
         django.db.models.DateField.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
     def convert_to_rdf(self, value):
@@ -189,8 +199,8 @@ class IndexedDateField(IndexedField, django.db.models.DateField):
         elif isinstance(value, datetime.date):
             return Literal(value, datatype=XSD.date)
         else:
-             raise AttributeError("Conversion of %s to date is not supported in "
-                                  "fedoralink/indexer/fields.py" % type(value))
+            raise AttributeError("Conversion of %s to date is not supported in "
+                                 "fedoralink/indexer/fields.py" % type(value))
 
     def convert_from_rdf(self, data):
         if data.value:
@@ -198,8 +208,9 @@ class IndexedDateField(IndexedField, django.db.models.DateField):
                 return data.value.date()
             if isinstance(data.value, datetime.date):
                 return data.value
-            if data.value=="None": #TODO:  neskor odstranit
+            if data.value is "None":      # TODO:  neskor odstranit
                 return None
+            # noinspection PyBroadException
             try:
                 # handle 2005-06-08
                 val = data.value
@@ -213,7 +224,6 @@ class IndexedDateField(IndexedField, django.db.models.DateField):
                                  "fedoralink/indexer/models.py" % (type(data.value), data.value))
 
 
-
 def register_model_lookup(field, related_model):
     if isinstance(related_model, str):
         app_label, model_name = related_model.split('.')
@@ -222,6 +232,7 @@ def register_model_lookup(field, related_model):
         except LookupError:
             def resolve(**kwargs):
                 clz = kwargs['sender']
+                # noinspection PyProtectedMember
                 if clz._meta.app_label == app_label and clz._meta.object_name == model_name:
                     field.related_model = clz
                     class_prepared.disconnect(resolve, weak=False)
@@ -233,10 +244,12 @@ def register_model_lookup(field, related_model):
 
 class IndexedLinkedField(IndexedField, django.db.models.Field):
 
-    def __init__(self, rdf_name, related_model, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None, level=None):
+    def __init__(self, rdf_name, related_model, required=False, verbose_name=None, multi_valued=False,
+                 attrs=None, help_text=None, level=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
+        # noinspection PyCallByClass,PyTypeChecker
         django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
         register_model_lookup(self, related_model)
@@ -247,18 +260,22 @@ class IndexedLinkedField(IndexedField, django.db.models.Field):
     def convert_to_rdf(self, value):
         if value is None or not value.strip():
             return []
-        return Literal(value, datatype=XSD.string)
+        return URIRef(value.id)
 
     def convert_from_rdf(self, value):
-        return value
+        if not value:
+            return None
+        return self.related_model.objects.get(pk=value)
 
 
 class IndexedBinaryField(IndexedField, django.db.models.Field):
 
-    def __init__(self, rdf_name, related_model, required=False, verbose_name=None, multi_valued=False, attrs=None, help_text=None, level=None):
+    def __init__(self, rdf_name, related_model, required=False, verbose_name=None, multi_valued=False, attrs=None,
+                 help_text=None, level=None):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=multi_valued, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
+        # noinspection PyCallByClass,PyTypeChecker
         django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
         register_model_lookup(self, related_model)
@@ -270,13 +287,15 @@ class IndexedBinaryField(IndexedField, django.db.models.Field):
         defaults.update(kwargs)
         return super(IndexedBinaryField, self).formfield(**defaults)
 
-    def get_internal_type(self):
-        return 'FileField'
-
     def convert_to_rdf(self, value):
         if value is None or not value.strip():
             return []
-        return Literal(value, datatype=XSD.string)
+        return URIRef(value.id)
+
+    def convert_from_rdf(self, value):
+        if not value:
+            return None
+        return self.related_model.objects.get(pk=value)
 
 
 class IndexedGPSField(IndexedField, django.db.models.Field):
@@ -285,6 +304,7 @@ class IndexedGPSField(IndexedField, django.db.models.Field):
         super().__init__(rdf_name, required=required,
                          verbose_name=verbose_name, multi_valued=False, attrs=attrs, level=level)
         # WHY is Field's constructor not called without this?
+        # noinspection PyCallByClass,PyTypeChecker
         django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
     def formfield(self, **kwargs):
