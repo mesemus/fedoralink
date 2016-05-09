@@ -19,10 +19,12 @@ class Template(IndexableFedoraObject):
     tags = IndexedTextField(CESNET_TYPE.tag, verbose_name=_('Tags'), multi_valued=True)
 
     def get_template_bitstream(self):
-        self.get_bitstream()
+        return self.get_children[0].get_bitstream()
 
-    def set_template_bitstream(self, template):
-        self.set_local_bitstream(template)
+    def set_template_bitstream(self, stream):
+        stream_inst = self.create_child('')
+        stream_inst.set_local_bitstream(stream)
+        stream_inst.save()
 
     class Meta:
         rdf_types        = (CESNET_TYPE.Template, )
@@ -39,6 +41,8 @@ class Type(IndexableFedoraObject):
     templates_list = IndexedLinkedField(CESNET_TYPE.templates_list, Template, verbose_name=_('Templates for list view'), multi_valued=True)
 
     controller = IndexedTextField(CESNET_TYPE.controller, verbose_name=_('Controller class'), level=IndexedField.MANDATORY)
+
+    rdf_types = IndexedTextField(CESNET_TYPE.rdf_types, verbose_name=_('RDF types'), level=IndexedField.MANDATORY, multi_valued=True)
 
     class Meta:
         rdf_types = (CESNET_TYPE.Type, )
