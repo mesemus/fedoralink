@@ -21,10 +21,7 @@
         <table class="search-results">
         {% for item in page %}
             <a href="{{ item.id|id_from_path }}">
-                {% with object=item %}
-                <!-- TODO: Tu sa zavola template_tag na itemu -->
-                    {% include item_template %}
-                {% endwith %}
+                {% render_search_row item %}
             </a>
         {% endfor %}
         </table>

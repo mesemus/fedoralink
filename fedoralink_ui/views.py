@@ -1,62 +1,18 @@
-import inspect
-
-import requests
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render
 from django.template import Template, RequestContext
-from django.views.generic import View, CreateView, DetailView, UpdateView
-from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.utils.translation import ugettext as _
+from django.views.generic import View, CreateView, DetailView, UpdateView
 
 from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
-from fedoralink.templatetags.fedoralink_tags import id_from_path
-from fedoralink.utils import get_class, fullname
-from fedoralink_ui.models import ResourceType
-
-
-class GenericGetView:
-
-    # noinspection PyMethodMayBeStatic
-    def get_child_template(self, resource_type, template_type):
-        # TODO: more templates
-        if template_type == 'edit' or template_type == 'create':
-            return FedoraObject.objects.filter(
-                pk=resource_type.templates_edit[0]).get()
-        if template_type == 'view':
-            return FedoraObject.objects.filter(
-                pk=resource_type.templates_view[0]).get()
-
-    def get(self, rdf_meta, template_type):
-
-        for rdf_type in rdf_meta:
-            retrieved_type = list(ResourceType.objects.filter(rdf_types=rdf_type))
-            if retrieved_type:
-                break
-        else:
-            retrieved_type = []
-
-        template_url = None
-        for resource_type in retrieved_type:
-            if 'type/' in resource_type.id:
-                child = self.get_child_template(resource_type=resource_type, template_type=template_type)
-                for template in child.children:
-                    template_url = template.id
-        return template_url
-
-
-# noinspection PyUnresolvedReferences
-class FedoraTemplateMixin:
-    def get_template_names(self):
-        if self.object:
-            templates = [fullname(x).replace('.', '/') + '/_' + self.template_type + '.html'
-                         for x in inspect.getmro(type(self.object))]
-            templates.append(self.template_name)
-            return templates
-        return super().get_template_names()
+from fedoralink.utils import get_class
+from fedoralink_ui.template_cache import FedoraTemplateCache
+from fedoralink_ui.templatetags.fedoralink_tags import id_from_path
 
 
 class GenericIndexView(View):
@@ -139,7 +95,7 @@ class GenericSearchView(View):
 
 
 # noinspection PyAttributeOutsideInit,PyProtectedMember
-class GenericDetailView(DetailView, FedoraTemplateMixin):
+class GenericDetailView(DetailView):
     template_name = 'fedoralink_ui/detail.html'
 
     def get_queryset(self):
@@ -156,18 +112,17 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         context = self.get_context_data(object=self.object)
-        get_view = GenericGetView()
-        template_url = get_view.get(rdf_meta=self.object._meta.rdf_types, template_type='view')
-        print(template_url)
-        if template_url:
+        # noinspection PyTypeChecker
+        template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
+        if template:
             return HttpResponse(
-                Template("{% extends '" + self.template_name + "' %}" + requests.get(template_url).text).render(
+                Template("{% extends '" + self.template_name + "' %}" + template).render(
                     RequestContext(request, context)))
         return super(GenericDetailView, self).get(request, *args, **kwargs)
 
 
 # noinspection PyAttributeOutsideInit
-class GenericCreateView(CreateView, FedoraTemplateMixin):
+class GenericCreateView(CreateView):
     model = None
     fields = '__all__'
     # TODO: parent_collection nebude potrebny, moznost ziskat z url
@@ -240,15 +195,11 @@ class GenericCreateView(CreateView, FedoraTemplateMixin):
         If any keyword arguments are provided, they will be
         passed to the constructor of the response class.
         """
-        if self.object:
-            rdf_meta = self.object._meta.rdf_types
-        else:
-            rdf_meta = self.model._meta.rdf_types
-        get_view = GenericGetView()
-        template_url = get_view.get(rdf_meta=rdf_meta, template_type='create')
-        if template_url:
+        template = FedoraTemplateCache.get_template_string(self.object if self.object else self.model,
+                                                           view_type='create')
+        if template:
             return HttpResponse(
-                Template("{% extends '" + self.template_name + "' %}" + requests.get(template_url).text).render(
+                Template("{% extends '" + self.template_name + "' %}" + template).render(
                     RequestContext(self.request, context)))
         return super().render_to_response(context, **response_kwargs)
 
@@ -257,7 +208,7 @@ class GenericCreateView(CreateView, FedoraTemplateMixin):
                        kwargs={k: _convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
 
 
-class GenericEditView(UpdateView, FedoraTemplateMixin):
+class GenericEditView(UpdateView):
     model = None
     fields = '__all__'
     success_url_param_names = ()
@@ -292,12 +243,12 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
         self.object = self.get_object()
         form = self.get_form()
         context = self.get_context_data(object=self.object, form=form, **response_kwargs)
-        get_view = GenericGetView()
-        template_url = get_view.get(rdf_meta=self.object._meta.rdf_types, template_type='edit')
-        print(template_url)
-        if template_url:
+        # noinspection PyTypeChecker
+        template = FedoraTemplateCache.get_template_string(self.object, view_type='edit')
+
+        if template:
             return HttpResponse(
-                Template("{% extends '" + self.template_name + "' %}" + requests.get(template_url).text).render(
+                Template("{% extends '" + self.template_name + "' %}" + template).render(
                     RequestContext(self.request, context)))
         return super().render_to_response(context, **response_kwargs)
 
