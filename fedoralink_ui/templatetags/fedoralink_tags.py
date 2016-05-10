@@ -1,26 +1,29 @@
 # -*- coding: utf-8 -*-
-import base64
 import inspect
 import json
 import logging
+import zlib
 from urllib.parse import quote
 
+import base64
 import django.utils.translation
-import zlib
 from django import template
 from django.conf import settings
 from django.core.signing import TimestampSigner
 from django.core.urlresolvers import reverse
 from django.template import Context
+from django.template import Template
 from django.template.loader import select_template
 from rdflib import Literal
 
 from fedoralink.indexer.fields import IndexedLinkedField, IndexedBinaryField
 from fedoralink.models import FedoraObject
 from fedoralink.utils import fullname
+from fedoralink_ui.template_cache import FedoraTemplateCache
 
 register = template.Library()
 log = logging.getLogger('fedoralink.tags')
+
 
 @register.inclusion_tag('fedoralink/facet.html', takes_context=True)
 def render_facet_box(context, facet, id_to_name_mapping):
@@ -81,6 +84,7 @@ def rdf2lang(rdfliteral, lang=None):
         return rdfliteral
 
     default_value = ''
+    # noinspection PyBroadException
     try:
         if lang is None:
             lang = django.utils.translation.get_language()
@@ -108,6 +112,7 @@ def rdf2lang(rdfliteral, lang=None):
 
     return default_value
 
+
 @register.filter
 def id_from_path(idval):
     idval = str(idval)
@@ -117,29 +122,33 @@ def id_from_path(idval):
     idval = idval.replace('127.0.0.1', 'localhost')
     repository_url = repository_url.replace('127.0.0.1', 'localhost')
 
-    if idval.startswith(repository_url): #TODO: edit to use more repositories
+    if idval.startswith(repository_url):    # TODO: edit to use more repositories
         if repository_url.endswith("/"):
             return quote(idval[len(repository_url):]).replace('/', '_')
         else:
             return quote(idval[len(repository_url) + 1:]).replace('/', '_')
     else:
-        raise AttributeError('%s is not from repository %s' %(idval, repository_url) )
+        raise AttributeError('%s is not from repository %s' % (idval, repository_url))
 
 
 @register.filter
 def download_object_from_fedora(pk):
+    # noinspection PyBroadException
     try:
         return FedoraObject.objects.get(pk=str(pk))
     except:
         return None
 
+
 @register.filter
 def split_to_array(val, separator=','):
     return val.split(separator)
 
+
 @register.filter
-def get_fields(object, level=None):
-    meta_fields = object._meta.fields
+def get_fields(fedora_object, level=None):
+    # noinspection PyProtectedMember
+    meta_fields = fedora_object._meta.fields
     fields = ()
     for meta in meta_fields:
         if level is not None and meta.level != level:
@@ -149,13 +158,13 @@ def get_fields(object, level=None):
         if name is None:
             name = meta_name
 
-        val = getattr(object, meta_name)
+        val = getattr(fedora_object, meta_name)
 
         if not val:
             val = None
         elif isinstance(val, list):
             for x in val:
-                print("val",  x)
+                print("val", x)
                 if str(x):
                     break
             else:
@@ -169,19 +178,21 @@ def get_fields(object, level=None):
 
 
 @register.simple_tag(takes_context=True)
-def render_links(context, object, link_name):
-    templates = [fullname(x).replace('.', '/') + '/' + link_name + '_link.html' for x in inspect.getmro(type(object))]
+def render_links(context, fedora_object, link_name):
+    templates = [fullname(x).replace('.', '/') + '/' + link_name + '_link.html'
+                 for x in inspect.getmro(type(fedora_object))]
     templates.append('fedoralink/partials/link.html')
     context = Context(context)
-    context['links'] = getattr(object, link_name)
+    context['links'] = getattr(fedora_object, link_name)
     chosen_template = select_template(templates)
     return chosen_template.template.render(context)
 
 
 @register.filter
 def get_form_fields(form, level=None):
-    object = form.instance
-    meta_fields = object._meta.fields
+    fedora_object = form.instance
+    # noinspection PyProtectedMember
+    meta_fields = fedora_object._meta.fields
     fields = ()
     for meta in meta_fields:
         if level is not None and meta.level != level:
@@ -196,13 +207,14 @@ def get_form_fields(form, level=None):
 
 
 def model_name(model):
+    # noinspection PyProtectedMember
     return model._meta.app_label + "/" + model._meta.object_name
 
 
 def fedora_user_classes(inst):
     for x in inspect.getmro(type(inst)):
-         if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject'):
-             yield x
+        if 'bound' not in x.__name__ and x.__name__ not in ('object', 'FedoraObject', 'IndexableFedoraObject'):
+            yield x
 
 
 @register.simple_tag(takes_context=True)
@@ -240,10 +252,11 @@ def render_field_edit(context, form, meta_name, name, field):
     templates = [fullname(x).replace('.', '/') + '/' + meta_name + '_edit.html' for x in
                  fedora_user_classes(form.instance)]
 
+    # noinspection PyProtectedMember
     fieldtype = form.instance._meta.fields_by_name[meta_name]
 
     templates += [fullname(x).replace('.', '/') + '/' + fullname(fieldtype.__class__).replace('.', '_') + '_edit.html'
-                    for x in fedora_user_classes(object)]
+                  for x in fedora_user_classes(object)]
 
     templates.append('{0}_edit.html'.format(fullname(fieldtype.__class__).replace('.', '/')))
 
@@ -263,6 +276,7 @@ def render_linked_field(context, linked_object, field_name, containing_object):
 
     templates = [model_name(x) + '/' + field_name + '_linked_view.html' for x in fedora_user_classes(containing_object)]
 
+    # noinspection PyProtectedMember
     fieldtype = containing_object._meta.fields_by_name[field_name]
 
     for y in fedora_user_classes(containing_object):
@@ -281,6 +295,7 @@ def render_linked_field(context, linked_object, field_name, containing_object):
     print(templates)
 
     context = Context(context)
+    # noinspection PyProtectedMember
     context['field'] = containing_object._meta.fields_by_name[field_name]
     context['value'] = linked_object
     context['containing_object'] = containing_object
@@ -296,7 +311,8 @@ def render_linked_standalone_field(context, linked_object):
     templates = []
 
     for y in fedora_user_classes(linked_object):
-        templates.append('fedoralink/indexer/fields/IndexedLinkedField/{0}_linked_view.html'.format(model_name(y).replace('.', '/')))
+        templates.append('fedoralink/indexer/fields/IndexedLinkedField/{0}_linked_view.html'.
+                         format(model_name(y).replace('.', '/')))
     templates.append('fedoralink/partials/linked_view.html')
 
     print(templates)
@@ -312,20 +328,23 @@ def render_linked_standalone_field(context, linked_object):
 @register.filter
 def get_fedora_object_page_link(linked_object, view_type):
     from fedoralink.views import ModelViewRegistry
-    return reverse(ModelViewRegistry.get_view(type(linked_object), view_type), kwargs={'pk': id_from_path(linked_object.pk)})
+    return reverse(ModelViewRegistry.get_view(type(linked_object), view_type),
+                   kwargs={'pk': id_from_path(linked_object.pk)})
 
 
 @register.filter
-def get_dir_obj(object):
-    print(dir(object))
-    print('Typ:', type(object))
+def get_dir_obj(fedora_object):
+    print(dir(fedora_object))
+    print('Typ:', type(fedora_object))
     return ''
 
 
 @register.filter
 def get_languages_data(bound_field):
-    return zip (range(len(bound_field.data)),bound_field.data, bound_field.field.languages)
+    return zip(range(len(bound_field.data)), bound_field.data, bound_field.field.languages)
 
+
+# noinspection PyProtectedMember
 @register.simple_tag
 def linked_form_field_model(model_form, field):
     model_class = model_form._meta.model
@@ -352,6 +371,8 @@ def linked_form_field_model(model_form, field):
 
     return reverse(link_view, kwargs={'parametry': ''}) + '?linking=' + data_url
 
+
+# noinspection PyProtectedMember
 @register.simple_tag
 def linked_form_field_label_url(model_form, field):
     model_class = model_form._meta.model
@@ -360,7 +381,6 @@ def linked_form_field_label_url(model_form, field):
 
     from fedoralink.views import ModelViewRegistry
     title_view = ModelViewRegistry.get_view(related_model, 'link_title')
-
 
     if field.value():
         try:
@@ -372,9 +392,19 @@ def linked_form_field_label_url(model_form, field):
     return reverse(title_view, kwargs={'pk': '0'})[:-1]
 
 
-
 @register.simple_tag
 def detail_view_url(obj):
     from fedoralink.views import ModelViewRegistry
 
     return reverse(ModelViewRegistry.get_view(type(obj), 'detail'), kwargs={'pk': id_from_path(obj.pk)})
+
+
+@register.simple_tag(takes_context=True)
+def render_search_row(context, item):
+    template_from_fedora = FedoraTemplateCache.get_template_string(item, 'search_row')
+    context = Context(context)
+    context['item'] = item
+    if template_from_fedora:
+        return Template(template_from_fedora).render(context)
+    chosen_template = select_template(['fedoralink_ui/search_result_row.html'])
+    return chosen_template.template.render(context)

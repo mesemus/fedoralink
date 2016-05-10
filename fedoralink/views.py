@@ -12,7 +12,7 @@ from django.views.generic import View, CreateView, DetailView, UpdateView
 from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
-from fedoralink.templatetags.fedoralink_tags import id_from_path
+from fedoralink_ui.templatetags.fedoralink_tags import id_from_path
 from fedoralink_ui.models import ResourceType
 from .utils import get_class, fullname
 
