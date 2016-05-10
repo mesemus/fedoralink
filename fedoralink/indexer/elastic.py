@@ -317,8 +317,10 @@ class ElasticIndexer(Indexer):
             id2fld[id_in_elasticsearch] = fld.name
             id2fldlang[id_in_elasticsearch] = fld.name
 
-        fld2id['_fedoralink_model'] = '_fedoralink_model'
-        id2fld['_fedoralink_model'] = '_fedoralink_model'
+        for extra_fld in ('_fedoralink_model', '_fedora_parent'):
+            fld2id[extra_fld] = extra_fld
+            id2fld[extra_fld] = extra_fld
+            id2fldlang[extra_fld] = extra_fld
 
         all_fields = set()
         self._get_all_fields(query, all_fields, fld2id)
