@@ -1,4 +1,4 @@
-{% extends base_template %}
+{% extends "fedoralink_ui/search_base.html" %}
 {% load bootstrap_pagination %}
 {% load i18n %}
 {% load fedoralink_tags %}
@@ -20,8 +20,9 @@
     <div class="search-results-without-pagination">
         <table class="search-results">
         {% for item in page %}
-            <a href="{% detail_view_url item %}">
+            <a href="{{ item.id|id_from_path }}">
                 {% with object=item %}
+                <!-- TODO: Tu sa zavola template_tag na itemu -->
                     {% include item_template %}
                 {% endwith %}
             </a>

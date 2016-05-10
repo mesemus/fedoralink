@@ -5,10 +5,10 @@
     <div class="col-md-9 property_value">
         {% if field.multi_valued %}
             {% for val in value %}
-                {% render_linked_field val|download_object_from_fedora meta_name object %}
+                {% render_linked_field val field.name object %}
             {% endfor %}
         {% else %}
-            {% render_linked_field value|download_object_from_fedora meta_name object %}
+            {% render_linked_field value field.name object %}
         {% endif %}
     </div>
 </div>

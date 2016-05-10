@@ -155,7 +155,7 @@ def get_fields(object, level=None):
             val = None
         elif isinstance(val, list):
             for x in val:
-                print("val",  x.value)
+                print("val",  x)
                 if str(x):
                     break
             else:
@@ -163,7 +163,8 @@ def get_fields(object, level=None):
         else:
             print(val, type(val))
         fields += ((name, val, meta_name),)
-
+    print("get_fields")
+    print(fields)
     return fields
 
 
@@ -206,6 +207,7 @@ def fedora_user_classes(inst):
 
 @register.simple_tag(takes_context=True)
 def render_field_view(context, containing_object, meta_name, name, value):
+    # TODO: nacitanie sablon z fedoralinku
     if value is None or containing_object is None:
         return ''
     templates = [model_name(x) + '/' + meta_name + '_view.html' for x in fedora_user_classes(containing_object)]

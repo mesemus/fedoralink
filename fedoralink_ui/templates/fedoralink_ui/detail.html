@@ -1,0 +1,58 @@
+{% extends "web/repository/base.html" %}
+<!-- TODO: v dokumentaci popsat, ktere bloky musi byt v base sablone -->
+{% load i18n %}
+{% load l10n %}
+{% load fedoralink_tags %}
+{% load staticfiles %}
+
+{% block title %}{{ object.title|rdf2lang }} - {% endblock %}
+
+
+{% block left_block %}
+    {% block left_addon %}
+        <div id="left-addon"></div>
+    {% endblock %}
+
+    {% block add %}
+        {% with add_path=appname|add:":add" %}
+            <a href="{% url add_path pk=object.id|id_from_path %}" class="btn btn-primary">{% trans "Add" %}</a>
+        {% endwith %}
+    {% endblock %}
+
+    {% block back_to_list %}
+        {% with index_path=appname|add:":index" %}
+            <a href="{% url index_path %}" class="btn btn-default">{% trans "Back to List" %}</a>
+        {% endwith %}
+    {% endblock %}
+
+{% endblock %}
+
+{% block content %}
+    <h1>{% block h1 %}{{ object.title|rdf2lang }}{% endblock %}</h1>
+
+    <div class="container-fluid">
+        {% block inner_content %}
+            {% block detail_fields %}
+                {% for name, value, meta_name in object|get_fields %}
+                    {% if not meta_name in excluded_fields|split_to_array %}
+                        {% if value %}
+{#                            {% render_field_view object meta_name name value %}#}
+                            {{ value }}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            {% endblock %}
+
+            <div class="children">
+                {% render_links object 'children' %}
+            </div>
+
+            {% with edit_path=appname|add:":edit" %}
+                <a href="{% url edit_path pk=object.id|id_from_path %}" class="btn btn-primary">{% trans "Edit" %}</a>
+            {% endwith %}
+
+        {% endblock %}
+    </div>
+{% endblock %}
+
+

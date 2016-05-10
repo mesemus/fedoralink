@@ -1,0 +1,50 @@
+{% extends "web/repository/base.html" %}
+{% load i18n %}
+{% load fedoralink_tags %}
+{% load bootstrap3 %}
+
+{% block title %}{{ view.title }} - {% endblock %}
+
+
+{% block h1 %}
+    {{ view.title }}
+{% endblock %}
+
+{% block inner_content %}
+
+    <div class="fedoralink-edit-controls">
+    <form method="post" enctype="multipart/form-data">
+
+        {% csrf_token %}
+        {% for name, field, meta_name in form|get_form_fields:"mandatory" %}
+            {% if forloop.first %}
+                <h3 class="fedoralink-edit-region no-space-above">Mandatory data
+                <span class="glyphicon glyphicon-triangle-bottom pull-right"></span></h3>
+            {% endif %}
+            {% render_field_edit form meta_name name field %}
+        {% endfor %}
+
+        {% for name, field, meta_name in form|get_form_fields:"recommended" %}
+            {% if forloop.first %}
+                <h3 class="fedoralink-edit-region">Recommended data
+                <span class="glyphicon glyphicon-triangle-bottom pull-right"></span></h3>
+            {% endif %}
+            {% render_field_edit form meta_name name field %}
+        {% endfor %}
+
+        {% for name, field, meta_name in form|get_form_fields:"optional" %}
+            {% if forloop.first %}
+                <h3 class="fedoralink-edit-region">Optional data
+                <span class="glyphicon glyphicon-triangle-bottom pull-right"></span></h3>
+            {% endif %}
+            {% render_field_edit form meta_name name field %}
+        {% endfor %}
+
+        <div>
+            <button type="submit" name="submit" class="btn btn-primary">{% trans "Save" %}</button>
+            <button type="submit" name="cancel" class="btn btn-default">{% trans "Back" %}</button>
+        </div>
+
+    </form>
+    </div>
+{% endblock %}

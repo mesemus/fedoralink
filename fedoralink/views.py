@@ -13,7 +13,7 @@ from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
 from fedoralink.templatetags.fedoralink_tags import id_from_path
-from fedoralink_ui.models import Type
+from fedoralink_ui.models import ResourceType
 from .utils import get_class, fullname
 
 
@@ -29,7 +29,7 @@ class GenericGetView():
 
     def get(self, rdf_meta, templateType):
         for rdf_type in rdf_meta:
-            retrieved_type = list(Type.objects.filter(rdf_types=rdf_type))
+            retrieved_type = list(ResourceType.objects.filter(rdf_types=rdf_type))
             if retrieved_type: break
         template_url = None
         for type in retrieved_type:
@@ -78,9 +78,8 @@ class GenericChangeStateView(View):
 
 class GenericIndexerView(View):
     model = FedoraObject
-    template_name = 'fedoralink/indexer_view.html'
-    base_template = 'please_set_base_template_for_generic_indexer_view'
-    list_item_template = 'please_set_base_template_for_generic_indexer_view'
+    template_name = 'fedoralink_ui/indexer_view.html'
+    list_item_template = 'fedoralink_ui/indexer_resource_view.html'
     orderings = ()
     default_ordering = ''
     facets = None
@@ -138,7 +137,6 @@ class GenericIndexerView(View):
         return render(request, self.template_name, {
             'page': page,
             'data': data,
-            'base_template': self.base_template,
             'item_template': self.list_item_template,
             'facet_names': {k: v for k, v in requested_facets},
             'searchstring': request.GET.get('searchstring', ''),
@@ -242,7 +240,7 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
     prefix = None
     template_name = None
     template_type = 'detail'
-    base_template = 'baseOArepo/detail.html'
+    base_template = 'fedoralink_ui/detail.html'
 
     def get_queryset(self):
         return FedoraObject.objects.all()
@@ -277,7 +275,7 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
     template_name_suffix = None
     success_url_param_names = ()
     title = None
-    base_template = 'baseOArepo/edit.html'
+    base_template = 'fedoralink_ui/edit.html'
 
     def get_queryset(self):
         return FedoraObject.objects.all()
@@ -329,7 +327,7 @@ class GenericDocumentCreate(CreateView, FedoraTemplateMixin):
     parent_collection = None
     success_url_param_names = ()
     title = None
-    base_template = 'baseOArepo/create.html'
+    base_template = 'fedoralink_ui/create.html'
 
     def form_valid(self, form):
         inst = form.save(commit=False)
