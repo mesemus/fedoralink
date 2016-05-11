@@ -1,0 +1,18 @@
+{% extends "fedoralink_ui/search_base.html" %}
+
+{% load bootstrap_pagination %}
+{% load i18n %}
+{% load fedoralink_tags %}
+
+{% block search_bar %}
+    <div class="row space-below">
+        <div class="col-lg-8">
+            <div class="input-group">
+              <input type="text" class="form-control" id="searchstring" name=searchstring placeholder="{% trans "Text to search" %}" value="{{ searchstring }}">
+              <span class="input-group-btn">
+                    <button class="btn btn-default" type="submit">{% trans "Search" %}</button>
+              </span>
+            </div>
+        </div>
+    </div>
+{% endblock %}

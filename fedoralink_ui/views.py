@@ -30,6 +30,8 @@ class GenericGetView():
 
     def get(self, rdf_meta, templateType):
         for rdf_type in rdf_meta:
+            print("rdf_type")
+            print(rdf_type)
             retrieved_type = list(ResourceType.objects.filter(rdf_types=rdf_type))
             if retrieved_type: break
         template_url = None
@@ -152,6 +154,76 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
                     RequestContext(request, context)))
         return super(GenericDetailView, self).get(request, *args, **kwargs)
 
+
+
+class GenericCollectionDetailView(View):
+    model = None
+    template_name = 'fedoralink_ui/collection_detail.html'
+    list_item_template = 'fedoralink_ui/search_result_row.html'
+    orderings = ()
+    default_ordering = ''
+    facets = None
+    title = None
+    create_button_title = None
+
+    def get(self, request, parameters):
+        # if isinstance(self.model, str):
+        #     self.model = get_class(self.model)
+        #
+        # if self.facets and callable(self.facets):
+        #     requested_facets = self.facets(request, parameters)
+        # else:
+        #     requested_facets = self.facets
+        #
+        # requested_facet_ids = [x[0] for x in requested_facets]
+        #
+        # data = self.model.objects.all()
+        #
+        # if requested_facets:
+        #     data = data.request_facets(*requested_facet_ids)
+        #
+        # if 'searchstring' in request.GET and request.GET['searchstring'].strip():
+        #     data = data.filter(solr_all_fields=request.GET['searchstring'].strip())
+        #
+        # for k in request.GET:
+        #     if k.startswith('facet__'):
+        #         values = request.GET.getlist(k)
+        #         k = k[len('facet__'):]
+        #         q = None
+        #         for v in values:
+        #             if not q:
+        #                 q = Q(**{k: v})
+        #             else:
+        #                 q |= Q(**{k: v})
+        #         if q:
+        #             data = data.filter(q)
+        #
+        # sort = request.GET.get('sort', self.default_ordering or self.orderings[0][0])
+        # if sort:
+        #     data = data.order_by(*[x.strip() for x in sort.split(',')])
+        # page = request.GET.get('page', )
+        # paginator = Paginator(data, 10)
+        #
+        # try:
+        #     page = paginator.page(page)
+        # except PageNotAnInteger:
+        #     # If page is not an integer, deliver first page.
+        #     page = paginator.page(1)
+        # except EmptyPage:
+        #     # If page is out of range (e.g. 9999), deliver last page of results.
+        #     page = paginator.page(paginator.num_pages)
+
+        return render(request, self.template_name, {
+            # 'page': page,
+            # 'data': data,
+            'item_template': self.list_item_template,
+            # 'facet_names': {k: v for k, v in requested_facets},
+            'searchstring': request.GET.get('searchstring', ''),
+            'orderings': self.orderings,
+            # 'ordering': sort,
+            'title': self.title,
+            'create_button_title': self.create_button_title
+        })
 
 class GenericCreateView(CreateView, FedoraTemplateMixin):
     model = None
