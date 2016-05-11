@@ -1,4 +1,3 @@
-import requests
 from django.core.cache import cache
 
 from fedoralink_ui.models import ResourceType
@@ -28,6 +27,8 @@ class FedoraTemplateCache:
             return resource_type.template_edit
         if view_type == 'view':
             return resource_type.template_view
+        if view_type == 'search':
+            return resource_type.template_search
         return None
 
     @staticmethod

@@ -14,6 +14,8 @@ from fedoralink.models import FedoraObject
 from fedoralink.utils import get_class
 from fedoralink_ui.template_cache import FedoraTemplateCache
 from fedoralink_ui.templatetags.fedoralink_tags import id_from_path
+from django.template.loader import get_template
+
 
 class GenericIndexView(View):
     app_name = None
@@ -34,14 +36,18 @@ class GenericSearchView(View):
     create_button_title = None
 
     # noinspection PyCallingNonCallable,PyUnresolvedReferences
-    def get(self, request, parameters):
+    def get(self, request, *args, **kwargs):
         if isinstance(self.model, str):
             self.model = get_class(self.model)
 
         if self.facets and callable(self.facets):
-            requested_facets = self.facets(request, parameters)
+            requested_facets = self.facets(request)
         else:
             requested_facets = self.facets
+
+        within_collection = None
+        if 'path' in kwargs:
+            within_collection = FedoraObject.objects.get(pk=kwargs['path'])
 
         requested_facet_ids = [x[0] for x in requested_facets]
 
@@ -66,6 +72,9 @@ class GenericSearchView(View):
                 if q:
                     data = data.filter(q)
 
+        if within_collection:
+            data = data.filter(_fedora_parent__exact=within_collection.id)
+
         sort = request.GET.get('sort', self.default_ordering or self.orderings[0][0])
         if sort:
             data = data.order_by(*[x.strip() for x in sort.split(',')])
@@ -81,7 +90,15 @@ class GenericSearchView(View):
             # If page is out of range (e.g. 9999), deliver last page of results.
             page = paginator.page(paginator.num_pages)
 
-        return render(request, self.template_name, {
+        template = None
+        if 'path' in kwargs:
+            template = FedoraTemplateCache.get_template_string(within_collection,
+                                                               'search')
+
+        if not template:
+            template = get_template(self.template_name)
+
+        context = RequestContext(request, {
             'page': page,
             'data': data,
             'item_template': self.list_item_template,
@@ -92,6 +109,8 @@ class GenericSearchView(View):
             'title': self.title,
             'create_button_title': self.create_button_title
         })
+
+        return template.render(context)
 
 
 # noinspection PyAttributeOutsideInit,PyProtectedMember
