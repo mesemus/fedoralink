@@ -60,8 +60,8 @@ class ResourceFieldType(IndexableFedoraObject):
 
 
 class ResourceCollectionType(ResourceType):
-    templates_list = IndexedLinkedField(CESNET_TYPE.templates_list, Template,
-                                        verbose_name=_('Templates for list view'), multi_valued=True)
+    template_search = IndexedLinkedField(CESNET_TYPE.template_search, Template,
+                                         verbose_name=_('Templates for list/search view'), multi_valued=True)
 
     class Meta:
         rdf_types = (CESNET_TYPE.ResourceCollectionType,)
