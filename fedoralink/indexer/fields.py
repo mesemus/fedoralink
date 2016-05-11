@@ -258,7 +258,7 @@ class IndexedLinkedField(IndexedField, django.db.models.Field):
         return 'TextField'
 
     def convert_to_rdf(self, value):
-        if value is None or not value.strip():
+        if value is None:
             return []
         return URIRef(value.id)
 
@@ -288,7 +288,7 @@ class IndexedBinaryField(IndexedField, django.db.models.Field):
         return super(IndexedBinaryField, self).formfield(**defaults)
 
     def convert_to_rdf(self, value):
-        if value is None or not value.strip():
+        if value is None:
             return []
         return URIRef(value.id)
 
@@ -320,3 +320,6 @@ class IndexedGPSField(IndexedField, django.db.models.Field):
         if value is None or not value.strip():
             return []
         return Literal(value, datatype=XSD.string)
+
+    def convert_from_rdf(self, value):
+        return value

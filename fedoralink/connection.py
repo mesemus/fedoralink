@@ -99,6 +99,20 @@ class FedoraConnection:
             log.error("%s : %s", e.msg, e.fp.read())
             raise
 
+    def _update_object_bitstream(self, url, bitstream):
+        try:
+            # TODO: this is because of Content-Length header, need to handle it more intelligently
+            data = bitstream.stream.read()
+            headers = {'Content-Type': bitstream.mimetype}
+            if bitstream.filename:
+                filename_header = 'filename="%s"' % quote(os.path.basename(bitstream.filename).encode('utf-8'))
+                headers['Content-Disposition'] = 'attachment; ' + filename_header
+            requests.put(url, data, headers=headers)
+
+        except HTTPError as e:
+            log.error("%s : %s", e.msg, e.fp.read())
+            raise
+
     def _create_object_from_metadata(self, parent_url, metadata, slug):
         payload = str(metadata)
         log.info('Creating child in %s', parent_url)
@@ -135,16 +149,20 @@ class FedoraConnection:
         for item in data:
             metadata = item['metadata']
             url = self._get_request_url(metadata.id)
-            metadata_from_server.append(self._update_single_resource(url, metadata))
+            metadata_from_server.append(self._update_single_resource(url, metadata, item['bitstream']))
+
 
         return metadata_from_server
 
-    def _update_single_resource(self, url, metadata):
+    def _update_single_resource(self, url, metadata, bitstream = None):
         payload = metadata.serialize_sparql()
         print(payload.decode('utf-8'))
         log.info("Updating object %s", url)
         log.debug("      payload %s", payload.decode('utf-8'))
         try:
+            if bitstream is not None:
+                self._update_object_bitstream(url, bitstream)
+
             resp = requests.patch(url + "/fcr:metadata", data=payload,
                                   headers={'Content-Type': 'application/sparql-update; encoding=utf-8'})
             log.debug('Response: ', resp.content)
@@ -156,6 +174,7 @@ class FedoraConnection:
             # later (Fedora mandates that last modification time in sent data is the same as last modification
             # time in the metadata on server)
             created_object_meta = list(self.get_object(metadata.id))[0]
+
             return created_object_meta
 
         except HTTPError as e:

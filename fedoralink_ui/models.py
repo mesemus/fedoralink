@@ -18,14 +18,6 @@ class Template(IndexableFedoraObject):
 
     tags = IndexedTextField(CESNET_TYPE.tag, verbose_name=_('Tags'), multi_valued=True)
 
-    def get_template_bitstream(self):
-        return self.get_children[0].get_bitstream()
-
-    def set_template_bitstream(self, stream):
-        stream_inst = self.create_child('')
-        stream_inst.set_local_bitstream(stream)
-        stream_inst.save()
-
     class Meta:
         rdf_types        = (CESNET_TYPE.Template, )
 

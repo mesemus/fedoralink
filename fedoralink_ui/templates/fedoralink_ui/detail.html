@@ -13,6 +13,9 @@
         <div id="left-addon"></div>
     {% endblock %}
 
+    {% block search_bar %}
+    {% endblock %}
+
     {% block add %}
         {% with add_path=appname|add:":add" %}
             <a href="{% url add_path pk=object.id|id_from_path %}" class="btn btn-primary">{% trans "Add" %}</a>

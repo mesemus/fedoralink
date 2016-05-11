@@ -1,6 +1,7 @@
 from rdflib.namespace import DC
 from django.utils.translation import ugettext_lazy as _
 
+from fedoralink.fedorans import CESNET
 from fedoralink.indexer.fields import IndexedLanguageField, IndexedTextField, IndexedDateTimeField
 from fedoralink.indexer.models import IndexableFedoraObject
 
@@ -36,3 +37,8 @@ class DCObject(IndexableFedoraObject):
 
     class Meta:
         rdf_types = (DC.Object,)
+
+class DCObjectCollection(DCObject):
+
+    class Meta:
+        rdf_types = (CESNET.DCTermsCollection, )
