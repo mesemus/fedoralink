@@ -1,62 +1,27 @@
-import inspect
-
-import requests
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render
 from django.template import Template, RequestContext
-from django.views.generic import View, CreateView, DetailView, UpdateView
-from django.http import HttpResponseRedirect, FileResponse, Http404, HttpResponse
 from django.utils.translation import ugettext as _
+from django.views.generic import View, CreateView, DetailView, UpdateView
 
 from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
-from fedoralink.templatetags.fedoralink_tags import id_from_path
-from fedoralink.utils import get_class, fullname
-from fedoralink_ui.models import ResourceType
 
-
-class GenericGetView():
-    def getChildTemplate(self, type, templateType):
-        # TODO: more templates
-        if templateType == 'edit' or templateType == 'create':
-            return FedoraObject.objects.filter(
-                pk=type.templates_edit[0]).get()
-        if templateType == 'view':
-            return FedoraObject.objects.filter(
-                pk=type.templates_view[0]).get()
-
-    def get(self, rdf_meta, templateType):
-        for rdf_type in rdf_meta:
-            print("rdf_type")
-            print(rdf_type)
-            retrieved_type = list(ResourceType.objects.filter(rdf_types=rdf_type))
-            if retrieved_type: break
-        template_url = None
-        for type in retrieved_type:
-            if ('type/' in type.id):
-                child = self.getChildTemplate(type=type, templateType=templateType)
-                for template in child.children:
-                    template_url = template.id
-        return template_url
-
-
-class FedoraTemplateMixin:
-    def get_template_names(self):
-        if self.object:
-            templates = [fullname(x).replace('.', '/') + '/_' + self.template_type + '.html'
-                         for x in inspect.getmro(type(self.object))]
-            templates.append(self.template_name)
-            return templates
-        return super().get_template_names()
+from fedoralink.utils import get_class
+from fedoralink_ui.template_cache import FedoraTemplateCache
+from fedoralink_ui.templatetags.fedoralink_tags import id_from_path
 
 class GenericIndexView(View):
     app_name = None
 
+    # noinspection PyUnusedLocal
     def get(self, request):
         return HttpResponseRedirect(reverse(self.app_name + ':extended_search', kwargs={'parameters': ''}))
+
 
 class GenericSearchView(View):
     model = None
@@ -68,7 +33,7 @@ class GenericSearchView(View):
     title = None
     create_button_title = None
 
-    # noinspection PyCallingNonCallable
+    # noinspection PyCallingNonCallable,PyUnresolvedReferences
     def get(self, request, parameters):
         if isinstance(self.model, str):
             self.model = get_class(self.model)
@@ -128,7 +93,9 @@ class GenericSearchView(View):
             'create_button_title': self.create_button_title
         })
 
-class GenericDetailView(DetailView, FedoraTemplateMixin):
+
+# noinspection PyAttributeOutsideInit,PyProtectedMember
+class GenericDetailView(DetailView):
     template_name = 'fedoralink_ui/detail.html'
 
     def get_queryset(self):
@@ -145,15 +112,13 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
         context = self.get_context_data(object=self.object)
-        getView = GenericGetView()
-        template_url = getView.get(rdf_meta=self.object._meta.rdf_types, templateType='view')
-        print(template_url)
-        if template_url:
+        # noinspection PyTypeChecker
+        template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
+        if template:
             return HttpResponse(
-                Template("{% extends '" + self.template_name + "' %}" + requests.get(template_url).text).render(
+                Template("{% extends '" + self.template_name + "' %}" + template).render(
                     RequestContext(request, context)))
         return super(GenericDetailView, self).get(request, *args, **kwargs)
-
 
 
 class GenericCollectionDetailView(View):
@@ -225,7 +190,8 @@ class GenericCollectionDetailView(View):
             'create_button_title': self.create_button_title
         })
 
-class GenericCreateView(CreateView, FedoraTemplateMixin):
+
+class GenericCreateView(CreateView):
     model = None
     fields = '__all__'
     # TODO: parent_collection nebude potrebny, moznost ziskat z url
@@ -255,12 +221,13 @@ class GenericCreateView(CreateView, FedoraTemplateMixin):
     def get_queryset(self):
         return FedoraObject.objects.all()
 
+    # noinspection PyUnusedLocal,PyProtectedMember
     def get_parent_object(self, queryset=None):
         """
         Returns the object the view is displaying.
 
         By default this requires `self.queryset` and a `pk` or `slug` argument
-        in the URLconf, but subclasses can override this to return any object.
+        in the URL conf, but subclasses can override this to return any object.
         """
         # Use a custom queryset if provided; this is required for subclasses
         # like DateDetailView
@@ -269,7 +236,7 @@ class GenericCreateView(CreateView, FedoraTemplateMixin):
         # Next, try looking up by primary key.
         pk = self.kwargs.get(self.pk_url_kwarg, None)
         if pk is not None:
-            pk=pk.replace("_", "/")
+            pk = pk.replace("_", "/")
             queryset = queryset.filter(pk=pk)
 
             try:
@@ -279,7 +246,8 @@ class GenericCreateView(CreateView, FedoraTemplateMixin):
                 raise Http404(_("No %(verbose_name)s found matching the query") %
                               {'verbose_name': queryset.model._meta.verbose_name})
             return obj
-        else: return None
+        else:
+            return None
 
     def get_form_class(self):
         meta = type('Meta', (object, ), {'model': self.model, 'fields': '__all__'})
@@ -287,6 +255,7 @@ class GenericCreateView(CreateView, FedoraTemplateMixin):
             'Meta': meta
         })
 
+    # noinspection PyProtectedMember
     def render_to_response(self, context, **response_kwargs):
         """
         Returns a response, using the `response_class` for this
@@ -295,15 +264,11 @@ class GenericCreateView(CreateView, FedoraTemplateMixin):
         If any keyword arguments are provided, they will be
         passed to the constructor of the response class.
         """
-        if self.object:
-            rdf_meta = self.object._meta.rdf_types
-        else:
-            rdf_meta = self.model._meta.rdf_types
-        getView = GenericGetView()
-        template_url = getView.get(rdf_meta=rdf_meta, templateType='create')
-        if template_url:
+        template = FedoraTemplateCache.get_template_string(self.object if self.object else self.model,
+                                                           view_type='create')
+        if template:
             return HttpResponse(
-                Template("{% extends '" + self.template_name + "' %}" + requests.get(template_url).text).render(
+                Template("{% extends '" + self.template_name + "' %}" + template).render(
                     RequestContext(self.request, context)))
         return super().render_to_response(context, **response_kwargs)
 
@@ -312,8 +277,7 @@ class GenericCreateView(CreateView, FedoraTemplateMixin):
                        kwargs={k: _convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
 
 
-
-class GenericEditView(UpdateView, FedoraTemplateMixin):
+class GenericEditView(UpdateView):
     model = None
     fields = '__all__'
     success_url_param_names = ()
@@ -336,6 +300,7 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
             'Meta': meta
         })
 
+    # noinspection PyAttributeOutsideInit,PyProtectedMember
     def render_to_response(self, context, **response_kwargs):
         """
         Returns a response, using the `response_class` for this
@@ -347,18 +312,19 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
         self.object = self.get_object()
         form = self.get_form()
         context = self.get_context_data(object=self.object, form=form, **response_kwargs)
-        getView = GenericGetView()
-        template_url = getView.get(rdf_meta=self.object._meta.rdf_types, templateType='edit')
-        print(template_url)
-        if template_url:
+        # noinspection PyTypeChecker
+        template = FedoraTemplateCache.get_template_string(self.object, view_type='edit')
+
+        if template:
             return HttpResponse(
-                Template("{% extends '" + self.template_name + "' %}" + requests.get(template_url).text).render(
+                Template("{% extends '" + self.template_name + "' %}" + template).render(
                     RequestContext(self.request, context)))
         return super().render_to_response(context, **response_kwargs)
 
     def get_success_url(self):
         return reverse(self.success_url,
                        kwargs={k: _convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
+
 
 def _convert(name, value):
     if name == 'pk' or name == 'id':
