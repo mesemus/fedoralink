@@ -19,6 +19,9 @@ from fedoralink_ui.templatetags.fedoralink_tags import id_from_path
 
 
 def appname(request):
+    print('appname: ')
+    print(request.path)
+    print(resolve(request.path).app_name)
     return {'appname': resolve(request.path).app_name}
 
 

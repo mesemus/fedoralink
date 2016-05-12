@@ -36,12 +36,9 @@
     <div class="container-fluid">
         {% block inner_content %}
             {% block detail_fields %}
-                {% for name, value, meta_name in object|get_fields %}
+                {% for verbose_name, value, meta_name in object|get_fields %}
                     {% if not meta_name in excluded_fields|split_to_array %}
-                        {% if value %}
-{#                            {% render_field_view object meta_name name value %}#}
-                            {{ value }}
-                        {% endif %}
+                        {% render_field_view object meta_name %}
                     {% endif %}
                 {% endfor %}
             {% endblock %}

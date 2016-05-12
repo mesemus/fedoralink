@@ -13,7 +13,7 @@ from django.core.signing import TimestampSigner
 from django.core.urlresolvers import reverse
 from django.template import Context
 from django.template import Template
-from django.template.loader import select_template
+from django.template.loader import select_template, get_template
 from rdflib import Literal
 
 from fedoralink.indexer.fields import IndexedLinkedField, IndexedBinaryField
@@ -154,9 +154,9 @@ def get_fields(fedora_object, level=None):
         if level is not None and meta.level != level:
             continue
         meta_name = getattr(meta, "name")
-        name = getattr(meta, "verbose_name")
-        if name is None:
-            name = meta_name
+        verbose_name = getattr(meta, "verbose_name")
+        if verbose_name is None:
+            verbose_name = meta_name
 
         val = getattr(fedora_object, meta_name)
 
@@ -171,7 +171,7 @@ def get_fields(fedora_object, level=None):
                 val = None
         else:
             print(val, type(val))
-        fields += ((name, val, meta_name),)
+        fields += ((verbose_name, val, meta_name),)
     print("get_fields")
     print(fields)
     return fields
@@ -218,33 +218,15 @@ def fedora_user_classes(inst):
 
 
 @register.simple_tag(takes_context=True)
-def render_field_view(context, containing_object, meta_name, name, value):
-    # TODO: nacitanie sablon z fedoralinku
-    if value is None or containing_object is None:
-        return ''
-    templates = [model_name(x) + '/' + meta_name + '_view.html' for x in fedora_user_classes(containing_object)]
-
-    fieldtype = containing_object._meta.fields_by_name[meta_name]
-
-    if isinstance(fieldtype, IndexedLinkedField) or isinstance(fieldtype, IndexedBinaryField):
-        templates += [model_name(x) + '/' + fieldtype.__class__.__name__ + '/' +
-                      model_name(fieldtype.related_model) + '_view.html' for x in fedora_user_classes(containing_object)]
-
-    templates += [model_name(x) + '/' + fieldtype.__class__.__name__ + '_view.html' for x in fedora_user_classes(containing_object)]
-
-    if isinstance(fieldtype, IndexedLinkedField) or isinstance(fieldtype, IndexedBinaryField):
-        templates.append('{0}/{1}_view.html'.format(fullname(fieldtype.__class__).replace('.', '/'), model_name(fieldtype.related_model)))
-    templates.append('{0}_view.html'.format(fullname(fieldtype.__class__).replace('.', '/')))
-
-    templates.append('fedoralink/partials/view.html')
-    print(templates)
-
+def render_field_view(context, containing_object, meta_name):
     context = Context(context)
     context['field'] = containing_object._meta.fields_by_name[meta_name]
-
-    chosen_template = select_template(templates)
-
-    return chosen_template.template.render(context)
+    template = FedoraTemplateCache.get_field_template_string(containing_object, meta_name)
+    if not template:
+        template=get_template('fedoralink_ui/detail_field.html')
+    else:
+        template = Template(template)
+    return template.render(context)
 
 
 @register.simple_tag(takes_context=True)

@@ -224,8 +224,11 @@ class ElasticIndexer(Indexer):
                 ret = ret.setdefault('bool', {})
                 ret = ret.setdefault('must_not', {})
         prefix, name, comparison_operation, transformed_name = self._split_name(q[0], fld2id)
-
-        if not comparison_operation or comparison_operation == 'exact':
+        if q[1] is None:
+            ret['missing'] = {
+                "field" : transformed_name
+            }
+        elif not comparison_operation or comparison_operation == 'exact':
             ret['term'] = {
                 transformed_name + "__exact": q[1]
             }

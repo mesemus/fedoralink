@@ -20,3 +20,4 @@ class ApplicationConfig(AppConfig):
                 'django.contrib.messages.context_processors.messages',
             ])
             context_processors.append('fedoralink_ui.views.appname')
+        print(settings.TEMPLATES)
