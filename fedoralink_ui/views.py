@@ -32,8 +32,8 @@ class GenericIndexView(View):
     def get(self, request):
         app_name = self.app_name
         if app_name is None:
-            app_name = appname(request)
-        return HttpResponseRedirect(reverse(self.app_name + ':extended_search', kwargs={'parameters': ''}))
+            app_name = appname(request)['appname']
+        return HttpResponseRedirect(reverse(app_name + ':extended_search', kwargs={'parameters': ''}))
 
 
 class GenericSearchView(View):
