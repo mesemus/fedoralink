@@ -45,11 +45,21 @@ class ResourceType(IndexableFedoraObject):
 
 
 class ResourceFieldType(IndexableFedoraObject):
+    """
+    A fedora model representing how a single field should get rendered (in view and in edit).
+    Resolution order (first hit wins):
+
+      1. same resource_type, field_name, field_fedoralink_type
+      2. same resource_type, field_name
+      3. same resource_type, field_fedoralink_type
+      4. same field_name, field_fedoralink_type
+      5. same field_name
+      6. same field_fedoralink_type
+    """
     label = IndexedTextField(CESNET_TYPE.label, verbose_name=_('Label'), level=IndexedField.MANDATORY)
 
-    resource_types = IndexedLinkedField(CESNET_TYPE.resource_types, ResourceType,
-                                        verbose_name=_('Containing resource types'),
-                                        multi_valued=True)
+    resource_type = IndexedLinkedField(CESNET_TYPE.resource_types, ResourceType,
+                                       verbose_name=_('Containing resource type'))
 
     field_name = IndexedTextField(CESNET_TYPE.field_name, verbose_name=_('Field name'))
 
@@ -64,7 +74,7 @@ class ResourceFieldType(IndexableFedoraObject):
 
 
 class ResourceCollectionType(ResourceType):
-    
+
     template_search = IndexedLinkedField(CESNET_TYPE.template_search, Template,
                                          verbose_name=_('Templates for list/search view'), multi_valued=True)
 

@@ -1,20 +1,25 @@
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.core.urlresolvers import resolve
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render
 from django.template import Template, RequestContext
+from django.template.loader import get_template
+from django.template.response import TemplateResponse
 from django.utils.translation import ugettext as _
 from django.views.generic import View, CreateView, DetailView, UpdateView
 
 from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
-
 from fedoralink.utils import get_class
 from fedoralink_ui.template_cache import FedoraTemplateCache
 from fedoralink_ui.templatetags.fedoralink_tags import id_from_path
-from django.template.loader import get_template
+
+
+def appname(request):
+    return {'appname': resolve(request.path).app_name}
 
 
 class GenericIndexView(View):
@@ -22,6 +27,9 @@ class GenericIndexView(View):
 
     # noinspection PyUnusedLocal
     def get(self, request):
+        app_name = self.app_name
+        if app_name is None:
+            app_name = appname(request)
         return HttpResponseRedirect(reverse(self.app_name + ':extended_search', kwargs={'parameters': ''}))
 
 
@@ -110,7 +118,7 @@ class GenericSearchView(View):
             'create_button_title': self.create_button_title
         })
 
-        return template.render(context)
+        return TemplateResponse(request, template, context)
 
 
 # noinspection PyAttributeOutsideInit,PyProtectedMember
