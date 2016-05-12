@@ -37,6 +37,9 @@ class ResourceType(IndexableFedoraObject):
     rdf_types = IndexedTextField(CESNET_TYPE.rdf_types, verbose_name=_('RDF types'), level=IndexedField.MANDATORY,
                                  multi_valued=True)
 
+    fedoralink_model = IndexedTextField(CESNET_TYPE.fedoralink_model, verbose_name=_('Fedoralink model class name'),
+                                        level=IndexedField.MANDATORY)
+
     class Meta:
         rdf_types = (CESNET_TYPE.ResourceType,)
 
@@ -44,8 +47,9 @@ class ResourceType(IndexableFedoraObject):
 class ResourceFieldType(IndexableFedoraObject):
     label = IndexedTextField(CESNET_TYPE.label, verbose_name=_('Label'), level=IndexedField.MANDATORY)
 
-    containing_models = IndexedTextField(CESNET_TYPE.containing_models, verbose_name=_('Containing models'),
-                                         multi_valued=True)
+    resource_types = IndexedLinkedField(CESNET_TYPE.resource_types, ResourceType,
+                                        verbose_name=_('Containing resource types'),
+                                        multi_valued=True)
 
     field_name = IndexedTextField(CESNET_TYPE.field_name, verbose_name=_('Field name'))
 
@@ -60,8 +64,13 @@ class ResourceFieldType(IndexableFedoraObject):
 
 
 class ResourceCollectionType(ResourceType):
+    
     template_search = IndexedLinkedField(CESNET_TYPE.template_search, Template,
                                          verbose_name=_('Templates for list/search view'), multi_valued=True)
+
+    primary_child_type = IndexedLinkedField(CESNET_TYPE.primary_child_type, ResourceType,
+                                            verbose_name=_('Primary collection\'s child type, '
+                                                           'used for example for search or resource creation'))
 
     class Meta:
         rdf_types = (CESNET_TYPE.ResourceCollectionType,)
