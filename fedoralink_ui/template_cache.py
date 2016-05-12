@@ -42,8 +42,9 @@ class FedoraTemplateCache:
     @staticmethod
     def get_template_object(rdf_meta, view_type):
         retrieved_type = FedoraTemplateCache.get_resource_type(rdf_meta)
-
-        return FedoraTemplateCache.get_resource_template(resource_type=retrieved_type, view_type=view_type)
+        if retrieved_type:
+            return FedoraTemplateCache.get_resource_template(resource_type=retrieved_type, view_type=view_type)
+        return None
 
     @staticmethod
     def get_resource_type(rdf_meta):
@@ -53,7 +54,9 @@ class FedoraTemplateCache:
                 break
         else:
             retrieved_type = []
-        return retrieved_type[0]
+        if retrieved_type:
+            return retrieved_type[0]
+        return None
 
     @staticmethod
     def get_template_string(fedora_object, view_type):
