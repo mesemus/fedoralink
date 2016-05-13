@@ -230,11 +230,11 @@ class ElasticIndexer(Indexer):
             }
         elif not comparison_operation or comparison_operation == 'exact':
             ret['term'] = {
-                transformed_name + "__exact": q[1]
+                transformed_name: q[1]
             }
         elif comparison_operation == 'fulltext' and inside_fulltext_query:
             ret['match'] = {
-                transformed_name: q[1]
+                transformed_name + "__fulltext": q[1]
             }
         else:
             raise NotImplementedError("operation %s not yet implemented, inside fulltext match %s" %
@@ -341,7 +341,7 @@ class ElasticIndexer(Indexer):
                 else:
                     fulltext_matches.append(c)
 
-            filters.append(Q(_fedoralink_model__exact=self._get_elastic_class(model_class)))
+            filters.append(Q(_fedoralink_model=self._get_elastic_class(model_class)))
 
             f = Q()
             f.connector = Q.AND
@@ -357,7 +357,7 @@ class ElasticIndexer(Indexer):
 
             fulltext_matches = self._build_fulltext(fulltext_matches, fld2id, None)
         else:
-            filters = Q(_fedoralink_model__exact=self._get_elastic_class(model_class))
+            filters = Q(_fedoralink_model=self._get_elastic_class(model_class))
             filters = self._build_filter(filters, fld2id, None)
             fulltext_matches = {}
 
@@ -439,7 +439,7 @@ class ElasticIndexer(Indexer):
                         "aggs": {
                             "value": {
                                 "terms": {
-                                    "field": field_in_elastic + "__exact",
+                                    "field": field_in_elastic,
                                     "size": 0
                                 }
                             }
@@ -448,7 +448,7 @@ class ElasticIndexer(Indexer):
                 else:
                     facets_clause[field_in_elastic] = {
                         "terms": {
-                            "field": field_in_elastic + "__exact",
+                            "field": field_in_elastic,
                             "size": 0
                         }
                     }
@@ -472,7 +472,7 @@ class ElasticIndexer(Indexer):
                     })
                 else:
                     ordering_clause.append({
-                        fld2id[o] + "__exact": {
+                        fld2id[o]: {
                             'order': sort_direction
                         }
                     })

@@ -87,13 +87,12 @@ class Command(BaseCommand):
                     props['type'] = 'nested'
                     props["include_in_root"] = 'true'
                     props['properties'] = self.gen_languages_mapping(fldname + ".")
-                elif isinstance(field, IndexedTextField) or isinstance(field, IndexedLinkedField) or \
-                        isinstance(field, IndexedBinaryField):
-                    props['type'] = 'string'
-                    props['copy_to'] = fldname + "__exact"
-                    new_properties[fldname + "__exact"] = {
+                elif isinstance(field, IndexedTextField):
+                    props['type']  = 'string'
+                    props['index'] = 'not_analyzed'
+                    props['copy_to'] = fldname + "__fulltext"
+                    new_properties[fldname + "__fulltext"] = {
                         'type': 'string',
-                        'index': 'not_analyzed'
                     }
                 elif isinstance(field, IndexedDateTimeField):
                     props['type'] = 'date'
@@ -105,6 +104,9 @@ class Command(BaseCommand):
                     props['type'] = 'long'
                     props['index'] = 'not_analyzed'
                 elif isinstance(field, IndexedGPSField):
+                    props['type'] = 'string'
+                    props['index'] = 'not_analyzed'
+                elif isinstance(field, IndexedLinkedField) or isinstance(field, IndexedBinaryField) :
                     props['type'] = 'string'
                     props['index'] = 'not_analyzed'
                 else:
@@ -123,7 +125,11 @@ class Command(BaseCommand):
     @staticmethod
     def gen_languages_mapping(prefix):
         ret = {
-            lang[0] : { 'type': 'string', 'copy_to': [prefix+'all', prefix+'all__exact', prefix+lang[0] + "__exact"] } for lang in settings.LANGUAGES
+            lang[0] : {
+                'type': 'string',
+                'index': 'not_analyzed',
+                'copy_to': [prefix + 'all', prefix + 'all__fulltext', prefix + lang[0] + "__fulltext"]
+            } for lang in settings.LANGUAGES
         }
         if 'en' in ret:
             ret['en']['analyzer'] = 'english'
@@ -131,14 +137,24 @@ class Command(BaseCommand):
             ret['cs']['analyzer'] = 'czech'
 
         ret.update({
-            lang[0]+"__exact" : { 'type': 'string', 'index': 'not_analyzed', 'store': True} for lang in settings.LANGUAGES
+            lang[0] + "__fulltext" : {
+                'type': 'string',
+                'analyzer': 'czech' if lang[0] == 'cs' else 'english',
+                'store': True
+            } for lang in settings.LANGUAGES
         })
 
+        ret['null'] = {
+            'type' : 'string',
+            'index': 'not_analyzed',
+            'copy_to': [prefix + 'all', prefix + 'all__fulltext', prefix + 'null__fulltext']
+        }
+        ret['all']  = {
+            'type' : 'string',
+            'index': 'not_analyzed'
+        }
 
-        ret['null'] = { 'type' : 'string', 'copy_to': [prefix+'all', prefix+'all__exact', prefix+'null__exact'] }
-        ret['all']  = { 'type' : 'string' }
-
-        ret['null__exact'] = { 'type' : 'string', 'index': 'not_analyzed', 'store': True }
-        ret['all__exact']  = { 'type' : 'string', 'index': 'not_analyzed', 'store': True }
+        ret['null__fulltext'] = {'type' : 'string', 'store': True}
+        ret['all__fulltext']  = {'type' : 'string', 'store': True}
 
         return ret
