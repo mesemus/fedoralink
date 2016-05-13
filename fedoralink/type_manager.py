@@ -1,5 +1,6 @@
 import inspect
 from fedoralink.fedorans import RDF
+from fedoralink.utils import fullname
 
 
 def _type_matches(types_from_metadata, types_being_matched):
@@ -55,6 +56,13 @@ class FedoraTypeManager:
     def get_model_class(classname):
         for model in FedoraTypeManager.models:
             if model.__name__ == classname:
+                return model
+        raise TypeError('Class with name %s is not registered as a model' % classname)
+
+    @staticmethod
+    def get_model_class_from_fullname(classname):
+        for model in FedoraTypeManager.models:
+            if fullname(model) == classname:
                 return model
         raise TypeError('Class with name %s is not registered as a model' % classname)
 
