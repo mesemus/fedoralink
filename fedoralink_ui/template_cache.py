@@ -37,6 +37,8 @@ class FedoraTemplateCache:
             return resource_type.template_view
         if view_type == 'search':
             return resource_type.template_search
+        if view_type == 'search_row':
+            return resource_type.template_list_item
         return None
 
     @staticmethod
