@@ -494,18 +494,17 @@ class ElasticIndexer(Indexer):
             fld = id2url(fld)
             if isinstance(field_value, dict):
                 # TODO: nested !!!
-                languages = []
                 for lang, val in field_value.items():
                     if lang == 'all':
                         continue
                     if lang == 'null':
                         lang = None
-                    metadata.rdf_metadata.set((metadata.id, URIRef(fld), Literal(val, lang=lang)))
+                    metadata.rdf_metadata.add((metadata.id, URIRef(fld), Literal(val, lang=lang)))
             elif isinstance(field_value, list) or isinstance(field_value, tuple):
                 for val in field_value:
-                    metadata.rdf_metadata.set((metadata.id, URIRef(fld), Literal(val)))
+                    metadata.rdf_metadata.add((metadata.id, URIRef(fld), Literal(val)))
             else:
-                metadata.rdf_metadata.set((metadata.id, URIRef(fld), Literal(field_value)))
+                metadata.rdf_metadata.add((metadata.id, URIRef(fld), Literal(field_value)))
 
         highlight = {id2fld[k]: v for k, v in doc.get('highlight', {}).items() if k in id2fld}
 
