@@ -2,6 +2,7 @@
 import inspect
 import json
 import logging
+import traceback
 import zlib
 from urllib.parse import quote
 
@@ -98,9 +99,12 @@ def rdf2lang(rdfliteral, lang=None):
                 if not isinstance(l, Literal):
                     return l                        # fallback for multi non-literals
 
-                if lang and l.language == lang or (not lang and (l.language is None or l.language == '')):
+                value_language = l.language
+
+                if lang and value_language == lang or (not lang and (value_language is None or value_language == '')):
                     return l.value
-                elif not l.language:
+
+                elif not value_language:
                     default_value = l.value
 
             if default_value is None:
@@ -108,6 +112,7 @@ def rdf2lang(rdfliteral, lang=None):
                     if l.value:
                         return l.value
     except:
+        traceback.print_exc()
         pass
 
     return default_value
