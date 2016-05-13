@@ -109,7 +109,7 @@ class IndexedTextField(IndexedField, django.db.models.Field):
         return Literal(value, datatype=XSD.string)
 
     def convert_from_rdf(self, value):
-        return value
+        return str(value)
 
 
 class IndexedIntegerField(IndexedField, django.db.models.IntegerField):

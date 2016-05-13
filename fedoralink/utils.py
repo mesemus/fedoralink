@@ -1,6 +1,8 @@
 import binascii
 import logging
 
+from rdflib import Literal
+
 log = logging.getLogger('fedoralink.utils')
 
 
@@ -19,6 +21,7 @@ def get_class( kls ):
         m = getattr(m, comp)
     return m
 
+
 def create_instance(class_name, constructor_args):
     return get_class(class_name)(*constructor_args)
 
@@ -28,6 +31,29 @@ class StringLikeList(list):
         if len(self) == 1:
             return str(self[0])
         return super(StringLikeList, self).__str__()
+
+    def __contains__(self, item):
+        for x in self:
+            if isinstance(item, Literal):
+                if x == item:
+                    return True
+            elif isinstance(x, str):
+                if x == str(item):
+                    return True
+        return False
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return len(self) == 1 and other in self
+        if isinstance(other, list):
+            if len(self) != len(other):
+                return False
+            for x in other:
+                if x not in self:
+                    return False
+            return True
+        else:
+            return False
 
 
 class TypedStream:
