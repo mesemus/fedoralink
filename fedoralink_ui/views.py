@@ -45,6 +45,7 @@ class GenericSearchView(View):
     facets = None
     title = None
     create_button_title = None
+    search_fields = ()
 
     # noinspection PyCallingNonCallable,PyUnresolvedReferences
     def get(self, request, *args, **kwargs):
@@ -68,7 +69,14 @@ class GenericSearchView(View):
             data = data.request_facets(*requested_facet_ids)
 
         if 'searchstring' in request.GET and request.GET['searchstring'].strip():
-            data = data.filter(solr_all_fields=request.GET['searchstring'].strip())
+            q = None
+            for fld in self.search_fields:
+                q1 = Q(**{fld.replace('@', '__') + "__fulltext": request.GET['searchstring'].strip()})
+                if q:
+                    q |= q1
+                else:
+                    q = q1
+            data = data.filter(q)
 
         for k in request.GET:
             if k.startswith('facet__'):
