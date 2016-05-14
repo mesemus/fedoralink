@@ -15,6 +15,12 @@ class DatabaseOps:
         return 100000
 
 
+class FakeValidation:
+    def check_field(self, something, **kwargs):
+        print("FakeValidation: check_field", type(something), something, kwargs)
+        return []
+
+
 class DatabaseWrapper(BaseDatabaseWrapper):
 
     def __init__(self, *args, **kwargs):
@@ -60,6 +66,10 @@ class DatabaseWrapper(BaseDatabaseWrapper):
     @property
     def indexer(self):
         return import_class(self.settings_dict['SEARCH_ENGINE'])(self.settings_dict)
+
+    @property
+    def validation(self):
+        return FakeValidation()
 
 
 def import_class( kls ):
