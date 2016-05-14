@@ -254,6 +254,13 @@ class FedoraObject(metaclass=FedoraObjectMetaclass):
     def is_incomplete(self, val):
         self.__is_incomplete = val
 
+    @property
+    def fedora_parent_uri(self):
+        if FEDORA.hasParent in self.metadata:
+            return str(self.metadata[FEDORA.hasParent][0])
+        else:
+            return None
+
     def __getitem__(self, item):
         return self.metadata[item]
 
