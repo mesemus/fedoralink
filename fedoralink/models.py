@@ -241,6 +241,7 @@ class FedoraObject(metaclass=FedoraObjectMetaclass):
         Fetches new data from server and overrides this object's metadata with them
         """
         self.metadata = getattr(type(self), 'objects').update(self, fetch_child_metadata).metadata
+        self.__is_incomplete = False
 
     @property
     def id(self):
