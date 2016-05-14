@@ -31,11 +31,14 @@ class GenericIndexView(View):
     app_name = None
 
     # noinspection PyUnusedLocal
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
         app_name = self.app_name
         if app_name is None:
             app_name = appname(request)['appname']
-        return HttpResponseRedirect(reverse(app_name + ':extended_search', kwargs={'parameters': ''}))
+        return HttpResponseRedirect(reverse(app_name + ':extended_search',
+                                            kwargs={'parameters': '',
+                                                    'collection_id': kwargs.get('collection_id', '')
+                                                    }))
 
 
 class GenericSearchView(View):
@@ -132,7 +135,8 @@ class GenericSearchView(View):
             'orderings': self.orderings,
             'ordering': sort,
             'title': self.title,
-            'create_button_title': self.create_button_title
+            'create_button_title': self.create_button_title,
+            'fedora_prefix': self.fedora_prefix
         })
 
         return TemplateResponse(request, template, context)
