@@ -2,7 +2,7 @@ from django.core.cache import cache
 from django.db.models import Q
 
 from fedoralink.utils import fullname
-from fedoralink_ui.models import ResourceType, ResourceFieldType
+from fedoralink_ui.models import ResourceType, ResourceFieldType, ResourceCollectionType
 
 NONE_CACHE_VALUE = "this is a placeholder that is used instead of None"
 
@@ -53,18 +53,48 @@ class FedoraTemplateCache:
         for rdf_type in rdf_meta:
             retrieved_type = list(ResourceType.objects.filter(rdf_types__exact=rdf_type))
             if retrieved_type:
-                break
-        else:
-            retrieved_type = []
-        if retrieved_type:
-            return retrieved_type[0]
+                return retrieved_type[0]
         return None
+
+    @staticmethod
+    def get_collection_resource_type(rdf_meta):
+        for rdf_type in rdf_meta:
+            retrieved_type = list(ResourceCollectionType.objects.filter(rdf_types__exact=rdf_type))
+            if retrieved_type:
+                return retrieved_type[0]
+        return None
+
+    @staticmethod
+    def get_collection_model(fedora_collection):
+        # noinspection PyProtectedMember
+        if hasattr(fedora_collection, '_meta'):
+            rdf_types = fedora_collection._meta.rdf_types
+            return FedoraTemplateCache._get_collection_model_internal(rdf_types)
+        else:
+            return 'fedoralink.common_namespaces.dc.DCObject'
+
+    @staticmethod
+    @simple_cache
+    def _get_collection_model_internal(rdf_types):
+        collection_resource_type = FedoraTemplateCache.get_collection_resource_type(rdf_types)
+        if not collection_resource_type:
+            return 'fedoralink.common_namespaces.dc.DCObject'
+        primary_child_type = collection_resource_type.primary_child_type
+        if not primary_child_type:
+            return 'fedoralink.common_namespaces.dc.DCObject'
+        model_name = primary_child_type.fedoralink_model
+        if not model_name:
+            return 'fedoralink.common_namespaces.dc.DCObject'
+        return str(model_name)
 
     @staticmethod
     def get_template_string(fedora_object, view_type):
         # noinspection PyProtectedMember
-        rdf_types = fedora_object._meta.rdf_types
-        return FedoraTemplateCache._get_template_string_internal(rdf_types, view_type)
+        if hasattr(fedora_object, '_meta'):
+            rdf_types = fedora_object._meta.rdf_types
+            return FedoraTemplateCache._get_template_string_internal(rdf_types, view_type)
+        else:
+            return None
 
     @staticmethod
     @simple_cache
@@ -79,11 +109,14 @@ class FedoraTemplateCache:
 
     @staticmethod
     def get_field_template_string(fedora_object, field_name):
-        field_fedoralink_type = fullname(fedora_object._meta.fields_by_name[field_name].__class__)
+        if hasattr(fedora_object, '_meta'):
+            field_fedoralink_type = fullname(fedora_object._meta.fields_by_name[field_name].__class__)
 
-        # noinspection PyProtectedMember
-        rdf_types = fedora_object._meta.rdf_types
-        return FedoraTemplateCache._get_field_template_string_internal(field_name, rdf_types, field_fedoralink_type)
+            # noinspection PyProtectedMember
+            rdf_types = fedora_object._meta.rdf_types
+            return FedoraTemplateCache._get_field_template_string_internal(field_name, rdf_types, field_fedoralink_type)
+        else:
+            return None
 
     @staticmethod
     @simple_cache
