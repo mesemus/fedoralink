@@ -1,67 +1,99 @@
-{% extends "fedoralink_ui/search_base.html" %}
+{% extends "web/repository/base.html" %}
+
 {% load bootstrap_pagination %}
 {% load i18n %}
 {% load fedoralink_tags %}
 
-{% block search_bar %}
-    <div class="row space-below">
-        <div class="col-lg-8">
-            <div class="input-group">
-              <input type="text" class="form-control" id="searchstring" name=searchstring placeholder="{% trans "Text to search" %}" value="{{ searchstring }}">
-              <span class="input-group-btn">
-                    <button class="btn btn-default" type="submit">{% trans "Search" %}</button>
-              </span>
+{% block title %}{{ title }} - {% endblock %}
+
+{% block toolbox %}
+    <form>
+        <!--suppress HtmlUnknownAttribute, HtmlUnknownTarget -->
+        {% block search_bar %}
+        <div class="left-search-bar panel panel-default">
+            <div class="panel-heading search">
+                <h4> <i class="fa fa-fw fa-search"></i> {% trans "Search" %}</h4>
+            </div>
+
+            <div class="panel-body">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchstring" name=searchstring
+                           placeholder='{% trans "Text to search" %}' value="{{ searchstring }}">
+                          <span class="input-group-btn">
+                                <button class="btn btn-default" type="submit">{% trans "Search" %}</button>
+                          </span>
+                </div>
             </div>
         </div>
-    </div>
-{% endblock %}
+        {% endblock %}
 
-{% block search_results %}
-    <div class="search-results-without-pagination">
-        <table class="search-results">
-        {% for item in page %}
-            <a href="{{ item.id|id_from_path }}">
-                {% render_search_row item %}
-            </a>
-        {% endfor %}
-        </table>
-    </div>
-    {% if page.has_other_pages %}
-        {% bootstrap_paginate page range=15 %}
-    {% endif %}
-{% endblock %}
-
-{% block ordering %}
-    <div class="panel panel-default facet-box ordering-box">
-            <select class="form-control" name="sort">
-                {% for order in orderings %}
+        {% block ordering %}
+        <div class="panel panel-default facet-box ordering-box">
+            <div class="panel-heading">
+                <h4>
+                    <i class="fa fa-fw fa-sort-alpha-asc"></i> Řazení dle
+                </h4>
+            </div>
+            <div class="panel-body">
+                <!--suppress HtmlFormInputWithoutLabel -->
+                <select class="form-control" name="sort">
+                    {% for order in orderings %}
                     <option value="{{ order.0 }}" {% if ordering == order.0 %}selected{% endif %}>{{ order.1 }}</option>
-                {% endfor %}
-            </select>
-    </div>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        {% endblock %}
+
+        {% block facets %}
+        <div class="panel-group">
+            {% for facet in data.facets %}
+            {% render_facet_box facet facet_names %}
+            {% endfor %}
+        </div>
+        {% endblock %}
+
+        <div class="placeholder" style="height: 50px;"></div>
+    </form>
+
+    {% with add_path=appname|add:":add" %}
+        <a href="{% url add_path %}" class="btn btn-primary cesnet-create-new-button">{{ create_button_title }}</a>
+    {% endwith %}
 {% endblock %}
 
-{% block facets %}
-    <div class="panel-group">
-        {% for facet in data.facets %}
-            {% render_facet_box facet facet_names %}
+{% block h1 %}{{ title }}{% endblock %}
+
+{% block repository_content %}
+{% block search_results %}
+<div class="search-results-without-pagination">
+    <table class="search-results">
+        {% for item in page %}
+        <a href="{{ item.id|id_from_path }}">
+            {% render_search_row item %}
+        </a>
         {% endfor %}
-    </div>
+    </table>
+</div>
+{% if page.has_other_pages %}
+{% bootstrap_paginate page range=15 %}
+{% endif %}
 {% endblock %}
+{% endblock %}
+
 
 {% block endbody %}
-    <script>
+<script>
 
-        $(document).ready(function() {
-            $('.facet-box').on('click', 'input', function() {
-                $('input[name="' + $(this).attr('name') + '"][value="' + $(this).attr('value') + '"]').prop('checked', $(this).is(':checked'));
-                $('form').submit();
-            });
-             $('.ordering-box').on('change', 'select', function() {
-                 $('form').submit();
-            });
+    $(document).ready(function () {
+        $('.facet-box').on('click', 'input', function () {
+            $('input[name="' + $(this).attr('name') + '"][value="' + $(this).attr('value') + '"]').prop('checked', $(this).is(':checked'));
+            $('form').submit();
         });
+        $('.ordering-box').on('change', 'select', function () {
+            $('form').submit();
+        });
+    });
 
-    </script>
+</script>
 {% endblock %}
 

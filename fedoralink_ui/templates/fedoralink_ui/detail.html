@@ -8,7 +8,7 @@
 {% block title %}{{ object.title|rdf2lang }} - {% endblock %}
 
 
-{% block left_block %}
+{% block toolbox %}
     {% block left_addon %}
         <div id="left-addon"></div>
     {% endblock %}
@@ -18,7 +18,7 @@
 
     {% block add %}
         {% with add_path=appname|add:":add" %}
-            <a href="{% url add_path pk=object.id|id_from_path %}" class="btn btn-primary">{% trans "Add" %}</a>
+            <a href="{% url add_path pk=object.id|id_from_path:fedora_prefix %}" class="btn btn-primary">{% trans "Add" %}</a>
         {% endwith %}
     {% endblock %}
 
@@ -30,8 +30,9 @@
 
 {% endblock %}
 
-{% block content %}
-    <h1>{% block h1 %}{{ object.title|rdf2lang }}{% endblock %}</h1>
+{% block h1 %}{{ object.title|rdf2lang }}{% endblock %}
+
+{% block repository_content %}
 
     <div class="container-fluid">
         {% block inner_content %}
@@ -43,16 +44,23 @@
                 {% endfor %}
             {% endblock %}
 
+            {% block resource_children %}
             <div class="children">
-                {% render_links object 'children' %}
+                <table class="search-results">
+                    {% for item in object.children %}
+                        {% render_search_row item %}
+                    {% endfor %}
+                </table>
             </div>
+            {% endblock %}
 
             {% with edit_path=appname|add:":edit" %}
-                <a href="{% url edit_path pk=object.id|id_from_path %}" class="btn btn-primary">{% trans "Edit" %}</a>
+                <a href="{% url edit_path pk=object.id|id_from_path:fedora_prefix %}" class="btn btn-primary">{% trans "Edit" %}</a>
             {% endwith %}
 
         {% endblock %}
     </div>
+
 {% endblock %}
 
 

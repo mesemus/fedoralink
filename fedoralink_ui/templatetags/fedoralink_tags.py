@@ -119,7 +119,7 @@ def rdf2lang(rdfliteral, lang=None):
 
 
 @register.filter
-def id_from_path(idval):
+def id_from_path(idval, fedora_prefix=None):
     idval = str(idval)
     repository_url = settings.DATABASES['repository']['REPO_URL']
 
@@ -129,9 +129,14 @@ def id_from_path(idval):
 
     if idval.startswith(repository_url):    # TODO: edit to use more repositories
         if repository_url.endswith("/"):
-            return quote(idval[len(repository_url):]).replace('/', '_')
+            idval = idval[len(repository_url):]
         else:
-            return quote(idval[len(repository_url) + 1:]).replace('/', '_')
+            idval = idval[len(repository_url) + 1:]
+        if fedora_prefix and idval.startswith(fedora_prefix):
+            idval = idval[len(fedora_prefix):]
+        if idval.startswith('/'):
+            idval = idval[1:]
+        return quote(idval)
     else:
         raise AttributeError('%s is not from repository %s' % (idval, repository_url))
 

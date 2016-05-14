@@ -7,15 +7,17 @@ from django.shortcuts import render
 from django.template import Template, RequestContext
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
+from django.utils.decorators import classonlymethod
 from django.utils.translation import ugettext as _
 from django.views.generic import View, CreateView, DetailView, UpdateView
 
 from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
+from fedoralink.type_manager import FedoraTypeManager
 from fedoralink.utils import get_class
 from fedoralink_ui.template_cache import FedoraTemplateCache
-from fedoralink_ui.templatetags.fedoralink_tags import id_from_path
+from fedoralink_ui.templatetags.fedoralink_tags import id_from_path, rdf2lang
 
 
 def appname(request):
@@ -37,20 +39,24 @@ class GenericIndexView(View):
 
 
 class GenericSearchView(View):
-    model = None
     template_name = 'fedoralink_ui/search.html'
     list_item_template = 'fedoralink_ui/search_result_row.html'
     orderings = ()
-    default_ordering = ''
     facets = None
     title = None
     create_button_title = None
     search_fields = ()
+    fedora_prefix = ''
 
     # noinspection PyCallingNonCallable,PyUnresolvedReferences
     def get(self, request, *args, **kwargs):
-        if isinstance(self.model, str):
-            self.model = get_class(self.model)
+
+        collection_id = kwargs['collection_id']
+        if self.fedora_prefix:
+            collection_id = self.fedora_prefix + '/' + collection_id
+
+        model = FedoraTemplateCache.get_collection_model(FedoraObject.objects.get(pk=collection_id))
+        model = FedoraTypeManager.get_model_class_from_fullname(model)
 
         if self.facets and callable(self.facets):
             requested_facets = self.facets(request)
@@ -63,7 +69,7 @@ class GenericSearchView(View):
 
         requested_facet_ids = [x[0] for x in requested_facets]
 
-        data = self.model.objects.all()
+        data = model.objects.all()
 
         if requested_facets:
             data = data.request_facets(*requested_facet_ids)
@@ -94,7 +100,7 @@ class GenericSearchView(View):
         if within_collection:
             data = data.filter(_fedora_parent__exact=within_collection.id)
 
-        sort = request.GET.get('sort', self.default_ordering or self.orderings[0][0])
+        sort = request.GET.get('sort', self.orderings[0][0])
         if sort:
             data = data.order_by(*[x.strip() for x in sort.split(',')])
         page = request.GET.get('page', )
@@ -135,12 +141,17 @@ class GenericSearchView(View):
 # noinspection PyAttributeOutsideInit,PyProtectedMember
 class GenericDetailView(DetailView):
     template_name = 'fedoralink_ui/detail.html'
+    fedora_prefix = None
 
     def get_queryset(self):
         return FedoraObject.objects.all()
 
     def get_object(self, queryset=None):
         pk = self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
+        if self.fedora_prefix and 'prefix_applied' not in self.kwargs:
+            pk = self.fedora_prefix + '/' + pk
+            self.kwargs['prefix_applied'] = True
+        print("pk", pk)
         self.kwargs[self.pk_url_kwarg] = pk
         retrieved_object = super().get_object(queryset)
         if not isinstance(retrieved_object, IndexableFedoraObject):
@@ -149,14 +160,56 @@ class GenericDetailView(DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        context = self.get_context_data(object=self.object)
         # noinspection PyTypeChecker
         template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
         if template:
+            context = self.get_context_data(object=self.object)
             return HttpResponse(
                 Template("{% extends '" + self.template_name + "' %}" + template).render(
                     RequestContext(request, context)))
         return super(GenericDetailView, self).get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['fedora_prefix'] = self.fedora_prefix
+        return context
+
+    @classonlymethod
+    def as_view(cls, **initkwargs):
+        ret = super().as_view(**initkwargs)
+
+        def breadcrumbs(request, context={}, resolver_match=None, path=None):
+            if path.endswith('/'):
+                path = path[:-1]
+
+            if path != request.path:
+                return
+
+            obj = context['object']
+            breadcrumb_list = []
+            while isinstance(obj, IndexableFedoraObject):
+                object_id = id_from_path(obj.pk, initkwargs.get('fedora_prefix', None))
+                if object_id:
+                    breadcrumb_list.insert(0, (
+                        reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
+                                kwargs={'pk': object_id}),
+                        str(rdf2lang(obj.title))
+                    ))
+                else:
+                    # reached root of the portion of repository given by fedora_prefix
+                    break
+
+                parent_id = obj.fedora_parent_uri
+                if parent_id:
+                    obj = FedoraObject.objects.get(pk=parent_id)
+                else:
+                    # reached root of the repository
+                    break
+
+            return breadcrumb_list
+
+        ret.urlbreadcrumbs_verbose_name = breadcrumbs
+        return ret
 
 
 class GenericCollectionDetailView(View):
