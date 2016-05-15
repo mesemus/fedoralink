@@ -245,7 +245,7 @@ def render_field_edit(context, form, meta_name, name, field):
 
     templates = []
     # noinspection PyProtectedMember
-    templates.append('fedoralink/partials/edit.html')
+    templates.append('fedoralink_ui/edit_field.html')
     print(templates)
     context = Context(context)
     context['field'] = field
