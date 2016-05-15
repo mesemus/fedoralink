@@ -241,17 +241,10 @@ def render_field_view(context, containing_object, meta_name):
 
 @register.simple_tag(takes_context=True)
 def render_field_edit(context, form, meta_name, name, field):
-    templates = [fullname(x).replace('.', '/') + '/' + meta_name + '_edit.html' for x in
-                 fedora_user_classes(form.instance)]
+    # TODO: read from repository as well !
 
+    templates = []
     # noinspection PyProtectedMember
-    fieldtype = form.instance._meta.fields_by_name[meta_name]
-
-    templates += [fullname(x).replace('.', '/') + '/' + fullname(fieldtype.__class__).replace('.', '_') + '_edit.html'
-                  for x in fedora_user_classes(object)]
-
-    templates.append('{0}_edit.html'.format(fullname(fieldtype.__class__).replace('.', '/')))
-
     templates.append('fedoralink/partials/edit.html')
     print(templates)
     context = Context(context)
