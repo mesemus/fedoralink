@@ -6,6 +6,7 @@ from django.utils.safestring import mark_safe
 from django.conf import settings
 from rdflib import Literal
 
+from fedoralink.models import FedoraObject
 from fedoralink.utils import StringLikeList
 
 __author__ = 'simeki'
@@ -223,3 +224,30 @@ class FedoraForm(forms.ModelForm):
                     raise Exception("Need to pass either instance or POST parameters")
 
                 fld.setup_fields(inst._meta.fields_by_name[fldname], count)
+
+
+class LinkedWidget(forms.TextInput):
+    def _format_value(self, value):
+        if isinstance(value, StringLikeList):
+            # TODO: implement correctly multi-valued fields !!!
+            print("Bad implementation - implement correctly multi-valued fields!")
+            if len(value)>0:
+                value = value[0]
+            else:
+                value = None
+        if isinstance(value, FedoraObject):
+            value = value.id
+        return super()._format_value(value)
+
+
+class LinkedField(forms.CharField):
+    def __init__(self, *args, **kwargs):
+        self.model_field = kwargs.pop('model_field', None)
+        if 'widget' not in kwargs:
+            kwargs['widget'] = LinkedWidget
+        super().__init__(*args, **kwargs)
+
+    def to_python(self, value):
+        value = super().to_python(value)
+        return FedoraObject.objects.get(pk=value)
+

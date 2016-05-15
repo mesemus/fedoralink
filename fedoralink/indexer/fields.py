@@ -9,7 +9,7 @@ from django.db.models.signals import class_prepared
 from rdflib import Literal, XSD, URIRef
 
 from fedoralink.forms import LangFormTextField, LangFormTextAreaField, MultiValuedFedoraField, GPSField, \
-    FedoraChoiceField
+    FedoraChoiceField, LinkedField
 from fedoralink.models import FedoraObject
 from fedoralink.utils import StringLikeList
 
@@ -266,6 +266,12 @@ class IndexedLinkedField(IndexedField, django.db.models.Field):
         if not value:
             return None
         return self.related_model.objects.get(pk=value)
+
+    def formfield(self, **kwargs):
+        defaults = {'form_class': LinkedField,
+                    'model_field': self}
+        defaults.update(kwargs)
+        return super().formfield(**defaults)
 
 
 class IndexedBinaryField(IndexedField, django.db.models.Field):
