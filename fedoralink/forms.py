@@ -6,6 +6,7 @@ from django.utils.safestring import mark_safe
 from django.conf import settings
 from rdflib import Literal
 
+from fedoralink.utils import StringLikeList
 
 __author__ = 'simeki'
 
@@ -21,7 +22,6 @@ class LangWidget(forms.MultiWidget):
                     if v.language == lcode:
                         found = str(v)
             ret.append(found)
-
         return ret
 
     def render(self, name, value, attrs=None):
@@ -30,7 +30,7 @@ class LangWidget(forms.MultiWidget):
                 widget.is_localized = self.is_localized
         # value is a list of values, each corresponding to a widget
         # in self.widgets.
-        if not isinstance(value, list):
+        if not isinstance(value, list) or isinstance(value, StringLikeList):
             value = self.decompress(value)
         output = []
         final_attrs = self.build_attrs(attrs)
