@@ -1,0 +1,14 @@
+{% load fedoralink_tags %}
+
+<div class="form-group">
+    <label for="{{ field.html_id}}" class="control-label">{{field.label}}</label>
+
+    <div class="input-group">
+        <span class="form-control linked-field-label"></span>
+        <input value="{{ field.id|default_if_none:'' }}"
+               title=""
+               name="{{field.name}}"
+               id="{{ field.html_id }}"
+        />
+    </div>
+</div>
