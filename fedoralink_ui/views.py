@@ -375,8 +375,9 @@ class GenericCreateView(CreateView):
 class GenericEditView(UpdateView):
     model = None
     fields = '__all__'
-    success_url_param_names = ()
+    success_url_param_names = ('id',)
     template_name = 'fedoralink_ui/edit.html'
+    pk_url_kwarg = 'id'
 
     def get_queryset(self):
         return FedoraObject.objects.all()
