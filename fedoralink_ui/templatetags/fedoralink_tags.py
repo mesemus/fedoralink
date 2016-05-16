@@ -26,7 +26,7 @@ register = template.Library()
 log = logging.getLogger('fedoralink.tags')
 
 
-@register.inclusion_tag('fedoralink/facet.html', takes_context=True)
+@register.inclusion_tag('fedoralink_ui/facet.html', takes_context=True)
 def render_facet_box(context, facet, id_to_name_mapping):
 
     # print("id to name", id_to_name_mapping, facet)
