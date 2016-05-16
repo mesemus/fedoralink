@@ -57,7 +57,7 @@
     </form>
 
     {% with add_path=appname|add:":add" %}
-        <a href="{% url add_path %}" class="btn btn-primary cesnet-create-new-button">{{ create_button_title }}</a>
+        <a href="{% url add_path pk=object.id %}" class="btn btn-primary cesnet-create-new-button">{{ create_button_title }}</a>
     {% endwith %}
 {% endblock %}
 
