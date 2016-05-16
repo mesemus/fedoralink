@@ -1,0 +1,23 @@
+{% extends "web/repository/base_empty.html" %}
+
+{% load bootstrap_pagination %}
+{% load i18n %}
+{% load fedoralink_tags %}
+
+
+{% block repository_content %}
+{% block search_results %}
+    <div class="search-results-without-pagination">
+        <table class="search-results">
+            {% for item in page %}
+            <a href="{{ item.id|id_from_path }}">
+                {% render_search_row item %}
+            </a>
+            {% endfor %}
+        </table>
+    </div>
+{% if page.has_other_pages %}
+{% bootstrap_paginate page range=15 %}
+{% endif %}
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "web/repository/base_empty.html" %}
+
+{% load bootstrap_pagination %}
+{% load i18n %}
+{% load fedoralink_tags %}
+
+
+{% block repository_content %}
+    "{{ object.title|rdf2lang }}" selected, propagating back to form ...
+
+    <script>
+        $(document).ready(function() {
+            parent.postMessage(JSON.stringify({status: 'ok', action: 'link-target',
+                id:'{{ object.id|id_from_path }}', title:'{{ object.title|rdf2lang|escapejs }}'}),
+                    "*");
+        });
+    </script>
+{% endblock %}
+

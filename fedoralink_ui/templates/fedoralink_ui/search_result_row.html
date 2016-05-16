@@ -4,5 +4,15 @@
 
 <div class="row document">
     <div class="col-md-12">
-        <a href="{% url appname|add:':detail' pk=item.id|id_from_path:fedora_prefix %}"> <h3>{{ item.id|id_from_path:fedora_prefix }}</h3></a></div>
+        <a href="{% url appname|add:':detail' pk=item.id|id_from_path:fedora_prefix %}">
+            {% if item.title %}
+                <h3>{{ item.title|rdf2lang }}</h3>
+            {% else %}
+                <h3>{{ item.id|id_from_path:fedora_prefix }}</h3>
+            {% endif %}
+        </a>
+        {% if item.title %}
+            {{ item.id|id_from_path:fedora_prefix }}
+        {% endif %}
+    </div>
 </div>

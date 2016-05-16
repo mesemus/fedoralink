@@ -1,10 +1,13 @@
 from django import forms
+from django.forms.utils import flatatt
 from django.template import Context
 from django.template.loader import render_to_string
-from django.utils.html import escape
+from django.utils.encoding import force_text
+from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 from django.conf import settings
 from rdflib import Literal
+from rdflib.namespace import DC
 
 from fedoralink.models import FedoraObject
 from fedoralink.utils import StringLikeList
@@ -228,6 +231,8 @@ class FedoraForm(forms.ModelForm):
 
 class LinkedWidget(forms.TextInput):
     def _format_value(self, value):
+        from fedoralink_ui.templatetags.fedoralink_tags import rdf2lang
+
         if isinstance(value, StringLikeList):
             # TODO: implement correctly multi-valued fields !!!
             print("Bad implementation - implement correctly multi-valued fields!")
@@ -235,9 +240,32 @@ class LinkedWidget(forms.TextInput):
                 value = value[0]
             else:
                 value = None
+
         if isinstance(value, FedoraObject):
-            value = value.id
-        return super()._format_value(value)
+            if DC.title in value.metadata:
+                value = (rdf2lang(value.metadata[DC.title]), str(value.id))
+            else:
+                value = (str(value.id), str(value.id))
+
+        return value
+
+    def render(self, name, value, attrs=None):
+        if value is None:
+            value = ''
+        final_attrs = self.build_attrs(attrs, type=self.input_type, name=name)
+
+        if value != '':
+            value = self._format_value(value)
+
+        print(type(self.model_field))
+
+        return render_to_string('fedoralink_ui/edit_field_linked.html', Context({
+            'value' : value,
+            'flatatt' : flatatt(final_attrs),
+            'attrs': final_attrs,
+            'model_field': self.model_field,
+            'field': self.field
+        }))
 
 
 class LinkedField(forms.CharField):
@@ -246,6 +274,8 @@ class LinkedField(forms.CharField):
         if 'widget' not in kwargs:
             kwargs['widget'] = LinkedWidget
         super().__init__(*args, **kwargs)
+        self.widget.model_field = self.model_field
+        self.widget.field = self
 
     def to_python(self, value):
         value = super().to_python(value)
