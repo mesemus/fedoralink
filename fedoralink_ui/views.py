@@ -499,3 +499,34 @@ def _convert(name, value):
     if name == 'pk' or name == 'id':
         return id_from_path(value)
     return value
+
+
+def link_choose(request, model_name):
+    model = FedoraTypeManager.get_model_class_from_fullname(model_name)
+    data = model.objects.all()
+
+    page = request.GET.get('page', )
+    paginator = Paginator(data, 10)
+
+    try:
+        page = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        page = paginator.page(paginator.num_pages)
+
+    context = RequestContext(request, {
+        'page': page,
+        'data': data,
+        'fedora_prefix': None,
+        'searchstring': request.GET.get('searchstring', ''),
+    })
+
+    return render(request, 'fedoralink_ui/link_dialog_content.html', context)
+
+
+def link_detail(request, pk):
+    object = FedoraObject.objects.get(pk=pk)
+    return render(request, 'fedoralink_ui/link_dialog_done.html', locals())

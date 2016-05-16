@@ -17,7 +17,6 @@ from django.template import Template
 from django.template.loader import select_template, get_template
 from rdflib import Literal
 
-from fedoralink.indexer.fields import IndexedLinkedField, IndexedBinaryField
 from fedoralink.models import FedoraObject
 from fedoralink.utils import fullname
 from fedoralink_ui.template_cache import FedoraTemplateCache
@@ -393,3 +392,7 @@ def render_search_row(context, item):
         return Template(template_from_fedora).render(context)
     chosen_template = select_template(['fedoralink_ui/search_result_row.html'])
     return chosen_template.template.render(context)
+
+@register.filter
+def classname(obj):
+    return fullname(obj.__class__)
