@@ -10,6 +10,11 @@
     {{ view.title }}
 {% endblock %}
 
+{% block head %}
+    {{ block.super }}
+    {{ form.media }}
+{% endblock %}
+
 {% block repository_content %}
 
     <div class="fedoralink-edit-controls">

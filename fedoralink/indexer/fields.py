@@ -10,7 +10,6 @@ from rdflib import Literal, XSD, URIRef
 
 from fedoralink.forms import LangFormTextField, LangFormTextAreaField, MultiValuedFedoraField, GPSField, \
     FedoraChoiceField, LinkedField
-from fedoralink.models import FedoraObject
 from fedoralink.utils import StringLikeList
 
 
@@ -91,14 +90,13 @@ class IndexedTextField(IndexedField, django.db.models.Field):
         django.db.models.Field.__init__(self, verbose_name=verbose_name, help_text=help_text, choices=choices)
 
     def formfield(self, **kwargs):
-        if self.multi_valued:
-            defaults = {'form_class': MultiValuedFedoraField}
-        elif self.choices:
+        if self.choices:
             defaults = {'choices_form_class': FedoraChoiceField}
         else:
             defaults = {'form_class': django.forms.CharField}
         defaults.update(kwargs)
-        return super().formfield(**defaults)
+
+        return wrap_multi_valued_field(self, kwargs, django.db.models.Field, super().formfield(**defaults))
 
     def get_internal_type(self):
         return None
@@ -129,6 +127,12 @@ class IndexedIntegerField(IndexedField, django.db.models.IntegerField):
 
     def convert_from_rdf(self, value):
         return value.value
+
+    def formfield(self, **kwargs):
+        defaults = {}
+
+        defaults.update(kwargs)
+        return wrap_multi_valued_field(self, kwargs, django.db.models.IntegerField, super().formfield(**defaults))
 
 
 class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
@@ -180,6 +184,12 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
             raise AttributeError("Conversion of %s [%s] to datetime is not supported in "
                                  "fedoralink/indexer/models.py" % (type(value), value))
 
+    def formfield(self, **kwargs):
+        defaults = {}
+
+        defaults.update(kwargs)
+        return wrap_multi_valued_field(self, kwargs, django.db.models.DateTimeField, super().formfield(**defaults))
+
 
 class IndexedDateField(IndexedField, django.db.models.DateField):
 
@@ -222,6 +232,12 @@ class IndexedDateField(IndexedField, django.db.models.DateField):
 
             raise AttributeError("Conversion of %s [%s] to date is not supported in "
                                  "fedoralink/indexer/models.py" % (type(data.value), data.value))
+
+    def formfield(self, **kwargs):
+        defaults = {}
+
+        defaults.update(kwargs)
+        return wrap_multi_valued_field(self, kwargs, django.db.models.DateField, super().formfield(**defaults))
 
 
 def register_model_lookup(field, related_model):
@@ -270,8 +286,9 @@ class IndexedLinkedField(IndexedField, django.db.models.Field):
     def formfield(self, **kwargs):
         defaults = {'form_class': LinkedField,
                     'model_field': self}
+
         defaults.update(kwargs)
-        return super().formfield(**defaults)
+        return wrap_multi_valued_field(self, kwargs, django.db.models.Field, super().formfield(**defaults))
 
 
 class IndexedBinaryField(IndexedField, django.db.models.Field):
@@ -291,7 +308,7 @@ class IndexedBinaryField(IndexedField, django.db.models.Field):
         # while letting the caller override them.
         defaults = {'form_class': django.forms.FileField}
         defaults.update(kwargs)
-        return super(IndexedBinaryField, self).formfield(**defaults)
+        return wrap_multi_valued_field(self, kwargs, django.db.models.Field, super().formfield(**defaults))
 
     def convert_to_rdf(self, value):
         if value is None:
@@ -317,7 +334,7 @@ class IndexedGPSField(IndexedField, django.db.models.Field):
         defaults = {'form_class': GPSField}
 
         defaults.update(kwargs)
-        return super().formfield(**defaults)
+        return wrap_multi_valued_field(self, kwargs, django.db.models.Field, super().formfield(**defaults))
 
     def get_internal_type(self):
         return 'TextField'
@@ -329,3 +346,12 @@ class IndexedGPSField(IndexedField, django.db.models.Field):
 
     def convert_from_rdf(self, value):
         return value
+
+
+def wrap_multi_valued_field(indexed_field, kwargs, django_field_class, ret):
+    if indexed_field.multi_valued:
+        defaults = {'form_class': MultiValuedFedoraField,
+                    'child_field': ret}
+        defaults.update(kwargs)
+        ret = django_field_class.formfield(indexed_field, **defaults)
+    return ret

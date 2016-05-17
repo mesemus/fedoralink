@@ -407,6 +407,7 @@ class GenericEditView(UpdateView):
         """
         self.object = self.get_object()
         form = self.get_form()
+        print("media", form.media)
         context = self.get_context_data(object=self.object, form=form, **response_kwargs)
         # noinspection PyTypeChecker
         template = FedoraTemplateCache.get_template_string(self.object, view_type='edit')
