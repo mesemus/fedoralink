@@ -1,6 +1,12 @@
 {% load fedoralink_tags %}
 
-<div class="fedoralink_ui-linked-field">
+<div class="fedoralink_ui-linked-field"
+           {% if attrs.link_url %}
+            data-link-url="{% url attrs.link_url model_name=model_field.related_model|classname %}"
+        {% else %}
+            data-link-url="{% url 'fedoralink_ui:choose_link' model_name=model_field.related_model|classname %}"
+        {% endif %}
+    >
     <input type="hidden"
            value="{{ value.1 }}"
            placeholder="Přílohy k akreditačnímu dokumentu"
@@ -10,13 +16,12 @@
               data-target="#{{attrs.id|add:'_link_dialog'}}"
               data-toggle='modal'>{{value.0}}</span>
         <span class="input-group-btn">
-           <button class="btn btn-default" type="button" data-target="#{{attrs.id|add:'_link_dialog'}}"
-                   data-toggle='modal'><span class="glyphicon glyphicon-link"></span></button>
+           <button class="btn btn-default link-button" type="button"><span class="glyphicon glyphicon-link"></span></button>
         </span>
     </div>
 
     <!-- Modal -->
-    <div id="{{attrs.id|add:'_link_dialog'}}" class="modal fade" role="dialog">
+    <div class="modal fade link-dialog" role="dialog">
       <div class="modal-dialog modal-lg">
 
         <!-- Modal content-->
@@ -33,42 +38,5 @@
         </div>
       </div>
     </div>
-
-    <script>
-        $(document).ready(function() {
-            $( "#{{attrs.id|add:'_link_dialog'}}" ).on('show.bs.modal', function(ev) {
-                var body = $(ev.target).find('.modal-body');
-                var container = $(ev.target).parents('.fedoralink_ui-linked-field');
-                body.empty();
-
-                {% if attrs.link_url %}
-                    var link_url = "{% url attrs.link_url model_name=model_field.related_model|classname %}";
-                {% else %}
-                    var link_url = "{% url 'fedoralink_ui:choose_link' model_name=model_field.related_model|classname %}";
-                {% endif %}
-                var iframe = $('<iframe>').attr('src', link_url).addClass('fedoralink_ui-link-select-dialog');
-                iframe.on('load', function(ev) {
-                    var obj = ev.target;
-                    obj.style.height = obj.contentWindow.document.body.scrollHeight + 'px';
-                });
-                body.append(iframe);
-
-                $(window).off("message onmessage");
-
-                $(window).on("message onmessage", function(e) {
-                    var data = JSON.parse(e.originalEvent.data);
-                    switch(data.action) {
-                        case 'link-target':
-                            if (data.status == 'ok') {
-                                $('#{{attrs.id}}').val(data.id);
-                                container.find('.link-label').text(data.title);
-                            }
-                            $(ev.target).modal('hide');
-                            break;
-                    }
-                });
-            });
-        });
-    </script>
 </div>
 

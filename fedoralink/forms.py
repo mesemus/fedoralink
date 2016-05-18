@@ -229,7 +229,8 @@ class FedoraForm(forms.ModelForm):
                 fld.setup_fields(count)
 
     class Media:
-        js = ('fedoralink_ui/dynamic_multi_value.js', )
+        js = ('fedoralink_ui/dynamic_multi_value.js',
+              'fedoralink_ui/linked_field.js')
 
 
 class LinkedWidget(forms.TextInput):
