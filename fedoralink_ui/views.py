@@ -446,26 +446,29 @@ class GenericCreateView(CreateView):
 
 
 class GenericEditView(UpdateView):
-    model = None
     fields = '__all__'
     success_url_param_names = ('id',)
     template_name = 'fedoralink_ui/edit.html'
-    pk_url_kwarg = 'id'
+    pk_url_kwarg = 'pk'
+    fedora_prefix = ''
 
     def get_queryset(self):
         return FedoraObject.objects.all()
 
     def get_object(self, queryset=None):
         pk = self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
-        self.kwargs[self.pk_url_kwarg] = pk
+        self.kwargs[self.pk_url_kwarg] = self.fedora_prefix +"/" + pk
         retrieved_object = super().get_object(queryset)
         if not isinstance(retrieved_object, IndexableFedoraObject):
             raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
         return retrieved_object
 
     def get_form_class(self):
-        meta = type('Meta', (object,), {'model': self.model, 'fields': '__all__'})
-        return type(self.model.__name__ + 'Form', (FedoraForm,), {
+        # fedora_prefix already added to pk
+        model = get_model(self.kwargs.get('pk'))
+
+        meta = type('Meta', (object,), {'model': model, 'fields': '__all__'})
+        return type(model.__name__ + 'Form', (FedoraForm,), {
             'Meta': meta
         })
 
