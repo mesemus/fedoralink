@@ -1,0 +1,14 @@
+<div class="dynamic-multivalue-field-group clearfix">
+    {% for wtitle, w in widgets %}
+        <label class="dynamic-multivalue-child-field">
+            <span>{{wtitle}}</span>
+            <div class="input-group">
+                {{w|safe}}
+                <span class="input-group-btn">
+                    <button class="btn btn-warning dynamic-multivalue-field-remove" type="button">&nbsp;<span class="glyphicon glyphicon-remove"></span>&nbsp;</button>
+                </span>
+            </div>
+        </label>
+    {% endfor %}
+    <button class="btn btn-link dynamic-multivalue-field-add" type="button"><span class="glyphicon glyphicon-plus"></span>&nbsp;Add a new value</button>
+</div>

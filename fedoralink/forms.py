@@ -1,11 +1,11 @@
+import copy
 from django import forms
+from django.conf import settings
 from django.forms.utils import flatatt
 from django.template import Context
 from django.template.loader import render_to_string
-from django.utils.encoding import force_text
-from django.utils.html import escape, format_html
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
-from django.conf import settings
 from rdflib import Literal
 from rdflib.namespace import DC
 
@@ -129,10 +129,6 @@ class DynamicMultiValueWidget(forms.MultiWidget):
         if self.is_localized:
             for widget in self.widgets:
                 widget.is_localized = self.is_localized
-        # value is a list of values, each corresponding to a widget
-        # in self.widgets.
-        if not isinstance(value, list):
-            value = self.decompress(value)
         output = []
         final_attrs = self.build_attrs(attrs)
         id_ = final_attrs.get('id', None)
@@ -147,7 +143,7 @@ class DynamicMultiValueWidget(forms.MultiWidget):
             html_widgets.append((str(widget.attrs['title']),
                                  widget.render(name + '_%s' % i, widget_value, final_attrs)))
 
-        output.append(render_to_string('fedoralink/partials/dynamic_multi_value.html', context=Context({
+        output.append(render_to_string('fedoralink_ui/edit_field_dynamic.html', context=Context({
             'widgets': html_widgets
         })))
 
@@ -158,22 +154,25 @@ class MultiValuedFedoraField(forms.MultiValueField):
 
     def __init__(self, *args, **kwargs):
 
+        self.child_field = kwargs.pop('child_field')
+
         fields = [
+            self.child_field
         ]
 
-        self.widget = DynamicMultiValueWidget(widgets=[])
+        self.widget = DynamicMultiValueWidget(widgets=[self.child_field.widget])
 
         super().__init__(fields, *args, **kwargs)
 
-    def setup_fields(self, fedora_field, count):
+    def setup_fields(self, count):
         widgets = []
         fields = []
         for i in range(max(1, count)):
-            fld, widget = get_preferred_presentation(fedora_field)
+            fld = copy.copy(self.child_field)
             if self.required:
                 fld.required = self.required
             fields.append(fld)
-            widgets.append(widget)
+            widgets.append(fld.widget)
         self.fields = tuple(fields)
         self.widget.widgets = tuple(widgets)
 
@@ -201,6 +200,7 @@ class GPSWidget(forms.TextInput):
             'widget': super().render(name, value, attrs)
         }))
 
+
 class GPSField(forms.CharField):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -226,7 +226,11 @@ class FedoraForm(forms.ModelForm):
                 else:
                     raise Exception("Need to pass either instance or POST parameters")
 
-                fld.setup_fields(inst._meta.fields_by_name[fldname], count)
+                fld.setup_fields(count)
+
+    class Media:
+        js = ('fedoralink_ui/dynamic_multi_value.js',
+              'fedoralink_ui/linked_field.js')
 
 
 class LinkedWidget(forms.TextInput):

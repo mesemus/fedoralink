@@ -182,6 +182,7 @@ class GenericSearchView(View):
 class GenericDetailView(DetailView):
     template_name = 'fedoralink_ui/detail.html'
     fedora_prefix = None
+    pk_url_kwarg = 'id'
 
     def get_queryset(self):
         return FedoraObject.objects.all()
@@ -449,15 +450,19 @@ class GenericEditView(UpdateView):
     fields = '__all__'
     success_url_param_names = ('id',)
     template_name = 'fedoralink_ui/edit.html'
-    pk_url_kwarg = 'pk'
-    fedora_prefix = ''
+    pk_url_kwarg = 'id'
+    fedora_prefix = None
 
     def get_queryset(self):
         return FedoraObject.objects.all()
 
     def get_object(self, queryset=None):
         pk = self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
-        self.kwargs[self.pk_url_kwarg] = self.fedora_prefix +"/" + pk
+
+        if self.fedora_prefix and 'prefix_applied' not in self.kwargs:
+            pk = self.fedora_prefix + '/' + pk
+            self.kwargs['prefix_applied'] = True
+        self.kwargs[self.pk_url_kwarg] = pk
         retrieved_object = super().get_object(queryset)
         if not isinstance(retrieved_object, IndexableFedoraObject):
             raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
@@ -483,6 +488,7 @@ class GenericEditView(UpdateView):
         """
         self.object = self.get_object()
         form = self.get_form()
+        print("media", form.media)
         context = self.get_context_data(object=self.object, form=form, **response_kwargs)
         # noinspection PyTypeChecker
         template = FedoraTemplateCache.get_template_string(self.object, view_type='edit')
@@ -495,12 +501,12 @@ class GenericEditView(UpdateView):
 
     def get_success_url(self):
         return reverse(self.success_url,
-                       kwargs={k: _convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
+                       kwargs={k: _convert(k, getattr(self.object, k), self.fedora_prefix) for k in self.success_url_param_names})
 
 
-def _convert(name, value):
+def _convert(name, value, fedora_prefix=None):
     if name == 'pk' or name == 'id':
-        return id_from_path(value)
+        return id_from_path(value, fedora_prefix=fedora_prefix)
     return value
 
 
