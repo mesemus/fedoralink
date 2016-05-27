@@ -81,10 +81,33 @@ class FedoraTemplateCache:
             return 'fedoralink.common_namespaces.dc.DCObject'
         primary_child_type = collection_resource_type.primary_child_type
         if not primary_child_type:
-            return 'fedoralink.common_namespaces.dc.DCObject'
+            return None#'fedoralink.common_namespaces.dc.DCObject'
         model_name = primary_child_type.fedoralink_model
         if not model_name:
+            return None#'fedoralink.common_namespaces.dc.DCObject'
+        return str(model_name)
+
+    @staticmethod
+    def get_subcollection_model(fedora_collection):
+        # noinspection PyProtectedMember
+        if hasattr(fedora_collection, '_meta'):
+            rdf_types = fedora_collection._meta.rdf_types
+            return FedoraTemplateCache._get_subcollection_model_internal(rdf_types)
+        else:
             return 'fedoralink.common_namespaces.dc.DCObject'
+
+    @staticmethod
+    @simple_cache
+    def _get_subcollection_model_internal(rdf_types):
+        collection_resource_type = FedoraTemplateCache.get_collection_resource_type(rdf_types)
+        if not collection_resource_type:
+            return 'fedoralink.common_namespaces.dc.DCObject'
+        primary_subcollection_type = collection_resource_type.primary_subcollection_type
+        if not primary_subcollection_type:
+            return None#'fedoralink.common_namespaces.dc.DCObject'
+        model_name = primary_subcollection_type.fedoralink_model
+        if not model_name:
+            return None#'fedoralink.common_namespaces.dc.DCObject'
         return str(model_name)
 
     @staticmethod

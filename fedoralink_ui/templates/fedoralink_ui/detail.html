@@ -20,6 +20,10 @@
         {% with add_path=appname|add:":add" %}
             <a href="{% url add_path pk=object.id|id_from_path:fedora_prefix %}" class="btn btn-primary">{% trans "Add" %}</a>
         {% endwith %}
+        {# add collection button #}
+        {% if subcollection_model %}
+            addsubcollection
+        {% endif %}
     {% endblock %}
 
     {% block back_to_list %}
@@ -55,7 +59,7 @@
             {% endblock %}
 
             {% with edit_path=appname|add:":edit" %}
-                <a href="{% url edit_path pk=object.id|id_from_path:fedora_prefix %}" class="btn btn-primary">{% trans "Edit" %}</a>
+                <a href="{% url edit_path id=object.id|id_from_path:fedora_prefix %}" class="btn btn-primary">{% trans "Edit" %}</a>
             {% endwith %}
 
         {% endblock %}

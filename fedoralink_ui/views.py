@@ -62,9 +62,19 @@ def get_model(collection_id, fedora_prefix = None):
     if fedora_prefix:
         collection_id = fedora_prefix + '/' + collection_id
     model = FedoraTemplateCache.get_collection_model(FedoraObject.objects.get(pk=collection_id))
+    if model is None:
+        return None
     model = FedoraTypeManager.get_model_class_from_fullname(model)
     return model
 
+def get_subcollection_model(collection_id, fedora_prefix = None):
+    if fedora_prefix:
+        collection_id = fedora_prefix + '/' + collection_id
+    model = FedoraTemplateCache.get_subcollection_model(FedoraObject.objects.get(pk=collection_id))
+    if model is None:
+        return None
+    model = FedoraTypeManager.get_model_class_from_fullname(model)
+    return model
 
 class GenericIndexView(View):
     app_name = None
@@ -213,6 +223,8 @@ class GenericDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['fedora_prefix'] = self.fedora_prefix
+        context['model'] = get_model(self.kwargs.get(self.pk_url_kwarg), None)
+        context['subcollection_model'] = get_subcollection_model(self.kwargs.get(self.pk_url_kwarg), None)
         return context
 
     @classonlymethod
@@ -329,7 +341,7 @@ class GenericCreateView(CreateView):
     parent_collection = None
     success_url_param_names = ()
     template_name = 'fedoralink_ui/create.html'
-    fedora_prefix = ''
+    fedora_prefix = None
 
     def form_valid(self, form):
         inst = form.save(commit=False)
@@ -443,7 +455,131 @@ class GenericCreateView(CreateView):
 
     def get_success_url(self):
         return reverse(self.success_url,
-                       kwargs={k: _convert(k, getattr(self.object, k)) for k in self.success_url_param_names})
+                       kwargs={k: _convert(k, getattr(self.object, k), self.fedora_prefix) for k in
+                               self.success_url_param_names})
+
+class GenericSubcollectionCreateView(CreateView):
+    fields = '__all__'
+    # TODO: parent_collection nebude potrebny, moznost ziskat z url
+    parent_collection = None
+    success_url_param_names = ()
+    template_name = 'fedoralink_ui/create.html'
+    fedora_prefix = None
+
+    def form_valid(self, form):
+        inst = form.save(commit=False)
+        inst.save()
+        self.object = inst
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_form_kwargs(self):
+        ret = super().get_form_kwargs()
+        parent = self.get_parent_object()
+        if parent is None:
+            if callable(self.parent_collection):
+                parent = self.parent_collection(self)
+            else:
+                parent = self.parent_collection
+        model = get_subcollection_model(collection_id=self.kwargs.get('pk'), fedora_prefix=self.fedora_prefix)
+        self.object = ret['instance'] = parent.create_child('', flavour=model)
+
+        return ret
+
+    def get_queryset(self):
+        return FedoraObject.objects.all()
+
+    # noinspection PyUnusedLocal,PyProtectedMember
+    def get_parent_object(self, queryset=None):
+        """
+        Returns the object the view is displaying.
+
+        By default this requires `self.queryset` and a `pk` or `slug` argument
+        in the URL conf, but subclasses can override this to return any object.
+        """
+        # Use a custom queryset if provided; this is required for subclasses
+        # like DateDetailView
+        queryset = self.get_queryset()
+
+        # Next, try looking up by primary key.
+        pk = self.kwargs.get(self.pk_url_kwarg, None)
+        if pk is not None:
+            queryset = queryset.filter(pk=self.fedora_prefix+"/"+pk)
+
+            try:
+                # Get the single item from the filtered queryset
+                obj = queryset.get()
+            except queryset.model.DoesNotExist:
+                raise Http404(_("No %(verbose_name)s found matching the query") %
+                              {'verbose_name': queryset.model._meta.verbose_name})
+            return obj
+        else:
+            return None
+
+    def get_form_class(self):
+        print(self.kwargs)
+        model = get_subcollection_model(collection_id=self.kwargs.get('pk'), fedora_prefix=self.fedora_prefix)
+        meta = type('Meta', (object, ), {'model': model, 'fields': '__all__'})
+        return type(model.__name__ + 'Form', (FedoraForm,), {
+            'Meta': meta
+        })
+
+    @classonlymethod
+    def as_view(cls, **initkwargs):
+        ret = super().as_view(**initkwargs)
+        def breadcrumbs(request, context={}, resolver_match=None, path=None):
+            if path.endswith('/'):
+                path = path[:-1]
+
+            if path != request.path:
+                return
+
+            obj = context['object']
+            breadcrumb_list = []
+            while isinstance(obj, IndexableFedoraObject):
+                object_id = id_from_path(obj.pk, initkwargs.get('fedora_prefix', None))
+                if object_id:
+                    breadcrumb_list.insert(0, (
+                        reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
+                                kwargs={'pk': object_id}),
+                        str(rdf2lang(obj.title))
+                    ))
+                else:
+                    # reached root of the portion of repository given by fedora_prefix
+                    break
+
+                parent_id = obj.fedora_parent_uri
+                if parent_id:
+                    obj = FedoraObject.objects.get(pk=parent_id)
+                else:
+                    # reached root of the repository
+                    break
+
+            return breadcrumb_list
+        ret.urlbreadcrumbs_verbose_name = breadcrumbs
+        return ret
+
+    # noinspection PyProtectedMember
+    def render_to_response(self, context, **response_kwargs):
+        """
+        Returns a response, using the `response_class` for this
+        view, with a template rendered with the given context.
+
+        If any keyword arguments are provided, they will be
+        passed to the constructor of the response class.
+        """
+        model = get_subcollection_model(self.kwargs.get('pk'), fedora_prefix=self.fedora_prefix)
+        template = FedoraTemplateCache.get_template_string(self.object if self.object else model,
+                                                           view_type='create')
+        if template:
+            return HttpResponse(
+                Template("{% extends '" + self.template_name + "' %}" + template).render(
+                    RequestContext(self.request, context)))
+        return super().render_to_response(context, **response_kwargs)
+
+    def get_success_url(self):
+        return reverse(self.success_url,
+                       kwargs={k: _convert(k, getattr(self.object, k), self.fedora_prefix) for k in
+                               self.success_url_param_names})
 
 
 class GenericEditView(UpdateView):
@@ -470,7 +606,7 @@ class GenericEditView(UpdateView):
 
     def get_form_class(self):
         # fedora_prefix already added to pk
-        model = get_model(self.kwargs.get('pk'))
+        model = get_model(self.kwargs.get(self.pk_url_kwarg))
 
         meta = type('Meta', (object,), {'model': model, 'fields': '__all__'})
         return type(model.__name__ + 'Form', (FedoraForm,), {

@@ -4,7 +4,7 @@
 
 <div class="row document">
     <div class="col-md-12">
-        <a href="{% url appname|add:':detail' pk=item.id|id_from_path:fedora_prefix %}">
+        <a href="{% url appname|add:':detail' id=item.id|id_from_path:fedora_prefix %}">
             {% if item.title %}
                 <h3>{{ item.title|rdf2lang }}</h3>
             {% else %}

@@ -82,6 +82,10 @@ class ResourceCollectionType(ResourceType):
                                             verbose_name=_('Primary collection\'s child type, '
                                                            'used for example for search or resource creation'))
 
+    primary_subcollection_type = IndexedLinkedField(CESNET_TYPE.primary_subcollection_type, ResourceType,
+                                            verbose_name=_('Primary subcollection type, '
+                                                           'used for example for search or resource creation'))
+
     class Meta:
         rdf_types = (CESNET_TYPE.ResourceCollectionType,)
 
