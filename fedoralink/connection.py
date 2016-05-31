@@ -6,6 +6,8 @@ from urllib.error import HTTPError
 import time
 
 import rdflib
+import sys
+
 from fedoralink.query import DoesNotExist
 from fedoralink.utils import TypedStream
 
@@ -199,12 +201,20 @@ class FedoraConnection:
                 headers['Prefer'] ='return=representation; ' + \
                                    'include="http://fedora.info/definitions/v4/repository#EmbedResources"'
 
-            with closing(requests.get(req_url + "/fcr:metadata", headers=headers)) as r:
+            with closing(requests.get(req_url + "/fcr:metadata", headers=headers)) as r: #, stream=True
 
                 g = rdflib.Graph()
                 log.debug("making request to %s", req_url)
                 log.debug(r.headers)
+                print("headers")
+                print(r.headers)
                 log.debug(r.raw)
+                # for chunk in r.iter_content(chunk_size=1024):
+                #     if chunk:
+                #         print("chunk")
+                #         print(chunk)
+                #         r.content += chunk
+                print(r.content)
                 data = r.content.decode('utf-8')
                 if r.status_code//100 != 2:
                     raise RepositoryException(url=req_url, code=r.status_code,
@@ -212,6 +222,7 @@ class FedoraConnection:
                                               hdrs=r.headers, fp=None)
 
             log.debug("   ... data %s", data)
+            sys.stdout.flush()
             g.parse(io.StringIO(data))
             yield RDFMetadata(req_url, g)
 

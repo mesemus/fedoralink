@@ -22,7 +22,9 @@
         {% endwith %}
         {# add collection button #}
         {% if subcollection_model %}
-            addsubcollection
+            {% with add_subcollection_path=appname|add:":addSubcollection" %}
+                <a href="{% url add_subcollection_path pk=object.id|id_from_path:fedora_prefix %}" class="btn btn-primary">{% trans "Add subcollection" %}</a>
+            {% endwith %}
         {% endif %}
     {% endblock %}
 

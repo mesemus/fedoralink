@@ -198,7 +198,7 @@ class GenericDetailView(DetailView):
         return FedoraObject.objects.all()
 
     def get_object(self, queryset=None):
-        pk = self.kwargs.get(self.pk_url_kwarg, None).replace("_", "/")
+        pk = self.kwargs.get(self.pk_url_kwarg, "").replace("_", "/")
         if self.fedora_prefix and 'prefix_applied' not in self.kwargs:
             pk = self.fedora_prefix + '/' + pk
             self.kwargs['prefix_applied'] = True
@@ -223,8 +223,8 @@ class GenericDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['fedora_prefix'] = self.fedora_prefix
-        context['model'] = get_model(self.kwargs.get(self.pk_url_kwarg), None)
-        context['subcollection_model'] = get_subcollection_model(self.kwargs.get(self.pk_url_kwarg), None)
+        context['model'] = get_model(self.kwargs.get(self.pk_url_kwarg, ""), None)
+        context['subcollection_model'] = get_subcollection_model(self.kwargs.get(self.pk_url_kwarg, ""), None)
         return context
 
     @classonlymethod

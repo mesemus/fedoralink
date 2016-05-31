@@ -23,6 +23,7 @@ class Command(BaseCommand):
         if 'fedora:' in obj.id:
             return
 
+        print(obj.id)
         obj.update()
 
         indexer.reindex(obj)

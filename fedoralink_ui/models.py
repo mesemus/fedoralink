@@ -2,7 +2,8 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 # Create your models here.
-from fedoralink.fedorans import CESNET_TYPE
+from fedoralink.common_namespaces.dc import DCObject
+from fedoralink.fedorans import CESNET_TYPE, CESNET
 from fedoralink.indexer.fields import IndexedTextField, IndexedField, IndexedLinkedField
 from fedoralink.indexer.models import IndexableFedoraObject
 
@@ -89,6 +90,10 @@ class ResourceCollectionType(ResourceType):
     class Meta:
         rdf_types = (CESNET_TYPE.ResourceCollectionType,)
 
+class DCTermsCollection (DCObject):
+
+    class Meta:
+        rdf_types = (CESNET.DCTermsCollection,)
 
 class Controller():
     nieco = 'nieco'
