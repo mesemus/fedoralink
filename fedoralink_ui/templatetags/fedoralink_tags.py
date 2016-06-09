@@ -156,6 +156,8 @@ def split_to_array(val, separator=','):
 
 @register.filter
 def get_fields(fedora_object, level=None):
+    if not hasattr(fedora_object, "_meta"):
+        return ()
     # noinspection PyProtectedMember
     meta_fields = fedora_object._meta.fields
     fields = ()

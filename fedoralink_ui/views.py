@@ -205,8 +205,8 @@ class GenericDetailView(DetailView):
         print("pk", pk)
         self.kwargs[self.pk_url_kwarg] = pk
         retrieved_object = super().get_object(queryset)
-        if not isinstance(retrieved_object, IndexableFedoraObject):
-            raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
+        # if not isinstance(retrieved_object, IndexableFedoraObject):
+        #     raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
         return retrieved_object
 
     def get(self, request, *args, **kwargs):
