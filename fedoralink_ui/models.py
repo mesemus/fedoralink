@@ -7,6 +7,9 @@ from fedoralink.fedorans import CESNET_TYPE, CESNET
 from fedoralink.indexer.fields import IndexedTextField, IndexedField, IndexedLinkedField
 from fedoralink.indexer.models import IndexableFedoraObject
 
+class AdministrationCollection(IndexableFedoraObject):
+    class Meta:
+        rdf_types = (CESNET_TYPE.AdministrationCollection,)
 
 class ResourceTypeCollection(IndexableFedoraObject):
     class Meta:
