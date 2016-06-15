@@ -18,12 +18,12 @@
 
     {% block add %}
         {% with add_path=appname|add:":add" %}
-            <a href="{% url add_path pk=object.id|id_from_path:fedora_prefix %}" class="btn btn-primary">{% trans "Add" %}</a>
+            <a href="{% url add_path id=object.id|id_from_path:fedora_prefix %}" class="btn btn-primary">{% trans "Add" %}</a>
         {% endwith %}
         {# add collection button #}
         {% if subcollection_model %}
             {% with add_subcollection_path=appname|add:":addSubcollection" %}
-                <a href="{% url add_subcollection_path pk=object.id|id_from_path:fedora_prefix %}" class="btn btn-primary">{% trans "Add subcollection" %}</a>
+                <a href="{% url add_subcollection_path id=object.id|id_from_path:fedora_prefix %}" class="btn btn-primary">{% trans "Add subcollection" %}</a>
             {% endwith %}
         {% endif %}
     {% endblock %}

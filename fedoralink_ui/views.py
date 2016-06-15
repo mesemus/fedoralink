@@ -41,7 +41,7 @@ def breadcrumbs(request, context={}, resolver_match=None, path=None, **initkwarg
         if object_id:
             breadcrumb_list.insert(0, (
                 reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
-                        kwargs={'pk': object_id}),
+                        kwargs={'id': object_id}),
                 str(rdf2lang(obj.title))
             ))
         else:
@@ -185,7 +185,11 @@ class GenericSearchView(View):
 
         return TemplateResponse(request, template, context)
 
-
+# def show_urls(urllist, depth=0):
+#     for entry in urllist:
+#         print("url entry: ", "  " * depth, entry.regex.pattern, entry.callback if hasattr(entry, 'callback') else '')
+#         if hasattr(entry, 'url_patterns'):
+#             show_urls(entry.url_patterns, depth + 1)
 
 
 # noinspection PyAttributeOutsideInit,PyProtectedMember
@@ -198,6 +202,9 @@ class GenericDetailView(DetailView):
         return FedoraObject.objects.all()
 
     def get_object(self, queryset=None):
+        print("path: ", self.request.path)
+        # import cis_repo.urls
+        # show_urls(cis_repo.urls.urlpatterns)
         pk = self.kwargs.get(self.pk_url_kwarg, "").replace("_", "/")
         if self.fedora_prefix and 'prefix_applied' not in self.kwargs:
             pk = self.fedora_prefix + '/' + pk
@@ -230,109 +237,8 @@ class GenericDetailView(DetailView):
     @classonlymethod
     def as_view(cls, **initkwargs):
         ret = super().as_view(**initkwargs)
-
-        # def breadcrumbs(request, context={}, resolver_match=None, path=None):
-        #     if path.endswith('/'):
-        #         path = path[:-1]
-        #
-        #     if path != request.path:
-        #         return
-        #
-        #     obj = context['object']
-        #     breadcrumb_list = []
-        #     while isinstance(obj, IndexableFedoraObject):
-        #         object_id = id_from_path(obj.pk, initkwargs.get('fedora_prefix', None))
-        #         if object_id:
-        #             breadcrumb_list.insert(0, (
-        #                 reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
-        #                         kwargs={'pk': object_id}),
-        #                 str(rdf2lang(obj.title))
-        #             ))
-        #         else:
-        #             # reached root of the portion of repository given by fedora_prefix
-        #             break
-        #
-        #         parent_id = obj.fedora_parent_uri
-        #         if parent_id:
-        #             obj = FedoraObject.objects.get(pk=parent_id)
-        #         else:
-        #             # reached root of the repository
-        #             break
-        #
-        #     return breadcrumb_list
-
         ret.urlbreadcrumbs_verbose_name = breadcrumbs
         return ret
-
-
-# class GenericCollectionDetailView(View):
-#     model = None
-#     template_name = 'fedoralink_ui/collection_detail.html'
-#     list_item_template = 'fedoralink_ui/search_result_row.html'
-#     orderings = ()
-#     default_ordering = ''
-#     facets = None
-#     title = None
-#     create_button_title = None
-#
-#     def get(self, request, parameters):
-#         # if isinstance(self.model, str):
-#         #     self.model = get_class(self.model)
-#         #
-#         # if self.facets and callable(self.facets):
-#         #     requested_facets = self.facets(request, parameters)
-#         # else:
-#         #     requested_facets = self.facets
-#         #
-#         # requested_facet_ids = [x[0] for x in requested_facets]
-#         #
-#         # data = self.model.objects.all()
-#         #
-#         # if requested_facets:
-#         #     data = data.request_facets(*requested_facet_ids)
-#         #
-#         # if 'searchstring' in request.GET and request.GET['searchstring'].strip():
-#         #     data = data.filter(solr_all_fields=request.GET['searchstring'].strip())
-#         #
-#         # for k in request.GET:
-#         #     if k.startswith('facet__'):
-#         #         values = request.GET.getlist(k)
-#         #         k = k[len('facet__'):]
-#         #         q = None
-#         #         for v in values:
-#         #             if not q:
-#         #                 q = Q(**{k: v})
-#         #             else:
-#         #                 q |= Q(**{k: v})
-#         #         if q:
-#         #             data = data.filter(q)
-#         #
-#         # sort = request.GET.get('sort', self.default_ordering or self.orderings[0][0])
-#         # if sort:
-#         #     data = data.order_by(*[x.strip() for x in sort.split(',')])
-#         # page = request.GET.get('page', )
-#         # paginator = Paginator(data, 10)
-#         #
-#         # try:
-#         #     page = paginator.page(page)
-#         # except PageNotAnInteger:
-#         #     # If page is not an integer, deliver first page.
-#         #     page = paginator.page(1)
-#         # except EmptyPage:
-#         #     # If page is out of range (e.g. 9999), deliver last page of results.
-#         #     page = paginator.page(paginator.num_pages)
-#
-#         return render(request, self.template_name, {
-#             # 'page': page,
-#             # 'data': data,
-#             'item_template': self.list_item_template,
-#             # 'facet_names': {k: v for k, v in requested_facets},
-#             'searchstring': request.GET.get('searchstring', ''),
-#             'orderings': self.orderings,
-#             # 'ordering': sort,
-#             'title': self.title,
-#             'create_button_title': self.create_button_title
-#         })
 
 
 class GenericCreateView(CreateView):
@@ -417,7 +323,7 @@ class GenericCreateView(CreateView):
                 if object_id:
                     breadcrumb_list.insert(0, (
                         reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
-                                kwargs={'pk': object_id}),
+                                kwargs={'id': object_id}),
                         str(rdf2lang(obj.title))
                     ))
                 else:

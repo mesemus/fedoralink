@@ -11,7 +11,7 @@ from fedoralink.models import FedoraObject
 # TODO: zbavit sa model = DCObject, pridat template pre detail collection (search)
 def repository_patterns(app_name, fedora_prefix='', custom_patterns=None):
     urlpatterns = [
-        url('^$',
+        burl('^$',
             fedoralink_ui.views.GenericDetailView.as_view(
                 fedora_prefix=fedora_prefix), name="index"),
         burl(r'^(?P<collection_id>[a-fA-F0-9_/-]*)extended_search(?P<parameters>.*)$',
@@ -26,14 +26,14 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None):
                  fedora_prefix=fedora_prefix),
              name='extended_search', verbose_name=_('DCterms')),
 
-        burl('^(?P<pk>.*)/addSubcollection$', fedoralink_ui.views.GenericSubcollectionCreateView.as_view(
+        burl('^(?P<id>.*)/addSubcollection$', fedoralink_ui.views.GenericSubcollectionCreateView.as_view(
             fedora_prefix=fedora_prefix,
             success_url="dcterms:detail",
             parent_collection=lambda x: FedoraObject.objects.get(pk=fedora_prefix),
             success_url_param_names=('id',)
         ), name='addSubcollection'),
 
-        burl('^(?P<pk>.*)/add$', fedoralink_ui.views.GenericCreateView.as_view(
+        burl('^(?P<id>.*)/add$', fedoralink_ui.views.GenericCreateView.as_view(
             fedora_prefix=fedora_prefix,
             success_url="dcterms:detail",
             parent_collection=lambda x: FedoraObject.objects.get(pk=fedora_prefix),
@@ -48,7 +48,7 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None):
              ),
              name="edit"),
 
-        url('^(?P<id>.*)$',
+        burl('^(?P<id>.*)$',
             fedoralink_ui.views.GenericDetailView.as_view(
                 fedora_prefix=fedora_prefix), name="detail"),
     ]
