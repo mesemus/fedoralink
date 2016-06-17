@@ -37,16 +37,17 @@ def breadcrumbs(request, context={}, resolver_match=None, path=None, **initkwarg
     obj = context['object']
     breadcrumb_list = []
     while isinstance(obj, IndexableFedoraObject):
-        object_id = id_from_path(obj.pk, initkwargs.get('fedora_prefix', None))
-        if object_id:
-            breadcrumb_list.insert(0, (
-                reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
-                        kwargs={'id': object_id}),
-                str(rdf2lang(obj.title))
-            ))
-        else:
-            # reached root of the portion of repository given by fedora_prefix
-            break
+        if obj.pk:
+            object_id = id_from_path(obj.pk, initkwargs.get('fedora_prefix', None))
+            if object_id:
+                breadcrumb_list.insert(0, (
+                    reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
+                            kwargs={'id': object_id}),
+                    str(rdf2lang(obj.title))
+                ))
+            else:
+                # reached root of the portion of repository given by fedora_prefix
+                break
 
         parent_id = obj.fedora_parent_uri
         if parent_id:
@@ -220,6 +221,7 @@ class GenericDetailView(DetailView):
         self.object = self.get_object()
         # noinspection PyTypeChecker
         template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
+        print("Got template", template)
         if template:
             context = self.get_context_data(object=self.object)
             return HttpResponse(
@@ -243,6 +245,7 @@ class GenericDetailView(DetailView):
 
 class GenericCreateView(CreateView):
     fields = '__all__'
+    pk_url_kwarg = 'id'
     # TODO: parent_collection nebude potrebny, moznost ziskat z url
     parent_collection = None
     success_url_param_names = ()
@@ -263,7 +266,7 @@ class GenericCreateView(CreateView):
                 parent = self.parent_collection(self)
             else:
                 parent = self.parent_collection
-        model = get_model(collection_id=self.kwargs.get('pk'), fedora_prefix=self.fedora_prefix)
+        model = get_model(collection_id=self.kwargs.get('id'), fedora_prefix=self.fedora_prefix)
         self.object = ret['instance'] = parent.create_child('', flavour=model)
 
         return ret
@@ -286,7 +289,7 @@ class GenericCreateView(CreateView):
         # Next, try looking up by primary key.
         pk = self.kwargs.get(self.pk_url_kwarg, None)
         if pk is not None:
-            queryset = queryset.filter(pk=self.fedora_prefix+"/"+pk)
+            queryset = queryset.filter(pk=(self.fedora_prefix+"/"+pk) if self.fedora_prefix else pk)
 
             try:
                 # Get the single item from the filtered queryset
@@ -300,7 +303,7 @@ class GenericCreateView(CreateView):
 
     def get_form_class(self):
         print(self.kwargs)
-        model = get_model(collection_id=self.kwargs.get('pk'), fedora_prefix=self.fedora_prefix)
+        model = get_model(collection_id=self.kwargs.get('id'), fedora_prefix=self.fedora_prefix)
         meta = type('Meta', (object, ), {'model': model, 'fields': '__all__'})
         return type(model.__name__ + 'Form', (FedoraForm,), {
             'Meta': meta
@@ -350,7 +353,7 @@ class GenericCreateView(CreateView):
         If any keyword arguments are provided, they will be
         passed to the constructor of the response class.
         """
-        model = get_model(self.kwargs.get('pk'), fedora_prefix=self.fedora_prefix)
+        model = get_model(self.kwargs.get('id'), fedora_prefix=self.fedora_prefix)
         template = FedoraTemplateCache.get_template_string(self.object if self.object else model,
                                                            view_type='create')
         if template:
@@ -366,6 +369,7 @@ class GenericCreateView(CreateView):
 
 class GenericSubcollectionCreateView(CreateView):
     fields = '__all__'
+    pk_url_kwarg = 'id'
     # TODO: parent_collection nebude potrebny, moznost ziskat z url
     parent_collection = None
     success_url_param_names = ()
@@ -386,7 +390,7 @@ class GenericSubcollectionCreateView(CreateView):
                 parent = self.parent_collection(self)
             else:
                 parent = self.parent_collection
-        model = get_subcollection_model(collection_id=self.kwargs.get('pk'), fedora_prefix=self.fedora_prefix)
+        model = get_subcollection_model(collection_id=self.kwargs.get('id'), fedora_prefix=self.fedora_prefix)
         self.object = ret['instance'] = parent.create_child('', flavour=model)
 
         return ret
@@ -423,7 +427,7 @@ class GenericSubcollectionCreateView(CreateView):
 
     def get_form_class(self):
         print(self.kwargs)
-        model = get_subcollection_model(collection_id=self.kwargs.get('pk'), fedora_prefix=self.fedora_prefix)
+        model = get_subcollection_model(collection_id=self.kwargs.get('id'), fedora_prefix=self.fedora_prefix)
         meta = type('Meta', (object, ), {'model': model, 'fields': '__all__'})
         return type(model.__name__ + 'Form', (FedoraForm,), {
             'Meta': meta
@@ -446,7 +450,7 @@ class GenericSubcollectionCreateView(CreateView):
                 if object_id:
                     breadcrumb_list.insert(0, (
                         reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
-                                kwargs={'pk': object_id}),
+                                kwargs={'id': object_id}),
                         str(rdf2lang(obj.title))
                     ))
                 else:
@@ -473,7 +477,7 @@ class GenericSubcollectionCreateView(CreateView):
         If any keyword arguments are provided, they will be
         passed to the constructor of the response class.
         """
-        model = get_subcollection_model(self.kwargs.get('pk'), fedora_prefix=self.fedora_prefix)
+        model = get_subcollection_model(self.kwargs.get('id'), fedora_prefix=self.fedora_prefix)
         template = FedoraTemplateCache.get_template_string(self.object if self.object else model,
                                                            view_type='create')
         if template:
@@ -512,7 +516,10 @@ class GenericEditView(UpdateView):
 
     def get_form_class(self):
         # fedora_prefix already added to pk
-        model = get_model(self.kwargs.get(self.pk_url_kwarg))
+        if self.object:
+            model = type(self.object)
+        else:
+            model = get_model(self.kwargs.get(self.pk_url_kwarg))
 
         meta = type('Meta', (object,), {'model': model, 'fields': '__all__'})
         return type(model.__name__ + 'Form', (FedoraForm,), {

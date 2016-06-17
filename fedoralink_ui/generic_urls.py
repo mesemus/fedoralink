@@ -1,11 +1,10 @@
-from django.conf.urls import url, include, patterns
-
-import fedoralink_ui.views
-from urlbreadcrumbs import url as burl
+from django.conf.urls import include, patterns
+from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.translation import ugettext_lazy as _
 
-from fedoralink.common_namespaces.dc import DCObject
+import fedoralink_ui.views
 from fedoralink.models import FedoraObject
+from urlbreadcrumbs import url as burl
 
 
 # TODO: zbavit sa model = DCObject, pridat template pre detail collection (search)
@@ -24,28 +23,28 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None):
                  title='Documents',
                  create_button_title='Create a New Document',
                  fedora_prefix=fedora_prefix),
-             name='extended_search', verbose_name=_('DCterms')),
+             name='extended_search', verbose_name=_('Search')),
 
-        burl('^(?P<id>.*)/addSubcollection$', fedoralink_ui.views.GenericSubcollectionCreateView.as_view(
+        burl('^(?P<id>.*)/addSubcollection$', staff_member_required(fedoralink_ui.views.GenericSubcollectionCreateView.as_view(
             fedora_prefix=fedora_prefix,
-            success_url="dcterms:detail",
+            success_url="repo:detail",
             parent_collection=lambda x: FedoraObject.objects.get(pk=fedora_prefix),
             success_url_param_names=('id',)
-        ), name='addSubcollection'),
+        )), name='addSubcollection'),
 
-        burl('^(?P<id>.*)/add$', fedoralink_ui.views.GenericCreateView.as_view(
+        burl('^(?P<id>.*)/add$', staff_member_required(fedoralink_ui.views.GenericCreateView.as_view(
             fedora_prefix=fedora_prefix,
-            success_url="dcterms:detail",
+            success_url="repo:detail",
             parent_collection=lambda x: FedoraObject.objects.get(pk=fedora_prefix),
             success_url_param_names=('id',)
-        )
+        ))
              , name='add'),
 
         burl('^(?P<id>.*)/edit$',
-             fedoralink_ui.views.GenericEditView.as_view(
-                 success_url="dcterms:detail",
+             staff_member_required(fedoralink_ui.views.GenericEditView.as_view(
+                 success_url="repo:detail",
                  fedora_prefix=fedora_prefix
-             ),
+             )),
              name="edit"),
 
         burl('^(?P<id>.*)$',
