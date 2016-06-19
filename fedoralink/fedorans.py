@@ -41,6 +41,7 @@ RDFS            =   Namespace(NAMESPACES['rdfs'])
 LDP             =   Namespace(NAMESPACES['ldp'])
 
 EBUCORE         =   Namespace(NAMESPACES['ebucore'])
+PREMIS          =   Namespace(NAMESPACES['premis'])
 
 CIS             =   Namespace(NAMESPACES['cis'])
 CESNET          =   Namespace(NAMESPACES['cesnet'])

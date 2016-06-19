@@ -6,7 +6,9 @@ import rdflib
 from io import BytesIO
 from rdflib import Literal
 from rdflib.namespace import DC, RDF, XSD
+from rdflib.term import URIRef
 
+from fedoralink.fedorans import ACL
 from .fedorans import FEDORA, EBUCORE
 from .manager import FedoraManager
 from .rdfmetadata import RDFMetadata
@@ -242,6 +244,11 @@ class FedoraObject(metaclass=FedoraObjectMetaclass):
         """
         self.metadata = getattr(type(self), 'objects').update(self, fetch_child_metadata).metadata
         self.__is_incomplete = False
+
+    def set_acl(self, acl_collection):
+        if isinstance(acl_collection, str):
+            acl_collection = FedoraObject.objects.get(pk=acl_collection)
+        self[ACL.accessControl] = URIRef(acl_collection.id)
 
     @property
     def id(self):

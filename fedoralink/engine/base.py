@@ -33,7 +33,9 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         pass
 
     def get_new_connection(self, conn_params):
-        return FedoraConnection(self.settings_dict['REPO_URL'])
+        return FedoraConnection(self.settings_dict['REPO_URL'],
+                                self.settings_dict.get('USERNAME', None),
+                                self.settings_dict.get('PASSWORD', None))
 
     def _set_autocommit(self, autocommit):
         pass

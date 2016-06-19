@@ -110,6 +110,19 @@ class IndexedTextField(IndexedField, django.db.models.Field):
         return str(value)
 
 
+class IndexedURIRefField(IndexedTextField):
+
+    def convert_to_rdf(self, value):
+        if value is None or not value.strip():
+            return []
+        if isinstance(value, URIRef):
+            return value
+        return URIRef(value)
+
+    def convert_from_rdf(self, value):
+        return str(value)
+
+
 class IndexedIntegerField(IndexedField, django.db.models.IntegerField):
 
     def __init__(self, rdf_name, required=False, verbose_name=None, multi_valued=False,

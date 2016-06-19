@@ -8,6 +8,8 @@ import time
 import rdflib
 import sys
 
+from requests.auth import HTTPBasicAuth
+
 from fedoralink.query import DoesNotExist
 from fedoralink.utils import TypedStream
 
@@ -29,7 +31,7 @@ class FedoraConnection:
     A connection to fedora server
     """
 
-    def __init__(self, fedora_url):
+    def __init__(self, fedora_url, username=None, password=None):
         """
         creates a new connection
 
@@ -41,6 +43,8 @@ class FedoraConnection:
 
         self._in_transaction  = False
         self._transaction_url = ''
+        self._username = username
+        self._password = password
 
     def create_objects(self, data):
         """
@@ -86,7 +90,7 @@ class FedoraConnection:
                 headers['Content-Disposition'] = 'attachment; ' + filename_header
             if slug:
                 headers['SLUG'] = slug
-            resp = requests.post(parent_url, data, headers=headers)
+            resp = requests.post(parent_url, data, headers=headers, auth=self._get_auth())
             created_object_id = resp.text
 
             # do not make a version as this will be done after metadata are uploaded ...
@@ -109,7 +113,7 @@ class FedoraConnection:
             if bitstream.filename:
                 filename_header = 'filename="%s"' % quote(os.path.basename(bitstream.filename).encode('utf-8'))
                 headers['Content-Disposition'] = 'attachment; ' + filename_header
-            requests.put(url, data, headers=headers)
+            requests.put(url, data, headers=headers, auth=self._get_auth())
 
         except HTTPError as e:
             log.error("%s : %s", e.msg, e.fp.read())
@@ -123,7 +127,10 @@ class FedoraConnection:
             headers = {'Content-Type' : 'text/turtle; encoding=utf-8'}
             if slug:
                 headers['SLUG'] = slug
-            resp = requests.post(parent_url, payload.encode('utf-8'), headers=headers)
+            resp = requests.post(parent_url, payload.encode('utf-8'), headers=headers, auth=self._get_auth())
+            if resp.status_code>=400:
+                print(payload)
+                raise requests.HTTPError("Resource not created, error code %s : %s" % (resp.status_code, resp.content))
             created_object_id = resp.text
 
             # make a version
@@ -158,7 +165,6 @@ class FedoraConnection:
 
     def _update_single_resource(self, url, metadata, bitstream = None):
         payload = metadata.serialize_sparql()
-        print(payload.decode('utf-8'))
         log.info("Updating object %s", url)
         log.debug("      payload %s", payload.decode('utf-8'))
         try:
@@ -166,7 +172,8 @@ class FedoraConnection:
                 self._update_object_bitstream(url, bitstream)
 
             resp = requests.patch(url + "/fcr:metadata", data=payload,
-                                  headers={'Content-Type': 'application/sparql-update; encoding=utf-8'})
+                                  headers={'Content-Type': 'application/sparql-update; encoding=utf-8'},
+                                  auth=self._get_auth())
             log.debug('Response: ', resp.content)
             if resp.status_code // 100 != 2:
                 raise Exception('Error updating resource in Fedora: %s' % resp.content)
@@ -201,20 +208,18 @@ class FedoraConnection:
                 headers['Prefer'] ='return=representation; ' + \
                                    'include="http://fedora.info/definitions/v4/repository#EmbedResources"'
 
-            with closing(requests.get(req_url + "/fcr:metadata", headers=headers)) as r: #, stream=True
+            with closing(requests.get(req_url + "/fcr:metadata",
+                                      headers=headers, auth=self._get_auth())) as r: #, stream=True
 
                 g = rdflib.Graph()
                 log.debug("making request to %s", req_url)
                 log.debug(r.headers)
-                print("headers")
-                print(r.headers)
                 log.debug(r.raw)
                 # for chunk in r.iter_content(chunk_size=1024):
                 #     if chunk:
                 #         print("chunk")
                 #         print(chunk)
                 #         r.content += chunk
-                print(r.content)
                 data = r.content.decode('utf-8')
                 if r.status_code//100 != 2:
                     raise RepositoryException(url=req_url, code=r.status_code,
@@ -231,7 +236,7 @@ class FedoraConnection:
             raise DoesNotExist(e)
 
     def raw_get(self, url):
-        with closing(requests.get(url)) as r:
+        with closing(requests.get(url, auth=self._get_auth())) as r:
             if r.status_code // 100 != 2:
                 raise HTTPError(url, r.status_code, r.content, hdrs=r.headers, fp=None)
 
@@ -240,7 +245,7 @@ class FedoraConnection:
     def get_bitstream(self, object_id):
         req_url = self._get_request_url(object_id)
         log.info("Bitstream request url %s", req_url)
-        return requests.get(req_url, stream=True).raw
+        return requests.get(req_url, stream=True, auth=self._get_auth()).raw
 
     def _remove_transactions_from_paths(self, data):
         # remove transaction from data ... let's do it the simple way even though it is not kosher
@@ -268,7 +273,7 @@ class FedoraConnection:
         """
         req_url = self._get_request_url(object_id)
         log.info('Deleting resource with url %s', req_url)
-        req = requests.delete(req_url)
+        req = requests.delete(req_url, auth=self._get_auth())
 
     def make_version(self, object_id, version):
         """
@@ -279,13 +284,13 @@ class FedoraConnection:
         :param version:          the id of the version, [a-zA-Z_][a-zA-Z0-9_]*
         """
         requests.post(self._get_request_url(object_id) + '/fcr:versions',
-                      headers={'Slug': 'snapshot_at_%s' % version})
+                      headers={'Slug': 'snapshot_at_%s' % version}, auth=self._get_auth())
 
     def begin_transaction(self):
         tx_prefix = "fcr:tx"
         url = self.dumb_concatenate_url(self._fedora_url, tx_prefix)
         log.info('Requesting transaction, url %s', url)
-        req = requests.post(url)
+        req = requests.post(url, auth=self._get_auth())
         self._transaction_url = req.headers['Location']
         self._in_transaction = True
 
@@ -306,7 +311,7 @@ class FedoraConnection:
                 url = self.dumb_concatenate_url(self._transaction_url,
                                                 'fcr:tx/' + ('fcr:commit' if do_commit else 'fcr:rollback'))
                 log.info('Finishing transaction, url %s', url)
-                req = requests.post(url)
+                req = requests.post(url, auth=self._get_auth())
         finally:
             self._in_transaction = False
             self._transaction_url = ''
@@ -338,7 +343,8 @@ class FedoraConnection:
         if isinstance(data, str):
             data = data.encode('utf-8')
         try:
-            req = requests.put(self._get_request_url(url), data=data, headers={'Content-Type': content_type})
+            req = requests.put(self._get_request_url(url), data=data, headers={'Content-Type': content_type},
+                               auth=self._get_auth())
             log.debug(req.text)
         except HTTPError as e:
             log.error("Error when calling directput at {0}: {1}".format(url, e.fp.read()))
@@ -347,3 +353,9 @@ class FedoraConnection:
         if not hasattr(other, '_fedora_url'):
             return False
         return self._fedora_url == other._fedora_url
+
+    def _get_auth(self):
+        if self._username:
+            return HTTPBasicAuth(self._username, self._password)
+        else:
+            return None

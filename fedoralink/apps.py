@@ -12,7 +12,7 @@ def do_index(sender, **kwargs):
     instance = kwargs['instance']
     db = kwargs['using']
 
-    print("do_index called", db, instance, settings.DATABASES[db].get('USE_INTERNAL_INDEXER', False))
+    # print("do_index called", db, instance, settings.DATABASES[db].get('USE_INTERNAL_INDEXER', False))
 
     if settings.DATABASES[db].get('USE_INTERNAL_INDEXER', False) and isinstance(instance, IndexableFedoraObject):
         indexer = connections[db].indexer
@@ -58,6 +58,13 @@ class ApplicationConfig(AppConfig):
 
     def ready(self):
         super().ready()
+
+        # make sure common namespaces are loaded
+        # noinspection PyUnresolvedReferences
+        import fedoralink.common_namespaces.dc
+
+        # noinspection PyUnresolvedReferences
+        import fedoralink.common_namespaces.web_acl.models
 
         from django.db.models.signals import post_save
 
