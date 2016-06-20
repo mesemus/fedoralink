@@ -187,6 +187,14 @@ class FedoraObject(metaclass=FedoraObjectMetaclass):
     def list_children(self, refetch=True):
         return OrderableModelList(get_from_classes(type(self), 'objects')[0].load_children(self, refetch), self)
 
+    def list_self_and_descendants(self):
+        stack = [self]
+        while len(stack):
+            el = stack.pop()
+            yield el
+            for c in reversed(el.children):
+                stack.append(c)
+
     def create_child(self, child_name, additional_types=None, flavour=None, slug=None):
         child = self._create_child(flavour or FedoraObject, slug)
 
