@@ -51,7 +51,11 @@ def breadcrumbs(request, context={}, resolver_match=None, path=None, **initkwarg
 
         parent_id = obj.fedora_parent_uri
         if parent_id:
-            obj = FedoraObject.objects.get(pk=parent_id)
+            try:
+                obj = FedoraObject.objects.get(pk=parent_id)
+            except:
+                # do not have rights
+                break
         else:
             # reached root of the repository
             break

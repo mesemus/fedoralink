@@ -1,30 +1,29 @@
+import logging
+import sys
+import time
 from contextlib import closing
+from urllib.error import HTTPError
+from urllib.parse import urljoin, quote
+
 import io
 import os.path
-from urllib.parse import urljoin, urlparse, quote
-from urllib.error import HTTPError
-import time
-
 import rdflib
-import sys
-
+# import requests
+from .engine import delegated_requests as requests
 from requests.auth import HTTPBasicAuth
 
 from fedoralink.query import DoesNotExist
-from fedoralink.utils import TypedStream
-
-from .rdfmetadata import RDFMetadata
 from .fedorans import FEDORA
-
-import logging
-import requests
+from .rdfmetadata import RDFMetadata
 
 log = logging.getLogger('fedoralink.connection')
 
 # TODO: transactions
 
+
 class RepositoryException(HTTPError):
     pass
+
 
 class FedoraConnection:
     """
@@ -39,7 +38,7 @@ class FedoraConnection:
         """
         self._fedora_url      = fedora_url
         if not self._fedora_url.endswith('/'):
-            self._fedora_url +='/'
+            self._fedora_url += '/'
 
         self._in_transaction  = False
         self._transaction_url = ''
@@ -128,7 +127,7 @@ class FedoraConnection:
             if slug:
                 headers['SLUG'] = slug
             resp = requests.post(parent_url, payload.encode('utf-8'), headers=headers, auth=self._get_auth())
-            if resp.status_code>=400:
+            if resp.status_code >= 400:
                 print(payload)
                 raise requests.HTTPError("Resource not created, error code %s : %s" % (resp.status_code, resp.content))
             created_object_id = resp.text
@@ -160,10 +159,9 @@ class FedoraConnection:
             url = self._get_request_url(metadata.id)
             metadata_from_server.append(self._update_single_resource(url, metadata, item['bitstream']))
 
-
         return metadata_from_server
 
-    def _update_single_resource(self, url, metadata, bitstream = None):
+    def _update_single_resource(self, url, metadata, bitstream=None):
         payload = metadata.serialize_sparql()
         log.info("Updating object %s", url)
         log.debug("      payload %s", payload.decode('utf-8'))
@@ -190,12 +188,13 @@ class FedoraConnection:
             log.error("%s : %s", e.msg, e.fp.read())
             raise
 
-
     def get_object(self, object_id, fetch_child_metadata=True):
         """
         Fetches the resource with the given object_id parameter
 
         :param object_id: id of the object. Might be full url or a fragment which will be appended after repository_url
+        :param fetch_child_metadata: if True, fetch also basic metadata about children. If False, do not fetch them,
+                                     the only way to access children is via their url from .metadata[LDP.contains]
         :return:    the RDFMetadata of the fetched object
         """
         try:
@@ -205,11 +204,11 @@ class FedoraConnection:
                 'Accept' : 'application/rdf+xml; encoding=utf-8',
             }
             if fetch_child_metadata:
-                headers['Prefer'] ='return=representation; ' + \
-                                   'include="http://fedora.info/definitions/v4/repository#EmbedResources"'
+                headers['Prefer'] = 'return=representation; ' + \
+                                    'include="http://fedora.info/definitions/v4/repository#EmbedResources"'
 
             with closing(requests.get(req_url + "/fcr:metadata",
-                                      headers=headers, auth=self._get_auth())) as r: #, stream=True
+                                      headers=headers, auth=self._get_auth())) as r:
 
                 g = rdflib.Graph()
                 log.debug("making request to %s", req_url)
@@ -221,7 +220,7 @@ class FedoraConnection:
                 #         print(chunk)
                 #         r.content += chunk
                 data = r.content.decode('utf-8')
-                if r.status_code//100 != 2:
+                if r.status_code // 100 != 2:
                     raise RepositoryException(url=req_url, code=r.status_code,
                                               msg='Error accessing repository: %s' % data,
                                               hdrs=r.headers, fp=None)
@@ -273,7 +272,7 @@ class FedoraConnection:
         """
         req_url = self._get_request_url(object_id)
         log.info('Deleting resource with url %s', req_url)
-        req = requests.delete(req_url, auth=self._get_auth())
+        requests.delete(req_url, auth=self._get_auth())
 
     def make_version(self, object_id, version):
         """
@@ -311,7 +310,7 @@ class FedoraConnection:
                 url = self.dumb_concatenate_url(self._transaction_url,
                                                 'fcr:tx/' + ('fcr:commit' if do_commit else 'fcr:rollback'))
                 log.info('Finishing transaction, url %s', url)
-                req = requests.post(url, auth=self._get_auth())
+                requests.post(url, auth=self._get_auth())
         finally:
             self._in_transaction = False
             self._transaction_url = ''
@@ -323,16 +322,16 @@ class FedoraConnection:
             req_url = urljoin(self._fedora_url, object_id)
         if self._in_transaction:
             if not req_url.startswith(self._fedora_url):
-                raise Exception('Could not relativize request url so that it can play part in transaction. ' +
+                raise Exception('Could not make request url relative so that it can play part in transaction. ' +
                                 'Object url %s, fedora url %s' % (req_url, self._fedora_url))
             req_url = req_url[len(self._fedora_url):]
             if req_url.startswith('/'):
                 req_url = req_url[1:]
             if req_url.startswith('tx:'):
-                slashpos = req_url.find('/')
-                txid = req_url[:slashpos]
-                req_url = req_url[slashpos+1:]
+                slash_position = req_url.find('/')
                 # TODO: check txid
+                # txid = req_url[:slash_position]
+                req_url = req_url[slash_position + 1:]
             req_url = self.dumb_concatenate_url(self._transaction_url, req_url)
         return req_url
 
@@ -347,11 +346,12 @@ class FedoraConnection:
                                auth=self._get_auth())
             log.debug(req.text)
         except HTTPError as e:
-            log.error("Error when calling directput at {0}: {1}".format(url, e.fp.read()))
+            log.error("Error when calling direct_put at {0}: {1}".format(url, e.fp.read()))
 
     def __eq__(self, other):
         if not hasattr(other, '_fedora_url'):
             return False
+        # noinspection PyProtectedMember
         return self._fedora_url == other._fedora_url
 
     def _get_auth(self):
