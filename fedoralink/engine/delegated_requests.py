@@ -11,7 +11,6 @@ def wrapper(func):
             kwargs['headers'] = {}
         if FedoraUserDelegationMiddleware.is_enabled():
             kwargs['headers']['On-Behalf-Of'] = ','.join(FedoraUserDelegationMiddleware.get_on_behalf_of())
-        print("!!wrapped", args, kwargs)
         return func(*args, **kwargs)
     return wrapped
 

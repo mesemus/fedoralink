@@ -72,7 +72,6 @@ class IndexedLanguageField(IndexedField, django.db.models.Field):
         return Literal(x if isinstance(x, str) else str(x), datatype=XSD.string)
 
     def convert_to_rdf(self, value):
-        print("converting to rdf", value)
         return IndexedLanguageField._convert_val_to_rdf(value)
 
     def convert_from_rdf(self, value):
@@ -159,7 +158,6 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
         django.db.models.DateTimeField.__init__(self, verbose_name=verbose_name, help_text=help_text)
 
     def convert_to_rdf(self, value):
-        print("Converting to rdf", value)
         if value is None:
             return []
         if isinstance(value, datetime.datetime):
@@ -170,7 +168,6 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
 
     def convert_from_rdf(self, data):
         value = data.toPython()
-        print("Converting from RDF", value)
         if value:
             if isinstance(value, datetime.datetime):
                 return value
