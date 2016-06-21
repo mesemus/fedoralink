@@ -40,10 +40,14 @@ def breadcrumbs(request, context={}, resolver_match=None, path=None, **initkwarg
         if obj.pk:
             object_id = id_from_path(obj.pk, initkwargs.get('fedora_prefix', None))
             if object_id:
+                if hasattr(obj,"title"):
+                    breadcrumb_title = rdf2lang(obj.title)
+                else:
+                    breadcrumb_title = object_id
                 breadcrumb_list.insert(0, (
                     reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
                             kwargs={'id': object_id}),
-                    str(rdf2lang(obj.title))
+                        str(breadcrumb_title)
                 ))
             else:
                 # reached root of the portion of repository given by fedora_prefix
