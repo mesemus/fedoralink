@@ -20,6 +20,8 @@ from fedoralink.indexer.fields import IndexedLanguageField
 from fedoralink.models import FedoraObject
 from fedoralink.utils import StringLikeList
 
+from fedoralink.authentication.as_user import as_user
+from fedoralink.authentication.Credentials import Credentials
 
 class DCObjectTestCase(TestCase):
     def setUp(self):
@@ -134,6 +136,19 @@ class DCObjectTestCase(TestCase):
         dcb = DCObject.objects.get(pk=dco.pk)
         print(type(dcb.dateSubmitted))
         self.assertTrue(isinstance(dcb.dateSubmitted, datetime.datetime), "Expected an instance of datetime after GET")
+
+    def test_as_user(self):
+        credentials = Credentials('user1','user1pw')
+        with as_user(credentials):
+            root = FedoraObject.objects.get(pk='')
+            dco = root.create_child('hello%s' % random.randint(0, 100000), flavour=DCObject)
+            dco.save()
+
+            dco.title = 'Hello world'
+            dco.save()
+
+            dcb = DCObject.objects.get(pk=dco.pk)
+            self.assertEquals(dcb.creator, 'user1')
 
 
 

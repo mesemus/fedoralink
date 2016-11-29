@@ -88,8 +88,7 @@ class Command(BaseCommand):
                     props["include_in_root"] = 'true'
                     props['properties'] = self.gen_languages_mapping(fldname + ".")
                 elif isinstance(field, IndexedTextField):
-                    props['type']  = 'string'
-                    props['index'] = 'not_analyzed'
+                    props['type']  = 'keyword'
                     props['copy_to'] = fldname + "__fulltext"
                     new_properties[fldname + "__fulltext"] = {
                         'type': 'string',
@@ -104,11 +103,9 @@ class Command(BaseCommand):
                     props['type'] = 'long'
                     props['index'] = 'not_analyzed'
                 elif isinstance(field, IndexedGPSField):
-                    props['type'] = 'string'
-                    props['index'] = 'not_analyzed'
+                    props['type'] = 'keyword'
                 elif isinstance(field, IndexedLinkedField) or isinstance(field, IndexedBinaryField) :
-                    props['type'] = 'string'
-                    props['index'] = 'not_analyzed'
+                    props['type'] = 'keyword'
                 else:
                     raise Exception("Mapping type %s not handled yet" % type(field))
 
@@ -126,8 +123,7 @@ class Command(BaseCommand):
     def gen_languages_mapping(prefix):
         ret = {
             lang[0] : {
-                'type': 'string',
-                'index': 'not_analyzed',
+                'type': 'keyword',
                 'copy_to': [prefix + 'all', prefix + 'all__fulltext', prefix + lang[0] + "__fulltext"]
             } for lang in settings.LANGUAGES
         }
@@ -138,23 +134,21 @@ class Command(BaseCommand):
 
         ret.update({
             lang[0] + "__fulltext" : {
-                'type': 'string',
+                'type': 'text',
                 'analyzer': 'czech' if lang[0] == 'cs' else 'english',
                 'store': True
             } for lang in settings.LANGUAGES
         })
 
         ret['null'] = {
-            'type' : 'string',
-            'index': 'not_analyzed',
+            'type' : 'keyword',
             'copy_to': [prefix + 'all', prefix + 'all__fulltext', prefix + 'null__fulltext']
         }
         ret['all']  = {
-            'type' : 'string',
-            'index': 'not_analyzed'
+            'type' : 'keyword'
         }
 
-        ret['null__fulltext'] = {'type' : 'string', 'store': True}
-        ret['all__fulltext']  = {'type' : 'string', 'store': True}
+        ret['null__fulltext'] = {'type' : 'text', 'store': True}
+        ret['all__fulltext']  = {'type' : 'text', 'store': True}
 
         return ret

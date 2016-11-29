@@ -15,6 +15,7 @@ from requests.auth import HTTPBasicAuth
 from fedoralink.query import DoesNotExist
 from .fedorans import FEDORA
 from .rdfmetadata import RDFMetadata
+from .authentication.as_user import fedora_auth_local
 
 log = logging.getLogger('fedoralink.connection')
 
@@ -355,6 +356,11 @@ class FedoraConnection:
         return self._fedora_url == other._fedora_url
 
     def _get_auth(self):
+        print(fedora_auth_local.__dict__)
+        if (hasattr(fedora_auth_local, 'Credentials')):
+            credentials = getattr(fedora_auth_local, 'Credentials')
+            if credentials is not None:
+                return HTTPBasicAuth(credentials.username, credentials.password)
         if self._username:
             return HTTPBasicAuth(self._username, self._password)
         else:
