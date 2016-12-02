@@ -26,10 +26,12 @@ class _ITF(IndexedTextField):
         super().__init__(rdf_name)
         self.name = name
 
+
 class _IDF(IndexedDateTimeField):
     def __init__(self, rdf_name, name):
         super().__init__(rdf_name)
         self.name = name
+
 
 FEDORALINK_TYPE_FIELD = _ITF(FEDORA.fedoralink, name='_fedoralink_model')
 FEDORA_TYPE_FIELD = _ITF(RDF.type, name='type')
@@ -84,10 +86,11 @@ class ElasticIndexer(Indexer):
 
         indexer_data['_fedora_id'] = obj.pk
         indexer_data['_fedora_parent'] = convert(obj[FEDORA.hasParent], FEDORA_PARENT_FIELD)
-        indexer_data['_fedoralink_model'] = [ self._get_elastic_class(x) for x in inspect.getmro(clz) ]
-        indexer_data['_fedora_type'] = [ convert(x, FEDORA_TYPE_FIELD) for x in obj[RDF.type] ]
-        indexer_data['_fedora_created'] = [ convert(x, FEDORA_CREATED_FIELD) for x in obj[FEDORA.created] ]
-        indexer_data['_fedora_last_modified'] = [ convert(x, FEDORA_LAST_MODIFIED_FIELD) for x in obj[FEDORA.lastModified] ]
+        indexer_data['_fedoralink_model'] = [self._get_elastic_class(x) for x in inspect.getmro(clz)]
+        indexer_data['_fedora_type'] = [convert(x, FEDORA_TYPE_FIELD) for x in obj[RDF.type]]
+        indexer_data['_fedora_created'] = [convert(x, FEDORA_CREATED_FIELD) for x in obj[FEDORA.created]]
+        indexer_data['_fedora_last_modified'] = [convert(x, FEDORA_LAST_MODIFIED_FIELD) for x in
+                                                 obj[FEDORA.lastModified]]
 
         # noinspection PyBroadException
         try:
@@ -154,20 +157,10 @@ class ElasticIndexer(Indexer):
                 return False
             return True
 
-        for c in q.children:
-            if not self._is_filter(c):
-                return False
-
-        return True
-
-    def _build_filter(self, q, fld2id, container):
-        return self._build_query(q, fld2id, container, False)
-
-    def _build_fulltext(self, q, fld2id, container):
-        return self._build_query(q, fld2id, container, True)
+        return False
 
     # noinspection PyTypeChecker
-    def _build_query(self, q, fld2id, container, inside_fulltext):
+    def _build_query(self, q, fld2id, container):
 
         if container is None:
             container = {}
@@ -175,7 +168,7 @@ class ElasticIndexer(Indexer):
         ret = container
 
         if not is_q(q):
-            self._build_primitive(q, fld2id, container, inside_fulltext_query=inside_fulltext)
+            self._build_primitive(q, fld2id, container)
             return container
 
         if q.connector == 'AND':
@@ -193,6 +186,7 @@ class ElasticIndexer(Indexer):
         for prefix, children in by_prefix.items():
 
             if prefix:
+                raise NotImplementedError("Nested not supported yet")
                 nested = {}
                 container.append(nested)
                 nested = nested.setdefault("nested", {})
@@ -214,31 +208,44 @@ class ElasticIndexer(Indexer):
                 r = {}
                 cont.append(r)
 
-                self._build_query(c, fld2id, r, inside_fulltext)
+                self._build_query(c, fld2id, r)
 
         return ret
 
-    def _build_primitive(self, q, fld2id, ret, inside_fulltext_query=True):
+    def _build_primitive(self, q, fld2id, ret):
+        # Nad ret musi byt must nebo should.
         if len(q) == 3:
             if q[2]:
                 ret = ret.setdefault('bool', {})
                 ret = ret.setdefault('must_not', {})
         prefix, name, comparison_operation, transformed_name = self._split_name(q[0], fld2id)
         if q[1] is None:
-            ret['missing'] = {
-                "field" : transformed_name
+            ret['bool'] = {
+                "filter": {
+                    "bool": {
+                        "must_not": {
+                            "exists": {
+                                "field": transformed_name
+                            }
+                        }
+                    }
+                }
             }
         elif not comparison_operation or comparison_operation == 'exact':
-            ret['term'] = {
-                transformed_name: q[1]
+            ret['bool'] = {
+                "filter": {
+                    "term": {
+                        transformed_name: q[1]
+                    }
+                }
             }
-        elif comparison_operation == 'fulltext' and inside_fulltext_query:
+        elif comparison_operation == 'fulltext':
             ret['match'] = {
                 transformed_name + "__fulltext": q[1]
             }
         else:
-            raise NotImplementedError("operation %s not yet implemented, inside fulltext match %s" %
-                                      (comparison_operation, inside_fulltext_query))
+            raise NotImplementedError("operation %s not yet implemented" %
+                                      (comparison_operation,))
 
     def _get_common_prefix(self, q):
         if not is_q(q):
@@ -328,63 +335,35 @@ class ElasticIndexer(Indexer):
         all_fields = set()
         self._get_all_fields(query, all_fields, fld2id)
 
-        filters = []
-        fulltext_matches = []
-
         if query:
-            if query.connector != 'AND':
-                raise NotImplementedError("Only top-level AND connector is implemented now")
-
-            for c in query.children:
-                if self._is_filter(c):
-                    filters.append(c)
-                else:
-                    fulltext_matches.append(c)
-
-            filters.append(Q(_fedoralink_model=self._get_elastic_class(model_class)))
-
-            f = Q()
-            f.connector = Q.AND
-            f.children = filters
-            filters = f
-
-            filters = self._build_filter(filters, fld2id, None)
-
-            f = Q()
-            f.connector = Q.AND
-            f.children = fulltext_matches
-            fulltext_matches = f
-
-            fulltext_matches = self._build_fulltext(fulltext_matches, fld2id, None)
+            query_tree = self._build_query(query, fld2id, None)
         else:
-            filters = Q(_fedoralink_model=self._get_elastic_class(model_class))
-            filters = self._build_filter(filters, fld2id, None)
-            fulltext_matches = {}
+            query_tree = {"bool": {
+                "must": {
+                    "match_all": {}
+                }
+            }
+            }
+        query_tree = { "bool" : {
+            "must" : [
+                query_tree,
+                self._build_query(Q(_fedoralink_model=self._get_elastic_class(model_class)), fld2id, None)
+            ]
+        }}
 
         ordering_clause = self._generate_ordering_clause(fld2id, ordering)
 
         facets_clause = self._generate_facet_clause(facets, fld2id)
 
-        built_query = {}
-        if filters:
-            built_query['filter'] = {'bool': filters.get('bool', [])}
-
-        if fulltext_matches:
-            built_query['query'] = {
-                'bool': fulltext_matches.get('bool', [])
-            }
-
         built_query = {
             "sort": ordering_clause,
-            "query": {
-                "filtered": built_query
-            },
+            "query": query_tree,
             "aggs": facets_clause,
             "highlight": {
                 "fields": {
                     k: {} for k in all_fields
                     # '*' : {}
-                },
+                    },
                 "require_field_match": False
             },
             "from": start if start else 0,
@@ -422,6 +401,7 @@ class ElasticIndexer(Indexer):
             'facets': facets
         }
 
+
     @staticmethod
     def _generate_facet_clause(facets, fld2id):
         facets_clause = {}
@@ -454,6 +434,7 @@ class ElasticIndexer(Indexer):
                     }
         return facets_clause
 
+
     @staticmethod
     def _generate_ordering_clause(fld2id, ordering):
         ordering_clause = []
@@ -463,7 +444,7 @@ class ElasticIndexer(Indexer):
                 if o[0] == '-':
                     sort_direction = 'desc'
                     o = o[1:]
-                o = o.replace('@', '.')        # replace blah@cs with blah.cs
+                o = o.replace('@', '.')  # replace blah@cs with blah.cs
                 if o in ('_fedora_created', '_fedora_last_modified'):
                     ordering_clause.append({
                         o: {
@@ -478,6 +459,7 @@ class ElasticIndexer(Indexer):
                     })
         return ordering_clause
 
+
     @staticmethod
     def build_instance(doc, id2fld):
         source = doc['_source']
@@ -488,7 +470,8 @@ class ElasticIndexer(Indexer):
             metadata.rdf_metadata.set((metadata.id, RDF.type, URIRef(x)))
 
         for fld, field_value in source.items():
-            if fld in ('_fedora_type', '_fedora_parent', '_fedora_id', '_fedoralink_model', '_fedora_created', '_fedora_last_modified'):
+            if fld in ('_fedora_type', '_fedora_parent', '_fedora_id', '_fedoralink_model', '_fedora_created',
+                       '_fedora_last_modified'):
                 continue
 
             fld = id2url(fld)
@@ -509,6 +492,7 @@ class ElasticIndexer(Indexer):
         highlight = {id2fld[k]: v for k, v in doc.get('highlight', {}).items() if k in id2fld}
 
         return metadata, highlight
+
 
     @staticmethod
     def _get_elastic_class(model_class):
@@ -571,11 +555,11 @@ if __name__ == '__main__':
             # noinspection PyProtectedMember
             print("Object: ", o, o._highlighted)
 
-        # indexer = ElasticIndexer({
-        #     'SEARCH_URL': 'http://localhost:9200/vscht'
-        # })
-        #
-        # print(indexer.search(Q(creator__fulltext='Motejlková'), DCObject, None, None, None, None, None))
+            # indexer = ElasticIndexer({
+            #     'SEARCH_URL': 'http://localhost:9200/vscht'
+            # })
+            #
+            # print(indexer.search(Q(creator__fulltext='Motejlková'), DCObject, None, None, None, None, None))
 
 
     test()
