@@ -2,6 +2,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import resolve
 from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.http import FileResponse
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render
 from django.template import Template, RequestContext
@@ -11,6 +12,7 @@ from django.utils.decorators import classonlymethod
 from django.utils.translation import ugettext as _
 from django.views.generic import View, CreateView, DetailView, UpdateView
 
+from fedoralink.fedorans import FEDORA
 from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
@@ -227,6 +229,11 @@ class GenericDetailView(DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if (FEDORA.Binary in self.object.types):
+            bitstream = self.object.get_bitstream()
+            resp = FileResponse(bitstream.stream, content_type=bitstream.mimetype)
+            resp['Content-Disposition'] = 'inline; filename="%s"' % bitstream.filename
+            return resp
         # noinspection PyTypeChecker
         template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
         print("Got template", template)

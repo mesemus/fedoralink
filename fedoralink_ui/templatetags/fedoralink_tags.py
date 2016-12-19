@@ -17,6 +17,7 @@ from django.template import Template
 from django.template.loader import select_template, get_template
 from rdflib import Literal
 
+from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
 from fedoralink.utils import fullname
 from fedoralink_ui.template_cache import FedoraTemplateCache
@@ -187,12 +188,38 @@ def get_fields(fedora_object, level=None):
     print(fields)
     return fields
 
+@register.filter
+def check_group(obj, user):
+    if user.is_authenticated:
+        collection_list = []
+        while isinstance(obj, IndexableFedoraObject):
+            if obj.pk:
+                object_id = id_from_path(obj.pk)
+                if object_id:
+                    collection_list.append(str(object_id))
+                else:
+                    # reached root of the portion of repository given by fedora_prefix
+                    break
+
+            parent_id = obj.fedora_parent_uri
+            if parent_id:
+                try:
+                    obj = FedoraObject.objects.get(pk=parent_id)
+                except:
+                    # do not have rights
+                    break
+            else:
+                # reached root of the repository
+                break
+
+        return user.groups.filter(name__in=collection_list).exists()
+    return False
 
 @register.simple_tag(takes_context=True)
 def render_links(context, fedora_object, link_name):
     templates = [fullname(x).replace('.', '/') + '/' + link_name + '_link.html'
                  for x in inspect.getmro(type(fedora_object))]
-    templates.append('fedoralink/partials/link.html')
+    templates.append('fedoralink_ui/partials/link.html')
     context = Context(context)
     context['links'] = getattr(fedora_object, link_name)
     chosen_template = select_template(templates)

@@ -32,7 +32,7 @@ def upload_binary_files(sender, **kwargs):
     save_required = False
     from fedoralink.indexer.models import fedoralink_streams
     for fld, streams in fedoralink_streams(instance):
-        ids = []
+        stream_instances = []
         print(type(streams))
         for stream_id, stream in enumerate(streams):
 
@@ -42,9 +42,9 @@ def upload_binary_files(sender, **kwargs):
             stream_inst = instance.create_child("%s_%s" % (fld.name, stream_id))
             stream_inst.set_local_bitstream(stream)
             stream_inst.save()
-            ids.append(URIRef(stream_inst.id))
+            stream_instances.append(stream_inst)
 
-        setattr(instance, fld.name, ids)
+        setattr(instance, fld.name, stream_instances)
         save_required = True
 
     if save_required:

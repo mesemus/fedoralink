@@ -11,7 +11,7 @@ from django.db.models import Q
 from elasticsearch import Elasticsearch
 from rdflib import Literal, URIRef, RDF
 
-from fedoralink.fedorans import FEDORA
+from fedoralink.fedorans import FEDORA, CESNET
 from fedoralink.indexer import Indexer
 from fedoralink.indexer.fields import IndexedTextField, IndexedLanguageField, IndexedDateTimeField, IndexedBinaryField, \
     IndexedLinkedField
@@ -39,7 +39,7 @@ FEDORA_PARENT_FIELD = _ITF(FEDORA.hasParent, name='parent')
 FEDORA_ID_FIELD = _ITF(FEDORA.id, name='id')
 FEDORA_CREATED_FIELD = _IDF(FEDORA.created, name='_fedora_created')
 FEDORA_LAST_MODIFIED_FIELD = _IDF(FEDORA.lastModified, name='_fedora_last_modified')
-
+CESNET_RDF_TYPES = _IDF(CESNET.rdf_types, name='_collection_child_types')
 
 class ElasticIndexer(Indexer):
     def __init__(self, repo_conf):
