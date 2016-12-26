@@ -1,0 +1,12 @@
+{% load fedoralink_tags %}
+{% load i18n %}
+{% load l10n %}
+
+{% for link in links %}
+<div class="row document">
+    <div class="col-md-12"><a href="{{ link.id|id_from_path }}">
+        <h3>{{ link.title|rdf2lang|escape }}</h3></a></div>
+    <div class="col-md-3">{% trans "Author" %}:</div>
+    <div class="col-md-9">{{ link.creator }}</div>
+</div>
+{% endfor %}

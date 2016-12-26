@@ -25,24 +25,24 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None):
                  fedora_prefix=fedora_prefix),
              name='extended_search', verbose_name=_('Search')),
 
-        burl('^(?P<id>.*)/addSubcollection$', staff_member_required(fedoralink_ui.views.GenericSubcollectionCreateView.as_view(
+        burl('^(?P<id>.*)/addSubcollection$', (fedoralink_ui.views.GenericSubcollectionCreateView.as_view(
             fedora_prefix=fedora_prefix,
-            success_url="repo:detail",
+            success_url="oarepo:detail",
             parent_collection=lambda x: FedoraObject.objects.get(pk=fedora_prefix),
             success_url_param_names=('id',)
         )), name='addSubcollection'),
 
-        burl('^(?P<id>.*)/add$', staff_member_required(fedoralink_ui.views.GenericCreateView.as_view(
+        burl('^(?P<id>.*)/add$', (fedoralink_ui.views.GenericCreateView.as_view(
             fedora_prefix=fedora_prefix,
-            success_url="repo:detail",
+            success_url="oarepo:detail",
             parent_collection=lambda x: FedoraObject.objects.get(pk=fedora_prefix),
             success_url_param_names=('id',)
         ))
              , name='add'),
 
         burl('^(?P<id>.*)/edit$',
-             staff_member_required(fedoralink_ui.views.GenericEditView.as_view(
-                 success_url="repo:detail",
+             (fedoralink_ui.views.GenericEditView.as_view(
+                 success_url="oarepo:detail",
                  fedora_prefix=fedora_prefix
              )),
              name="edit"),
