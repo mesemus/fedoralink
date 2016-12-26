@@ -1,5 +1,4 @@
 import inspect
-import json
 import traceback
 import urllib
 import urllib.parse
@@ -9,12 +8,12 @@ from dateutil.parser import parse
 from django.conf import settings
 from django.db.models import Q
 from elasticsearch import Elasticsearch
+from elasticsearch.serializer import JSONSerializer
 from rdflib import Literal, URIRef, RDF
 
 from fedoralink.fedorans import FEDORA
 from fedoralink.indexer import Indexer
-from fedoralink.indexer.fields import IndexedTextField, IndexedLanguageField, IndexedDateTimeField, IndexedBinaryField, \
-    IndexedLinkedField
+from fedoralink.indexer.fields import IndexedTextField, IndexedLanguageField, IndexedDateTimeField
 from fedoralink.indexer.models import IndexableFedoraObject, fedoralink_classes
 from fedoralink.models import FedoraObject
 from fedoralink.rdfmetadata import RDFMetadata
@@ -59,6 +58,16 @@ class ElasticIndexer(Indexer):
 
     def get_mapping(self, class_name):
         return self.es.indices.get_mapping(index=self.index_name, doc_type=class_name)
+
+    def delete(self, obj):
+        clz = fedoralink_classes(obj)[0]
+        if not issubclass(clz, IndexableFedoraObject):
+            return
+
+        doc_type = self._get_elastic_class(clz)
+        encoded_fedora_id = base64.b64encode(str(obj.pk).encode('utf-8')).decode('utf-8')
+
+        self.es.delete(index=self.index_name, doc_type=doc_type, id=encoded_fedora_id)
 
     def reindex(self, obj):
 
@@ -219,6 +228,7 @@ class ElasticIndexer(Indexer):
         return ret
 
     def _build_primitive(self, q, fld2id, ret, inside_fulltext_query=True):
+
         if len(q) == 3:
             if q[2]:
                 ret = ret.setdefault('bool', {})
@@ -231,6 +241,12 @@ class ElasticIndexer(Indexer):
         elif not comparison_operation or comparison_operation == 'exact':
             ret['term'] = {
                 transformed_name: q[1]
+            }
+        elif comparison_operation in ('gt', 'gte', 'lt', 'lte'):
+            ret['range'] = {
+                transformed_name: {
+                    comparison_operation: q[1]
+                }
             }
         elif comparison_operation == 'fulltext' and inside_fulltext_query:
             ret['match'] = {
@@ -391,7 +407,7 @@ class ElasticIndexer(Indexer):
             "size": (end - (start if start else 0)) if end is not None else 10000
         }
 
-        print(json.dumps(built_query, indent=4))
+        print(JSONSerializer().dumps(built_query))
 
         resp = self.es.search(body=built_query)
 

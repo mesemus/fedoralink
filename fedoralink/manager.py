@@ -1,5 +1,5 @@
 from django.db import connections
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, pre_save, pre_delete, post_delete
 
 from .utils import TypedStream
 from .fedorans import LDP, EBUCORE
@@ -174,7 +174,9 @@ class FedoraManager:
         :param obj:     object to be deleted
         """
         if obj.id:
+            pre_delete.send(sender=obj.__class__, instance=obj, using='repository')
             self.connection.delete(obj.id)
+            post_delete.send(sender=obj.__class__, instance=obj, using='repository')
 
     def __getattr__(self, name):
         """
