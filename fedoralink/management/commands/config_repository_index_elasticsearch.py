@@ -37,11 +37,14 @@ class Command(BaseCommand):
     """
     can_import_settings = True
 
+    def add_arguments(self, parser):
+        parser.add_argument('model_name', nargs='+')
+
     def handle(self, *args, **options):
 
         FedoraTypeManager.populate()
 
-        models = list(args)
+        models = options['model_name']
 
         for model_name in models:
             fields = {}
@@ -124,13 +127,9 @@ class Command(BaseCommand):
         ret = {
             lang[0] : {
                 'type': 'text',
-                'copy_to': [prefix + 'all', prefix + 'all__fulltext', prefix + lang[0] + "__fulltext"]
+                'copy_to': [prefix + 'all', prefix + 'all__fulltext', prefix + lang[0] + "__fulltext"],
             } for lang in settings.LANGUAGES
         }
-        if 'en' in ret:
-            ret['en']['analyzer'] = 'english'
-        if 'cs' in ret:
-            ret['cs']['analyzer'] = 'czech'
 
         ret.update({
             lang[0] + "__fulltext" : {
