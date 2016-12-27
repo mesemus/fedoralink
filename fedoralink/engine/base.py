@@ -17,7 +17,12 @@ class DatabaseOps:
 
 class FakeValidation:
     def check_field(self, something, **kwargs):
-        print("FakeValidation: check_field", type(something), something, kwargs)
+        # print("FakeValidation: check_field", type(something), something, kwargs)
+        return []
+
+    def check(self, **kwargs):
+        # returns list of issues
+        # print("FakeValidation: check", kwargs)
         return []
 
 

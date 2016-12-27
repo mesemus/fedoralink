@@ -1,4 +1,4 @@
-from django.conf.urls import include, patterns
+from django.conf.urls import include
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.translation import ugettext_lazy as _
 
@@ -56,7 +56,5 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None):
         urlpatterns.append(custom_patterns)
 
     return [
-        burl(r'^', include(patterns('',
-                                   *urlpatterns
-                                   ), namespace=app_name, app_name=app_name))
+        burl(r'^', include(urlpatterns, namespace=app_name, app_name=app_name))
     ]

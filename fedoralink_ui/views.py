@@ -22,7 +22,6 @@ from fedoralink.type_manager import FedoraTypeManager
 from fedoralink.utils import get_class
 from fedoralink_ui.template_cache import FedoraTemplateCache
 from fedoralink_ui.templatetags.fedoralink_tags import id_from_path, rdf2lang
-from oarepo.settings import USERS_TOMCAT_PASSWORD
 
 
 def appname(request):
