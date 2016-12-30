@@ -58,7 +58,7 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None):
     if custom_patterns:
         urlpatterns.append(custom_patterns)
 
-    if settings.USE_BREADCRUMBS:
+    if getattr(settings, 'USE_BREADCRUMBS'):
         from autobreadcrumbs.registry import breadcrumbs_registry
         from fedoralink_ui.templatetags.fedoralink_tags import rdf2lang
         import django.utils.translation
