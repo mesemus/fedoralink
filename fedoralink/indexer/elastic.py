@@ -107,7 +107,7 @@ class ElasticIndexer(Indexer):
         except:
             print("Exception in indexing, data", indexer_data)
             traceback.print_exc()
-        print("reindexing single object ok")
+        # print("reindexing single object ok")
 
     def _flatten_query(self, q):
         if not is_q(q):
@@ -385,7 +385,7 @@ class ElasticIndexer(Indexer):
             "size": (end - (start if start else 0)) if end is not None else 10000
         }
 
-        print(JSONSerializer().dumps(built_query))
+        # print(JSONSerializer().dumps(built_query))
 
         resp = self.es.search(body=built_query)
 
@@ -565,10 +565,10 @@ if __name__ == '__main__':
         # resp = QualificationWork.objects.all().order_by('creator').request_facets('department_code')
         resp = QualificationWork.objects.filter(faculty__cs__fulltext="ochrana").request_facets('faculty__cs',
                                                                                                 'faculty_code')
-        print("Facets", resp.facets)
-        for o in resp:
-            # noinspection PyProtectedMember
-            print("Object: ", o, o._highlighted)
+        # print("Facets", resp.facets)
+        # for o in resp:
+        #     # noinspection PyProtectedMember
+        #     print("Object: ", o, o._highlighted)
 
             # indexer = ElasticIndexer({
             #     'SEARCH_URL': 'http://localhost:9200/vscht'

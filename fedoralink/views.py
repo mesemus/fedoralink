@@ -258,7 +258,7 @@ class GenericDetailView(DetailView, FedoraTemplateMixin):
         context = self.get_context_data(object=self.object)
         getView = GenericGetView()
         template_url = getView.get(rdf_meta=self.object._meta.rdf_types, templateType='view')
-        print(template_url)
+        # print(template_url)
         if template_url:
             return HttpResponse(
                 Template("{% extends '" + self.base_template + "' %}" + requests.get(template_url).text).render(
@@ -307,7 +307,7 @@ class GenericEditView(UpdateView, FedoraTemplateMixin):
         context = self.get_context_data(object=self.object, form=form, **response_kwargs)
         getView = GenericGetView()
         template_url = getView.get(rdf_meta=self.object._meta.rdf_types, templateType='edit')
-        print(template_url)
+        # print(template_url)
         if template_url:
             return HttpResponse(
                 Template("{% extends '" + self.base_template + "' %}" + requests.get(template_url).text).render(

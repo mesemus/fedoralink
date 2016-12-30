@@ -129,7 +129,7 @@ class FedoraConnection:
                 headers['SLUG'] = slug
             resp = requests.post(parent_url, payload.encode('utf-8'), headers=headers, auth=self._get_auth())
             if resp.status_code >= 400:
-                print(payload)
+                # print(payload)
                 raise requests.HTTPError("Resource not created, error code %s : %s" % (resp.status_code, resp.content))
             created_object_id = resp.text
 
@@ -232,7 +232,7 @@ class FedoraConnection:
             yield RDFMetadata(req_url, g)
 
         except HTTPError as e:
-            log.error("%s: %s : %s", e.code, e.msg, e.fp.read() if e.fp else '')
+            # log.error("%s: %s : %s", e.code, e.msg, e.fp.read() if e.fp else '')
             raise DoesNotExist(e)
 
     def raw_get(self, url):
@@ -356,7 +356,6 @@ class FedoraConnection:
         return self._fedora_url == other._fedora_url
 
     def _get_auth(self):
-        print(fedora_auth_local.__dict__)
         if (hasattr(fedora_auth_local, 'Credentials')):
             credentials = getattr(fedora_auth_local, 'Credentials')
             if credentials is not None:

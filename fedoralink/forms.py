@@ -177,7 +177,7 @@ class MultiValuedFedoraField(forms.MultiValueField):
         self.widget.widgets = tuple(widgets)
 
     def compress(self, data_list):
-        print("data list", data_list, self.fields)
+        # print("data list", data_list, self.fields)
         return data_list
 
 
@@ -212,7 +212,7 @@ class FedoraForm(forms.ModelForm):
         inst = kwargs.get('instance', None)
         post = kwargs.get('data', None)
         super().__init__(*args, **kwargs)
-        print("Fedora form", inst, post)
+        # print("Fedora form", inst, post)
         for fldname, fld in self.fields.items():
             if isinstance(fld, MultiValuedFedoraField):
                 if post:
@@ -261,7 +261,7 @@ class LinkedWidget(forms.TextInput):
         if value != '':
             value = self._format_value(value)
 
-        print(type(self.model_field))
+        # print(type(self.model_field))
 
         return render_to_string('fedoralink_ui/edit_field_linked.html', Context({
             'value' : value,
