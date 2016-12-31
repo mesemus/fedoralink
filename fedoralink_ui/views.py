@@ -236,24 +236,15 @@ class GenericDetailView(DetailView):
         return retrieved_object
 
     def get(self, request, *args, **kwargs):
-        if request.user.is_authenticated():
-            credentials = Credentials(request.user.username, USERS_TOMCAT_PASSWORD)
-            print("user:" + credentials.username)
-            with as_user(credentials):
-                self.object = self.get_object()
-        else:
-            self.object = self.get_object()
+        self.object = self.get_object()
+
         if (FEDORA.Binary in self.object.types):
             bitstream = self.object.get_bitstream()
             resp = FileResponse(bitstream.stream, content_type=bitstream.mimetype)
             resp['Content-Disposition'] = 'inline; filename="%s"' % bitstream.filename
             return resp
         # noinspection PyTypeChecker
-        if request.user.is_authenticated():
-            with as_user(credentials):
-                template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
-        else:
-            template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
+        template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
         print("Got template", template)
         if template:
             context = self.get_context_data(object=self.object)
