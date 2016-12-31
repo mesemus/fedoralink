@@ -7,7 +7,7 @@ Purpose
 Each authenticated user in django is given a set of groups. 
 When fedoralink calls django, it uses the identity 
 (username/password) configured in `DATABASES` section
-of `settings.py`,  not the username of the current user.
+of `settings.py`,  not the username/password of the current user.
 
 To pass the current user to fcrepo, fedoralink adds two 
 headers to http communication:
@@ -16,7 +16,7 @@ headers to http communication:
    by DelegateHeaderPrincipalProvider that is by default 
    included in fcrepo w/ webac.
    The value of the header is in the following form:
-    * if username looks like an email `simeki@vscht.cz`:
+    * if username looks like an email (for example `simeki@vscht.cz`):
         
             urn:vscht.cz/simeki
         
@@ -44,7 +44,8 @@ Installation
    
 3. Modify `WEB-INF/classes/spring/auth-repo.xml`, and add/change the following:
 
-        <bean name="djangoGroupPrincipalProvider" class="cz.cesnet.fcrepo.auth.django.DjangoGroupPrincipalProvider"/>
+        <bean name="djangoGroupPrincipalProvider" 
+              class="cz.cesnet.fcrepo.auth.django.DjangoGroupPrincipalProvider"/>
 
         <util:set id="principalProviderSet">
           <ref bean="djangoGroupPrincipalProvider"/>
