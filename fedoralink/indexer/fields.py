@@ -5,12 +5,14 @@ import django.db.models
 import django.forms
 from dateutil import parser
 from django.apps import apps
+from django.core.files.uploadedfile import UploadedFile
 from django.db.models.signals import class_prepared
 from rdflib import Literal, XSD, URIRef
 
+from fedoralink.fedorans import FEDORA
 from fedoralink.forms import LangFormTextField, LangFormTextAreaField, MultiValuedFedoraField, GPSField, \
     FedoraChoiceField, LinkedField
-from fedoralink.utils import StringLikeList
+from fedoralink.utils import StringLikeList, TypedStream
 
 
 class IndexedField:
@@ -40,6 +42,61 @@ class IndexedField:
 
     def convert_from_rdf(self, value):
         raise Exception("Conversion from RDF on %s not supported yet" % type(self))
+
+    def _getter(self, object_instance):
+
+        ret = object_instance.metadata[self.rdf_name]
+
+        if not self.multi_valued:
+            # simple type -> return the first item only
+            if len(ret):
+                return self.convert_from_rdf(ret[0])
+            else:
+                return None
+
+        return StringLikeList([self.convert_from_rdf(x) for x in object_instance.metadata[self.rdf_name]])
+
+    def _setter(self, object_instance, value):
+        collected_streams = self.__get_streams(value)
+        if len(collected_streams) > 0:
+            if not hasattr(object_instance, '__streams'):
+                setattr(object_instance, '__streams', {})
+            streams = getattr(object_instance, '__streams')
+            streams[self] = collected_streams
+        else:
+            if isinstance(value, list) or isinstance(value, tuple):
+                value = [self.__convert_to_rdf(x) for x in value]
+            else:
+                value = self.__convert_to_rdf(value)
+
+            object_instance.metadata[self.rdf_name] = value
+
+    def __convert_to_rdf(self, data):
+        if data is None:
+            return []
+
+        return self.convert_to_rdf(data)
+
+    def __get_streams(self, value):
+        streams = []
+        if isinstance(value, tuple) or isinstance(value, list):
+            for x in value:
+                rr = self.__get_streams(x)
+                streams.extend(rr)
+        elif isinstance(value, UploadedFile) or isinstance(value, TypedStream):
+            streams.append(value)
+        return streams
+
+    def instrument(self, model_class, name):
+        fld = self
+
+        def getter(inst):
+            return fld._getter(inst)
+
+        def setter(inst, value):
+            fld._setter(inst, value)
+
+        setattr(model_class, name, property(getter, setter))
 
 
 class IndexedLanguageField(IndexedField, django.db.models.Field):
@@ -76,6 +133,10 @@ class IndexedLanguageField(IndexedField, django.db.models.Field):
 
     def convert_from_rdf(self, value):
         return StringLikeList(value)
+
+    def _getter(self, object_instance):
+        ret = object_instance.metadata[self.rdf_name]
+        return self.convert_from_rdf(ret)
 
 
 class IndexedTextField(IndexedField, django.db.models.Field):
@@ -171,6 +232,7 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
         if value:
             if isinstance(value, datetime.datetime):
                 return value
+            print("# TODO:  neskor odstranit")
             if value is "None":         # TODO:  neskor odstranit
                 return None
             val = value
@@ -228,6 +290,7 @@ class IndexedDateField(IndexedField, django.db.models.DateField):
                 return data.value.date()
             if isinstance(data.value, datetime.date):
                 return data.value
+            print("# TODO:  neskor odstranit")
             if data.value is "None":      # TODO:  neskor odstranit
                 return None
             # noinspection PyBroadException
@@ -268,6 +331,17 @@ def register_model_lookup(field, related_model):
         field.related_model = related_model
 
 
+def _filter_accessible_references(refs):
+    if not refs:
+        return refs
+    if not isinstance(refs, list) and not isinstance(refs, tuple):
+        refs = [refs]
+    ret = [
+        ref for ref in refs if ref != FEDORA.inaccessibleResource
+    ]
+    return ret
+
+
 class IndexedLinkedField(IndexedField, django.db.models.Field):
 
     def __init__(self, rdf_name, related_model, required=False, verbose_name=None, multi_valued=False,
@@ -300,6 +374,15 @@ class IndexedLinkedField(IndexedField, django.db.models.Field):
         defaults.update(kwargs)
         return wrap_multi_valued_field(self, kwargs, django.db.models.Field, super().formfield(**defaults))
 
+    def instrument(self, model_class, name):
+        super().instrument(model_class, name)
+
+        setattr(model_class, '%s__has_references' % name,
+                property(lambda inst: True if inst.metadata[self.rdf_name] else False))
+
+        setattr(model_class, '%s__accessible_references' % name,
+                property(lambda inst: _filter_accessible_references(inst.metadata[self.rdf_name])))
+
 
 class IndexedBinaryField(IndexedField, django.db.models.Field):
 
@@ -329,6 +412,15 @@ class IndexedBinaryField(IndexedField, django.db.models.Field):
         if not value:
             return None
         return self.related_model.objects.get(pk=value)
+
+    def instrument(self, model_class, name):
+        super().instrument(model_class, name)
+
+        setattr(model_class, '%s__has_references' % name,
+                property(lambda inst: True if inst.metadata[self.rdf_name] else False))
+
+        setattr(model_class, '%s__accessible_references' % name,
+                property(lambda inst: _filter_accessible_references(inst.metadata[self.rdf_name])))
 
 
 class IndexedGPSField(IndexedField, django.db.models.Field):
