@@ -80,6 +80,15 @@ def get_model(collection_id, fedora_prefix = None):
     model = FedoraTypeManager.get_model_class_from_fullname(model)
     return model
 
+
+def get_model_from_object(obj):
+    model = FedoraTemplateCache.get_collection_model(obj)
+    if model is None:
+        return None
+    model = FedoraTypeManager.get_model_class_from_fullname(model)
+    return model
+
+
 def get_subcollection_model(collection_id, fedora_prefix = None):
     if fedora_prefix:
         collection_id = fedora_prefix + '/' + collection_id
@@ -88,6 +97,15 @@ def get_subcollection_model(collection_id, fedora_prefix = None):
         return None
     model = FedoraTypeManager.get_model_class_from_fullname(model)
     return model
+
+
+def get_subcollection_model_from_object(collection_object):
+    model = FedoraTemplateCache.get_subcollection_model(collection_object)
+    if model is None:
+        return None
+    model = FedoraTypeManager.get_model_class_from_fullname(model)
+    return model
+
 
 class GenericIndexView(View):
     app_name = None
@@ -217,10 +235,17 @@ class GenericDetailView(DetailView):
     fedora_prefix = None
     pk_url_kwarg = 'id'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.object = None
+
     def get_queryset(self):
         return FedoraObject.objects.all()
 
     def get_object(self, queryset=None):
+        if self.object:
+            return self.object
+
         print("path: ", self.request.path)
         # import cis_repo.urls
         # show_urls(cis_repo.urls.urlpatterns)
@@ -230,10 +255,12 @@ class GenericDetailView(DetailView):
             self.kwargs['prefix_applied'] = True
         print("pk", pk)
         self.kwargs[self.pk_url_kwarg] = pk
-        retrieved_object = super().get_object(queryset)
+        self.object = super().get_object(queryset)
         # if not isinstance(retrieved_object, IndexableFedoraObject):
         #     raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
-        return retrieved_object
+        from fedoralink_ui.generic_urls import cache_breadcrumbs
+        cache_breadcrumbs(self.object)
+        return self.object
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -256,8 +283,8 @@ class GenericDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['fedora_prefix'] = self.fedora_prefix
-        context['model'] = get_model(self.kwargs.get(self.pk_url_kwarg, ""), None)
-        context['subcollection_model'] = get_subcollection_model(self.kwargs.get(self.pk_url_kwarg, ""), None)
+        context['model'] = get_model_from_object(self.get_object())
+        context['subcollection_model'] = get_subcollection_model_from_object(self.get_object())
         return context
 
     @classonlymethod

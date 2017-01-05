@@ -166,6 +166,7 @@ class FedoraConnection:
         payload = metadata.serialize_sparql()
         log.info("Updating object %s", url)
         log.debug("      payload %s", payload.decode('utf-8'))
+        # print(payload.decode('utf-8'))
         try:
             if bitstream is not None:
                 self._update_object_bitstream(url, bitstream)
@@ -364,3 +365,11 @@ class FedoraConnection:
             return HTTPBasicAuth(self._username, self._password)
         else:
             return None
+
+    def get_local_id(self, object_id):
+        if object_id.startswith(self._fedora_url):
+            object_id = object_id[len(self._fedora_url):]
+            if object_id[:1] == '/':
+                object_id = object_id[1:]
+            return object_id
+        return None

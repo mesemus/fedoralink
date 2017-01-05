@@ -227,8 +227,16 @@ class ElasticIndexer(Indexer):
             if q[2]:
                 ret = ret.setdefault('bool', {})
                 ret = ret.setdefault('must_not', {})
+        value = q[1]
+
         prefix, name, comparison_operation, transformed_name = self._split_name(q[0], fld2id)
-        if q[1] is None:
+
+        if transformed_name == '_id' and value:
+            if isinstance(value, tuple) or isinstance(value, list):
+                value = [base64.b64encode(x.encode('utf-8')).decode('utf-8') for x in value]
+            else:
+                value = base64.b64encode(value.encode('utf-8')).decode('utf-8')
+        if value is None:
             ret['bool'] = {
                 "filter": {
                     "bool": {
@@ -244,19 +252,27 @@ class ElasticIndexer(Indexer):
             ret['bool'] = {
                 "filter": {
                     "term": {
-                        transformed_name: q[1]
+                        transformed_name: value
+                    }
+                }
+            }
+        elif comparison_operation == 'in':
+            ret['bool'] = {
+                "filter": {
+                    "terms": {
+                        transformed_name: value
                     }
                 }
             }
         elif comparison_operation in ('gt', 'gte', 'lt', 'lte'):
             ret['range'] = {
                 transformed_name: {
-                    comparison_operation: q[1]
+                    comparison_operation: value
                 }
             }
         elif comparison_operation == 'fulltext':
             ret['match'] = {
-                transformed_name + "__fulltext": q[1]
+                transformed_name + "__fulltext": value
             }
         else:
             raise NotImplementedError("operation %s not yet implemented" %
@@ -293,7 +309,7 @@ class ElasticIndexer(Indexer):
         comparison_operation = None
         prefix = ''
         if len(name) > 1 and name[-1] in ('exact', 'iexact', 'contains', 'icontains', 'startswith', 'istartswith',
-                                          'endswith', 'iendswith', 'fulltext', 'gt', 'gte', 'lt', 'lte'):
+                                          'endswith', 'iendswith', 'fulltext', 'gt', 'gte', 'lt', 'lte', 'in'):
             comparison_operation = name[-1]
             name = name[:-1]
         if len(name) > 1:
@@ -302,7 +318,10 @@ class ElasticIndexer(Indexer):
             if prefix:
                 transformed_name = fld2id[prefix] + "." + name[-1]
             else:
-                transformed_name = fld2id[name[-1]]
+                if name[-1] in ['id', 'pk']:
+                    transformed_name = '_id'
+                else:
+                    transformed_name = fld2id[name[-1]]
         else:
             transformed_name = None
         name = '.'.join(name)
