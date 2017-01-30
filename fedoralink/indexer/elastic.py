@@ -370,7 +370,7 @@ class ElasticIndexer(Indexer):
             "size": (end - (start if start else 0)) if end is not None else 10000
         }
 
-        print(json.dumps(built_query, indent=4))
+        # print(json.dumps(built_query, indent=4))
 
         resp = self.es.search(body=built_query)
 

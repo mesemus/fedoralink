@@ -26,9 +26,9 @@ from oarepo.settings import USERS_TOMCAT_PASSWORD
 
 
 def appname(request):
-    print('appname: ')
-    print(request.path)
-    print(resolve(request.path).app_name)
+    # print('appname: ')
+    # print(request.path)
+    # print(resolve(request.path).app_name)
     return {'appname': resolve(request.path).app_name}
 
 
@@ -119,7 +119,7 @@ class GenericSearchView(View):
 
         if self.request.user.is_authenticated():
             credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
-            print("user:" + credentials.username)
+            # print("user:" + credentials.username)
             with as_user(credentials):
                 model = get_model(collection_id=kwargs['collection_id'], fedora_prefix=self.fedora_prefix)
         else:
@@ -222,14 +222,14 @@ class GenericDetailView(DetailView):
         return FedoraObject.objects.all()
 
     def get_object(self, queryset=None):
-        print("path: ", self.request.path)
+        # print("path: ", self.request.path)
         # import cis_repo.urls
         # show_urls(cis_repo.urls.urlpatterns)
         pk = self.kwargs.get(self.pk_url_kwarg, "").replace("_", "/")
         if self.fedora_prefix and 'prefix_applied' not in self.kwargs:
             pk = self.fedora_prefix + '/' + pk
             self.kwargs['prefix_applied'] = True
-        print("pk", pk)
+        # print("pk", pk)
         self.kwargs[self.pk_url_kwarg] = pk
         retrieved_object = super().get_object(queryset)
         # if not isinstance(retrieved_object, IndexableFedoraObject):
@@ -239,7 +239,7 @@ class GenericDetailView(DetailView):
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated():
             credentials = Credentials(request.user.username, USERS_TOMCAT_PASSWORD)
-            print("user:" + credentials.username)
+            # print("user:" + credentials.username)
             with as_user(credentials):
                 self.object = self.get_object()
         else:
@@ -255,7 +255,7 @@ class GenericDetailView(DetailView):
                 template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
         else:
             template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
-        print("Got template", template)
+        # print("Got template", template)
         if template:
             context = self.get_context_data(object=self.object)
             return HttpResponse(
@@ -289,7 +289,7 @@ class GenericCreateView(CreateView):
     def form_valid(self, form):
         if self.request.user.is_authenticated():
             credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
-            print("user:" + credentials.username)
+            # print("user:" + credentials.username)
             with as_user(credentials):
                 inst = form.save(commit=False)
                 inst.save()
@@ -340,7 +340,7 @@ class GenericCreateView(CreateView):
             return None
 
     def get_form_class(self):
-        print(self.kwargs)
+        # print(self.kwargs)
         model = get_model(collection_id=self.kwargs.get('id'), fedora_prefix=self.fedora_prefix)
         meta = type('Meta', (object, ), {'model': model, 'fields': '__all__'})
         return type(model.__name__ + 'Form', (FedoraForm,), {
@@ -417,7 +417,7 @@ class GenericSubcollectionCreateView(CreateView):
     def form_valid(self, form):
         if self.request.user.is_authenticated():
             credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
-            print("user:" + credentials.username)
+            # print("user:" + credentials.username)
             with as_user(credentials):
                 inst = form.save(commit=False)
                 inst.save()
@@ -470,7 +470,7 @@ class GenericSubcollectionCreateView(CreateView):
             return None
 
     def get_form_class(self):
-        print(self.kwargs)
+        # print(self.kwargs)
         model = get_subcollection_model(collection_id=self.kwargs.get('id'), fedora_prefix=self.fedora_prefix)
         meta = type('Meta', (object, ), {'model': model, 'fields': '__all__'})
         return type(model.__name__ + 'Form', (FedoraForm,), {
@@ -581,13 +581,13 @@ class GenericEditView(UpdateView):
         """
         if self.request.user.is_authenticated():
             credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
-            print("user:" + credentials.username)
+            # print("user:" + credentials.username)
             with as_user(credentials):
                 self.object = self.get_object()
         else:
             self.object = self.get_object()
         form = self.get_form()
-        print("media", form.media)
+        # print("media", form.media)
         context = self.get_context_data(object=self.object, form=form, **response_kwargs)
         # noinspection PyTypeChecker
         if self.request.user.is_authenticated():

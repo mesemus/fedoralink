@@ -11,8 +11,8 @@ def simple_cache(func, timeout=3600):
         kwargs_sorted = list(kwargs.items())
         kwargs_sorted.sort()
         key = repr(args) + '##' + repr(kwargs_sorted)
-        print("cache key:")
-        print(key)
+        # print("cache key:")
+        # print(key)
         ret = cache.get(key, None)
         if not ret:
             ret = func(*args, **kwargs)
@@ -144,7 +144,7 @@ class FedoraTemplateCache:
     @staticmethod
     @simple_cache
     def _get_field_template_string_internal(field_name, rdf_types, field_fedoralink_type):
-        print(locals())
+        # print(locals())
         retrieved_type = FedoraTemplateCache.get_resource_type(rdf_types)
         query = FedoraTemplateCache.get_query(field_fedoralink_type, field_name, retrieved_type)
         retrieved_field_types = list(ResourceFieldType.objects.filter(query))

@@ -356,7 +356,7 @@ class FedoraConnection:
         return self._fedora_url == other._fedora_url
 
     def _get_auth(self):
-        print(fedora_auth_local.__dict__)
+        # print(fedora_auth_local.__dict__)
         if (hasattr(fedora_auth_local, 'Credentials')):
             credentials = getattr(fedora_auth_local, 'Credentials')
             if credentials is not None:

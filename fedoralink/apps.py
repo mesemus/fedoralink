@@ -33,7 +33,7 @@ def upload_binary_files(sender, **kwargs):
     from fedoralink.indexer.models import fedoralink_streams
     for fld, streams in fedoralink_streams(instance):
         stream_instances = []
-        print(type(streams))
+        # print(type(streams))
         for stream_id, stream in enumerate(streams):
 
             if isinstance(stream, UploadedFile):
