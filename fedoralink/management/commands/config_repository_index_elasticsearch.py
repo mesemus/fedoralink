@@ -6,7 +6,7 @@ from django.core.management import BaseCommand
 from django.db import connections
 
 from fedoralink.indexer.elastic import FEDORA_ID_FIELD, FEDORA_PARENT_FIELD, FEDORA_TYPE_FIELD, FEDORALINK_TYPE_FIELD, \
-    FEDORA_CREATED_FIELD, FEDORA_LAST_MODIFIED_FIELD
+    FEDORA_CREATED_FIELD, FEDORA_LAST_MODIFIED_FIELD, CESNET_RDF_TYPES
 from fedoralink.indexer.fields import IndexedLanguageField, IndexedIntegerField, IndexedDateTimeField, IndexedTextField, \
     IndexedLinkedField, IndexedBinaryField, IndexedDateField, IndexedGPSField
 from fedoralink.type_manager import FedoraTypeManager
@@ -37,11 +37,14 @@ class Command(BaseCommand):
     """
     can_import_settings = True
 
+    def add_arguments(self, parser):
+        parser.add_argument('model_name', nargs='+')
+
     def handle(self, *args, **options):
 
         FedoraTypeManager.populate()
 
-        models = list(args)
+        models = options['model_name']
 
         for model_name in models:
             fields = {}
@@ -75,6 +78,9 @@ class Command(BaseCommand):
             fields['_fedoralink_model']     = FEDORALINK_TYPE_FIELD
             fields['_fedora_created']       = FEDORA_CREATED_FIELD
             fields['_fedora_last_modified'] = FEDORA_LAST_MODIFIED_FIELD
+            fields['_collection_child_types'] = CESNET_RDF_TYPES
+
+            print('ADD fields to mapping')
 
             for fldname, field in fields.items():
                 if fldname in existing_properties:
@@ -91,17 +97,14 @@ class Command(BaseCommand):
                     props['type']  = 'keyword'
                     props['copy_to'] = fldname + "__fulltext"
                     new_properties[fldname + "__fulltext"] = {
-                        'type': 'string',
+                        'type': 'text',
                     }
                 elif isinstance(field, IndexedDateTimeField):
                     props['type'] = 'date'
-                    props['index'] = 'not_analyzed'
                 elif isinstance(field, IndexedDateField):
                     props['type'] = 'date'
-                    props['index'] = 'not_analyzed'
                 elif isinstance(field, IndexedIntegerField):
                     props['type'] = 'long'
-                    props['index'] = 'not_analyzed'
                 elif isinstance(field, IndexedGPSField):
                     props['type'] = 'keyword'
                 elif isinstance(field, IndexedLinkedField) or isinstance(field, IndexedBinaryField) :
@@ -123,14 +126,10 @@ class Command(BaseCommand):
     def gen_languages_mapping(prefix):
         ret = {
             lang[0] : {
-                'type': 'keyword',
-                'copy_to': [prefix + 'all', prefix + 'all__fulltext', prefix + lang[0] + "__fulltext"]
+                'type': 'text',
+                'copy_to': [prefix + 'all', prefix + 'all__fulltext', prefix + lang[0] + "__fulltext"],
             } for lang in settings.LANGUAGES
         }
-        if 'en' in ret:
-            ret['en']['analyzer'] = 'english'
-        if 'cs' in ret:
-            ret['cs']['analyzer'] = 'czech'
 
         ret.update({
             lang[0] + "__fulltext" : {

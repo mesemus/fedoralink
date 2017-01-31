@@ -2,6 +2,7 @@ from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import resolve
 from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.http import FileResponse
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render
 from django.template import Template, RequestContext
@@ -11,6 +12,9 @@ from django.utils.decorators import classonlymethod
 from django.utils.translation import ugettext as _
 from django.views.generic import View, CreateView, DetailView, UpdateView
 
+from fedoralink.authentication.Credentials import Credentials
+from fedoralink.authentication.as_user import as_user
+from fedoralink.fedorans import FEDORA
 from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
@@ -76,6 +80,15 @@ def get_model(collection_id, fedora_prefix = None):
     model = FedoraTypeManager.get_model_class_from_fullname(model)
     return model
 
+
+def get_model_from_object(obj):
+    model = FedoraTemplateCache.get_collection_model(obj)
+    if model is None:
+        return None
+    model = FedoraTypeManager.get_model_class_from_fullname(model)
+    return model
+
+
 def get_subcollection_model(collection_id, fedora_prefix = None):
     if fedora_prefix:
         collection_id = fedora_prefix + '/' + collection_id
@@ -84,6 +97,15 @@ def get_subcollection_model(collection_id, fedora_prefix = None):
         return None
     model = FedoraTypeManager.get_model_class_from_fullname(model)
     return model
+
+
+def get_subcollection_model_from_object(collection_object):
+    model = FedoraTemplateCache.get_subcollection_model(collection_object)
+    if model is None:
+        return None
+    model = FedoraTypeManager.get_model_class_from_fullname(model)
+    return model
+
 
 class GenericIndexView(View):
     app_name = None
@@ -112,7 +134,13 @@ class GenericSearchView(View):
     # noinspection PyCallingNonCallable,PyUnresolvedReferences
     def get(self, request, *args, **kwargs):
 
-        model = get_model(collection_id = kwargs['collection_id'], fedora_prefix=self.fedora_prefix)
+        if self.request.user.is_authenticated():
+            credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
+            print("user:" + credentials.username)
+            with as_user(credentials):
+                model = get_model(collection_id=kwargs['collection_id'], fedora_prefix=self.fedora_prefix)
+        else:
+            model = get_model(collection_id = kwargs['collection_id'], fedora_prefix=self.fedora_prefix)
 
         if self.facets and callable(self.facets):
             requested_facets = self.facets(request)
@@ -207,10 +235,17 @@ class GenericDetailView(DetailView):
     fedora_prefix = None
     pk_url_kwarg = 'id'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.object = None
+
     def get_queryset(self):
         return FedoraObject.objects.all()
 
     def get_object(self, queryset=None):
+        if self.object:
+            return self.object
+
         print("path: ", self.request.path)
         # import cis_repo.urls
         # show_urls(cis_repo.urls.urlpatterns)
@@ -220,13 +255,21 @@ class GenericDetailView(DetailView):
             self.kwargs['prefix_applied'] = True
         print("pk", pk)
         self.kwargs[self.pk_url_kwarg] = pk
-        retrieved_object = super().get_object(queryset)
+        self.object = super().get_object(queryset)
         # if not isinstance(retrieved_object, IndexableFedoraObject):
         #     raise Exception("Can not use object with pk %s in a generic view as it is not of a known type" % pk)
-        return retrieved_object
+        from fedoralink_ui.generic_urls import cache_breadcrumbs
+        cache_breadcrumbs(self.object)
+        return self.object
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
+
+        if (FEDORA.Binary in self.object.types):
+            bitstream = self.object.get_bitstream()
+            resp = FileResponse(bitstream.stream, content_type=bitstream.mimetype)
+            resp['Content-Disposition'] = 'inline; filename="%s"' % bitstream.filename
+            return resp
         # noinspection PyTypeChecker
         template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
         print("Got template", template)
@@ -240,8 +283,8 @@ class GenericDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['fedora_prefix'] = self.fedora_prefix
-        context['model'] = get_model(self.kwargs.get(self.pk_url_kwarg, ""), None)
-        context['subcollection_model'] = get_subcollection_model(self.kwargs.get(self.pk_url_kwarg, ""), None)
+        context['model'] = get_model_from_object(self.get_object())
+        context['subcollection_model'] = get_subcollection_model_from_object(self.get_object())
         return context
 
     @classonlymethod
@@ -261,9 +304,13 @@ class GenericCreateView(CreateView):
     fedora_prefix = None
 
     def form_valid(self, form):
-        inst = form.save(commit=False)
-        inst.save()
-        self.object = inst
+        if self.request.user.is_authenticated():
+            credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
+            print("user:" + credentials.username)
+            with as_user(credentials):
+                inst = form.save(commit=False)
+                inst.save()
+                self.object = inst
         return HttpResponseRedirect(self.get_success_url())
 
     def get_form_kwargs(self):
@@ -385,9 +432,13 @@ class GenericSubcollectionCreateView(CreateView):
     fedora_prefix = None
 
     def form_valid(self, form):
-        inst = form.save(commit=False)
-        inst.save()
-        self.object = inst
+        if self.request.user.is_authenticated():
+            credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
+            print("user:" + credentials.username)
+            with as_user(credentials):
+                inst = form.save(commit=False)
+                inst.save()
+                self.object = inst
         return HttpResponseRedirect(self.get_success_url())
 
     def get_form_kwargs(self):
@@ -421,8 +472,10 @@ class GenericSubcollectionCreateView(CreateView):
         # Next, try looking up by primary key.
         pk = self.kwargs.get(self.pk_url_kwarg, None)
         if pk is not None:
-            queryset = queryset.filter(pk=self.fedora_prefix+"/"+pk)
-
+            if (self.fedora_prefix):
+                queryset = queryset.filter(pk=self.fedora_prefix+"/"+pk)
+            else:
+                queryset = queryset.filter(pk=pk)
             try:
                 # Get the single item from the filtered queryset
                 obj = queryset.get()
@@ -543,12 +596,22 @@ class GenericEditView(UpdateView):
         If any keyword arguments are provided, they will be
         passed to the constructor of the response class.
         """
-        self.object = self.get_object()
+        if self.request.user.is_authenticated():
+            credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
+            print("user:" + credentials.username)
+            with as_user(credentials):
+                self.object = self.get_object()
+        else:
+            self.object = self.get_object()
         form = self.get_form()
         print("media", form.media)
         context = self.get_context_data(object=self.object, form=form, **response_kwargs)
         # noinspection PyTypeChecker
-        template = FedoraTemplateCache.get_template_string(self.object, view_type='edit')
+        if self.request.user.is_authenticated():
+            with as_user(credentials):
+                template = FedoraTemplateCache.get_template_string(self.object, view_type='edit')
+        else:
+            template = FedoraTemplateCache.get_template_string(self.object, view_type='edit')
 
         if template:
             return HttpResponse(

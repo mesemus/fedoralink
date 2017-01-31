@@ -19,6 +19,22 @@ def do_index(sender, **kwargs):
         indexer.reindex(instance)
 
 
+def delete_from_index(sender, **kwargs):
+
+    from fedoralink.indexer.models import IndexableFedoraObject
+    from django.db import connections
+    from django.conf import settings
+
+    instance = kwargs['instance']
+    db = kwargs['using']
+
+    # print("do_index called", db, instance, settings.DATABASES[db].get('USE_INTERNAL_INDEXER', False))
+
+    if settings.DATABASES[db].get('USE_INTERNAL_INDEXER', False) and isinstance(instance, IndexableFedoraObject):
+        indexer = connections[db].indexer
+        indexer.delete(instance)
+
+
 def upload_binary_files(sender, **kwargs):
 
     from fedoralink.models import UploadedFileStream
@@ -32,8 +48,8 @@ def upload_binary_files(sender, **kwargs):
     save_required = False
     from fedoralink.indexer.models import fedoralink_streams
     for fld, streams in fedoralink_streams(instance):
-        ids = []
-        print(type(streams))
+        stream_instances = []
+        # print(type(streams))
         for stream_id, stream in enumerate(streams):
 
             if isinstance(stream, UploadedFile):
@@ -42,9 +58,9 @@ def upload_binary_files(sender, **kwargs):
             stream_inst = instance.create_child("%s_%s" % (fld.name, stream_id))
             stream_inst.set_local_bitstream(stream)
             stream_inst.save()
-            ids.append(URIRef(stream_inst.id))
+            stream_instances.append(stream_inst)
 
-        setattr(instance, fld.name, ids)
+        setattr(instance, fld.name, stream_instances)
         save_required = True
 
     if save_required:
@@ -66,7 +82,8 @@ class ApplicationConfig(AppConfig):
         # noinspection PyUnresolvedReferences
         import fedoralink.common_namespaces.web_acl.models
 
-        from django.db.models.signals import post_save
+        from django.db.models.signals import post_save, post_delete
 
         post_save.connect(do_index, dispatch_uid='indexer', weak=False)
         post_save.connect(upload_binary_files, dispatch_uid='upload_binary_files', weak=False)
+        post_delete.connect(delete_from_index, dispatch_uid='indexer_delete', weak=False)

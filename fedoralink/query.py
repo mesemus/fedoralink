@@ -146,6 +146,12 @@ class LazyFedoraQuery:
     def count(self):
         return self[0:0].execute().count()
 
+    def first(self):
+        ret = list(self[0:1].execute())
+        if ret:
+            return ret[0]
+        return None
+
     @property
     def facets(self):
         if self.__executed_data or self.__end is not None:

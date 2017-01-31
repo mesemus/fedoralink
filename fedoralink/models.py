@@ -263,6 +263,11 @@ class FedoraObject(metaclass=FedoraObjectMetaclass):
         return self.metadata.id
 
     @property
+    def local_id(self):
+        connection = self.objects_fedora_connection
+        return connection.get_local_id(self.metadata.id)
+
+    @property
     def is_incomplete(self):
         return self.__is_incomplete
 
@@ -304,3 +309,23 @@ class UploadedFileStream:
 
 
 fedora_object_fetched = django.dispatch.Signal(providing_args=["instance", "manager"])
+
+
+def get_or_create_object(path, save=False):
+    whole_path = '/'.join(map(lambda x: x['slug'] for x in path))
+    try:
+        obj = FedoraObject.objects.get(whole_path)
+        return obj
+    except:
+        pass
+    if len(path) > 1:
+        parent = get_or_create_object(path[:-1], True)
+    else:
+        parent = FedoraObject.objects.get(pk='')
+    obj = parent.create_child(child_name=path[-1]['name'],
+                              slug=path[-1]['slug'],
+                              flavour=path['-1']['flavour'])
+    if save:
+        obj.save()
+
+    return obj

@@ -6,6 +6,8 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import connections
 
+from fedoralink.authentication.Credentials import Credentials
+from fedoralink.authentication.as_user import as_user
 from fedoralink.models import FedoraObject
 
 
@@ -14,9 +16,16 @@ class Command(BaseCommand):
     help = 'Reindexuje cely obsah repozitare'
 
     def handle(self, *args, **options):
-        obj = FedoraObject.objects.get(pk='')
-        indexer = connections['repository'].indexer
-        self.reindex(indexer, obj)
+        import configparser
+        config = configparser.ConfigParser()
+        config.read('../oarepo/admin_auth.cfg')
+
+        credentials = Credentials(config['oarepo']['admin'], config['oarepo']['admin_pw'])
+        print("user:" + credentials.username)
+        with as_user(credentials):
+            obj = FedoraObject.objects.get(pk='')
+            indexer = connections['repository'].indexer
+            self.reindex(indexer, obj)
 
     def reindex(self, indexer, obj, level=0):
 

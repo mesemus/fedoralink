@@ -75,64 +75,13 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
     def __init__(cls, name, bases, attrs):
         super(IndexableFedoraObjectMetaclass, cls).__init__(name, list(bases), attrs)
 
-        def create_property(prop):
-
-            def _convert_to_rdf(data):
-                if data is None:
-                    return []
-
-                return prop.convert_to_rdf(data)
-
-            def getter(self):
-
-                ret = self.metadata[prop.rdf_name]
-
-                if isinstance(prop, IndexedLanguageField):
-                    return prop.convert_from_rdf(ret)
-
-                if not prop.multi_valued:
-                    # simple type -> return the first item only
-                    if len(ret):
-                        return prop.convert_from_rdf(ret[0])
-                    else:
-                        return None
-
-                return StringLikeList([prop.convert_from_rdf(x) for x in self.metadata[prop.rdf_name]])
-
-            def setter(self, value):
-                collected_streams = __get_streams(value)
-                if len(collected_streams) > 0:
-                    if not hasattr(self, '__streams'):
-                        setattr(self, '__streams', {})
-                    streams = getattr(self, '__streams')
-                    streams[prop] = collected_streams
-                else:
-                    if isinstance(value, list) or isinstance(value, tuple):
-                        value = [_convert_to_rdf(x) for x in value]
-                    else:
-                        value = _convert_to_rdf(value)
-
-                    self.metadata[prop.rdf_name] = value
-
-            def __get_streams(value):
-                streams = []
-                if isinstance(value, tuple) or isinstance(value, list):
-                    for x in value:
-                        rr = __get_streams(x)
-                        streams.extend(rr)
-                elif isinstance(value, UploadedFile) or isinstance(value, TypedStream):
-                    streams.append(value)
-                return streams
-
-            return property(getter, setter)
-
         indexed_fields = tuple(IndexableFedoraObjectMetaclass.all_indexed_fields(cls))
         processed_rdf_names = set()
         for p in indexed_fields:
             if p.rdf_name in processed_rdf_names:
                 raise AttributeError("Property with rdf name %s already implemented" % p.rdf_name)
             processed_rdf_names.add(p.rdf_name)
-            setattr(cls, p.name, create_property(p))
+            p.instrument(cls, p.name)
 
         # store django _meta
         cls._meta = DjangoMetadataBridge(cls, indexed_fields)
