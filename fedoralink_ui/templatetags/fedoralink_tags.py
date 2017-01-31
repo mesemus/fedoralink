@@ -176,7 +176,7 @@ def get_fields(fedora_object, level=None):
             val = None
         elif isinstance(val, list):
             for x in val:
-                print("val", x)
+                # print("val", x)
                 if str(x):
                     break
             else:
@@ -184,8 +184,8 @@ def get_fields(fedora_object, level=None):
         else:
             print(val, type(val))
         fields += ((verbose_name, val, meta_name),)
-    print("get_fields")
-    print(fields)
+    # print("get_fields")
+    # print(fields)
     return fields
 
 @register.filter
@@ -274,7 +274,7 @@ def render_field_edit(context, form, meta_name, name, field):
     templates = []
     # noinspection PyProtectedMember
     templates.append('fedoralink_ui/edit_field.html')
-    print(templates)
+    # print(templates)
     context = Context(context)
     context['field'] = field
     chosen_template = select_template(templates)
@@ -305,7 +305,7 @@ def render_linked_field(context, linked_object, field_name, containing_object):
     templates.append('{0}_linked_view.html'.format(fullname(fieldtype.__class__).replace('.', '/')))
 
     templates.append('fedoralink/partials/linked_view.html')
-    print(templates)
+    # print(templates)
 
     context = Context(context)
     # noinspection PyProtectedMember
@@ -328,7 +328,7 @@ def render_linked_standalone_field(context, linked_object):
                          format(model_name(y).replace('.', '/')))
     templates.append('fedoralink/partials/linked_view.html')
 
-    print(templates)
+    # print(templates)
 
     context = Context(context)
     context['value'] = linked_object
