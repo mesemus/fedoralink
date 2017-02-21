@@ -10,3 +10,4 @@ not_matched_students_filled.xlsx
 source_this_to_activate
 fedoralink.egg-info
 fedora_group_plugin/target
+*.iml
