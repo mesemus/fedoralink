@@ -404,7 +404,6 @@ class ElasticIndexer(Indexer):
             "size": (end - (start if start else 0)) if end is not None else 10000
         }
 
-        # print(JSONSerializer().dumps(built_query))
 
         resp = self.es.search(body=built_query)
 

@@ -25,9 +25,9 @@ from fedoralink_ui.templatetags.fedoralink_tags import id_from_path, rdf2lang
 
 
 def appname(request):
-    print('appname: ')
-    print(request.path)
-    print(resolve(request.path).app_name)
+    # print('appname: ')
+    # print(request.path)
+    # print(resolve(request.path).app_name)
     return {'appname': resolve(request.path).app_name}
 
 
@@ -136,7 +136,7 @@ class GenericSearchView(View):
 
         if self.request.user.is_authenticated():
             credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
-            print("user:" + credentials.username)
+            # print("user:" + credentials.username)
             with as_user(credentials):
                 model = get_model(collection_id=kwargs['collection_id'], fedora_prefix=self.fedora_prefix)
         else:
@@ -253,7 +253,7 @@ class GenericDetailView(DetailView):
         if self.fedora_prefix and 'prefix_applied' not in self.kwargs:
             pk = self.fedora_prefix + '/' + pk
             self.kwargs['prefix_applied'] = True
-        print("pk", pk)
+        # print("pk", pk)
         self.kwargs[self.pk_url_kwarg] = pk
         self.object = super().get_object(queryset)
         # if not isinstance(retrieved_object, IndexableFedoraObject):
@@ -304,13 +304,9 @@ class GenericCreateView(CreateView):
     fedora_prefix = None
 
     def form_valid(self, form):
-        if self.request.user.is_authenticated():
-            credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
-            print("user:" + credentials.username)
-            with as_user(credentials):
-                inst = form.save(commit=False)
-                inst.save()
-                self.object = inst
+        inst = form.save(commit=False)
+        inst.save()
+        self.object = inst
         return HttpResponseRedirect(self.get_success_url())
 
     def get_form_kwargs(self):
@@ -357,7 +353,7 @@ class GenericCreateView(CreateView):
             return None
 
     def get_form_class(self):
-        print(self.kwargs)
+        # print(self.kwargs)
         model = get_model(collection_id=self.kwargs.get('id'), fedora_prefix=self.fedora_prefix)
         meta = type('Meta', (object, ), {'model': model, 'fields': '__all__'})
         return type(model.__name__ + 'Form', (FedoraForm,), {
@@ -432,13 +428,9 @@ class GenericSubcollectionCreateView(CreateView):
     fedora_prefix = None
 
     def form_valid(self, form):
-        if self.request.user.is_authenticated():
-            credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
-            print("user:" + credentials.username)
-            with as_user(credentials):
-                inst = form.save(commit=False)
-                inst.save()
-                self.object = inst
+        inst = form.save(commit=False)
+        inst.save()
+        self.object = inst
         return HttpResponseRedirect(self.get_success_url())
 
     def get_form_kwargs(self):
@@ -487,7 +479,7 @@ class GenericSubcollectionCreateView(CreateView):
             return None
 
     def get_form_class(self):
-        print(self.kwargs)
+        # print(self.kwargs)
         model = get_subcollection_model(collection_id=self.kwargs.get('id'), fedora_prefix=self.fedora_prefix)
         meta = type('Meta', (object, ), {'model': model, 'fields': '__all__'})
         return type(model.__name__ + 'Form', (FedoraForm,), {
@@ -596,22 +588,12 @@ class GenericEditView(UpdateView):
         If any keyword arguments are provided, they will be
         passed to the constructor of the response class.
         """
-        if self.request.user.is_authenticated():
-            credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
-            print("user:" + credentials.username)
-            with as_user(credentials):
-                self.object = self.get_object()
-        else:
-            self.object = self.get_object()
+        self.object = self.get_object()
         form = self.get_form()
-        print("media", form.media)
+        # print("media", form.media)
         context = self.get_context_data(object=self.object, form=form, **response_kwargs)
         # noinspection PyTypeChecker
-        if self.request.user.is_authenticated():
-            with as_user(credentials):
-                template = FedoraTemplateCache.get_template_string(self.object, view_type='edit')
-        else:
-            template = FedoraTemplateCache.get_template_string(self.object, view_type='edit')
+        template = FedoraTemplateCache.get_template_string(self.object, view_type='edit')
 
         if template:
             return HttpResponse(
