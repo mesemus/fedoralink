@@ -7,7 +7,6 @@
   </parent>
   <groupId>cesnet</groupId>
   <artifactId>cesnet-fcrepo-auth-django</artifactId>
-  <version>4.7.1</version>
 
   <name>Fedora Repository Authorization Module for Django Integration</name>
   <description>Provides extension of HttpHeaderPrincipalProvider to handle django groups.</description>
