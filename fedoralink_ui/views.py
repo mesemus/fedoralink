@@ -3,6 +3,7 @@ from django.core.urlresolvers import resolve
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.http import FileResponse
+from django.http import HttpResponseNotFound
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render
 from django.template import Template, RequestContext
@@ -18,6 +19,7 @@ from fedoralink.fedorans import FEDORA
 from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
+from fedoralink.query import DoesNotExist
 from fedoralink.type_manager import FedoraTypeManager
 from fedoralink.utils import get_class
 from fedoralink_ui.template_cache import FedoraTemplateCache
@@ -263,7 +265,10 @@ class GenericDetailView(DetailView):
         return self.object
 
     def get(self, request, *args, **kwargs):
-        self.object = self.get_object()
+        try:
+            self.object = self.get_object()
+        except DoesNotExist:
+            return HttpResponseNotFound('<h1>Resource not found or not accessible.</h1>')
 
         if (FEDORA.Binary in self.object.types):
             bitstream = self.object.get_bitstream()

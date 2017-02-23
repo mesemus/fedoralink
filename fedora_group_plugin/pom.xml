@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.fcrepo</groupId>
     <artifactId>fcrepo</artifactId>
-    <version>4.7.0</version>
+    <version>4.6.1</version>
   </parent>
   <artifactId>cesnet-fcrepo-auth-django</artifactId>
   <name>Fedora Repository Authorization Module for Django Integration</name>
