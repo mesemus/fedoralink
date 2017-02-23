@@ -1,3 +1,5 @@
+import traceback
+
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import resolve
 from django.core.urlresolvers import reverse
@@ -267,7 +269,8 @@ class GenericDetailView(DetailView):
     def get(self, request, *args, **kwargs):
         try:
             self.object = self.get_object()
-        except DoesNotExist:
+        except:
+            traceback.print_exc()
             return HttpResponseNotFound('<h1>Resource not found or not accessible.</h1>')
 
         if (FEDORA.Binary in self.object.types):
