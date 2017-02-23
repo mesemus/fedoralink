@@ -267,11 +267,7 @@ class GenericDetailView(DetailView):
         return self.object
 
     def get(self, request, *args, **kwargs):
-        try:
-            self.object = self.get_object()
-        except:
-            traceback.print_exc()
-            return HttpResponseNotFound('<h1>Resource not found or not accessible.</h1>')
+        self.object = self.get_object()
 
         if (FEDORA.Binary in self.object.types):
             bitstream = self.object.get_bitstream()
