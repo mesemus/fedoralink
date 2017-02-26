@@ -222,7 +222,11 @@ class IndexedDateTimeField(IndexedField, django.db.models.DateTimeField):
         if value is None:
             return []
         if isinstance(value, datetime.datetime):
-            return Literal(value, datatype=XSD.datetime)
+            # check if the datetime is timezone aware
+            if value.tzinfo is not None and value.tzinfo.utcoffset(value) is not None:
+                return Literal(value, datatype=XSD.datetime)
+            else:
+                raise TypeError('Required timezone aware datetime because of rdflib ordering issues when mixing naive and tz aware datetimes')
         else:
             raise AttributeError("Conversion of %s to datetime is not supported in "
                                  "fedoralink/indexer/fields.py" % type(value))

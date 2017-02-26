@@ -57,12 +57,17 @@ class Types:
     def __str__(self):
         return str(list(iter(self)))
 
+class FedoraGenericMeta:
+    pass
 
 class FedoraObjectMetaclass(type):
 
     def __init__(cls, name, bases, attrs):
         super(FedoraObjectMetaclass, cls).__init__(name, bases, attrs)
         cls.objects = FedoraManager.get_manager(cls)
+        cls._meta = FedoraGenericMeta()
+        cls._meta.verbose_name = 'Repository object'
+        cls._meta.fields = []
 
 
 class FedoraObject(metaclass=FedoraObjectMetaclass):
@@ -215,7 +220,7 @@ class FedoraObject(metaclass=FedoraObjectMetaclass):
         if isinstance(child_name, str):
             rr.append(Literal(child_name, datatype=XSD.string))
         elif isinstance(child_name, Literal):
-            if child_name.datatype is None:
+            if child_name.datatype is None and not child_name.language:
                 child_name = Literal(child_name.value, datatype=XSD.string)
             rr.append(child_name)
         else:
@@ -312,9 +317,9 @@ fedora_object_fetched = django.dispatch.Signal(providing_args=["instance", "mana
 
 
 def get_or_create_object(path, save=False):
-    whole_path = '/'.join(map(lambda x: x['slug'] for x in path))
+    whole_path = '/'.join(map(lambda x: x['slug'], path))
     try:
-        obj = FedoraObject.objects.get(whole_path)
+        obj = FedoraObject.objects.get(pk=whole_path)
         return obj
     except:
         pass
@@ -322,9 +327,10 @@ def get_or_create_object(path, save=False):
         parent = get_or_create_object(path[:-1], True)
     else:
         parent = FedoraObject.objects.get(pk='')
+    print("Creating object", path[-1])
     obj = parent.create_child(child_name=path[-1]['name'],
                               slug=path[-1]['slug'],
-                              flavour=path['-1']['flavour'])
+                              flavour=path[-1]['flavour'])
     if save:
         obj.save()
 

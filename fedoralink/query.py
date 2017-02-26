@@ -147,10 +147,16 @@ class LazyFedoraQuery:
         return self[0:0].execute().count()
 
     def first(self):
-        ret = list(self[0:1].execute())
-        if ret:
-            return ret[0]
+        try:
+            ret = list(self[0:1].execute())
+            if ret:
+                return ret[0]
+        except DoesNotExist:
+            pass
         return None
+
+    def exists(self):
+        return self.count() > 0
 
     @property
     def facets(self):

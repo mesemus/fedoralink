@@ -6,6 +6,7 @@ import urllib.parse
 import base64
 from dateutil.parser import parse
 from django.conf import settings
+from django.core.mail import mail_admins
 from django.db.models import Q
 from elasticsearch import Elasticsearch
 from elasticsearch.serializer import JSONSerializer
@@ -106,6 +107,8 @@ class ElasticIndexer(Indexer):
             self.es.index(index=self.index_name, doc_type=doc_type, body=indexer_data, id=encoded_fedora_id)
         except:
             print("Exception in indexing, data", indexer_data)
+            mail_admins('Exception reindexing object %s' % obj.id, traceback.format_exc())
+            print("Exception reindexing object %s" % obj.id, traceback.format_exc())
             traceback.print_exc()
         # print("reindexing single object ok")
 
