@@ -126,7 +126,7 @@ class Command(BaseCommand):
     def gen_languages_mapping(prefix):
         ret = {
             lang[0] : {
-                'type': 'text',
+                'type': 'keyword',
                 'copy_to': [prefix + 'all', prefix + 'all__fulltext', prefix + lang[0] + "__fulltext"],
             } for lang in settings.LANGUAGES
         }
