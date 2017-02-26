@@ -4,6 +4,8 @@ import logging
 import django.dispatch
 import rdflib
 from io import BytesIO
+
+from django.apps import apps
 from rdflib import Literal
 from rdflib.namespace import DC, RDF, XSD
 from rdflib.term import URIRef
@@ -60,6 +62,37 @@ class Types:
 class FedoraGenericMeta:
     pass
 
+class DjangoMetadataBridge:
+    """
+    A _meta implementation for IndexableFedoraObject
+    """
+    def __init__(self, model_class, fields):
+        self._fields = fields
+        self.virtual_fields  = []
+        self.concrete_fields = []
+        self.many_to_many    = []
+        self.verbose_name = getattr(model_class, "verbose_name", model_class.__name__)
+        self.model_class = model_class
+        process_fields=set()
+        for fld in fields:
+            if fld.name in process_fields:
+                continue
+            process_fields.add(fld.name)
+            fld.null = not fld.required
+            fld.blank = not fld.required
+            fld.attname = fld.name
+            fld.model = model_class
+            self.concrete_fields.append(fld)
+
+        self.fields = self.concrete_fields
+        self.fields_by_name = {x.name:x for x in self.fields}
+        self.app_label = model_class.__module__
+        if self.app_label.endswith('.models'):
+            self.app_label = self.app_label[:-7]
+        self.object_name = model_class.__name__
+        self.apps = apps
+
+
 class FedoraObjectMetaclass(type):
 
     def __init__(cls, name, bases, attrs):
@@ -68,6 +101,8 @@ class FedoraObjectMetaclass(type):
         cls._meta = FedoraGenericMeta()
         cls._meta.verbose_name = 'Repository object'
         cls._meta.fields = []
+
+        cls._meta = DjangoMetadataBridge(cls, [])
 
 
 class FedoraObject(metaclass=FedoraObjectMetaclass):

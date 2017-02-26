@@ -9,3 +9,4 @@ django-bootstrap-pagination
 python-dateutil
 elasticsearch
 dateutil
+autobreadcrumbs

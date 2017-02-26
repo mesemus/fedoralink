@@ -1,20 +1,14 @@
-import datetime
 import inspect
-import traceback
 
 import inflection as inflection
 from django.core.exceptions import ValidationError
-from django.core.files.uploadedfile import UploadedFile
 from django.db.models.signals import class_prepared
 from rdflib import Literal, XSD
 
 from fedoralink.fedorans import FEDORA_INDEX
-from fedoralink.fields import DjangoMetadataBridge
-from fedoralink.indexer.fields import IndexedField, IndexedLanguageField, IndexedDateTimeField, IndexedIntegerField, \
-    IndexedDateField, IndexedTextField
-from fedoralink.models import FedoraObjectMetaclass, FedoraObject
+from fedoralink.indexer.fields import IndexedField
+from fedoralink.models import FedoraObjectMetaclass, FedoraObject, DjangoMetadataBridge
 from fedoralink.type_manager import FedoraTypeManager
-from fedoralink.utils import StringLikeList, TypedStream
 
 
 class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
