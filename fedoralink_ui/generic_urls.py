@@ -18,7 +18,7 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None):
         url('^$',
             fedoralink_ui.views.GenericDetailView.as_view(
                 fedora_prefix=fedora_prefix), name="index"),
-        url(r'^(?P<collection_id>[a-fA-F0-9_/-]*)extended_search(?P<parameters>.*)$',
+        url(r'^(?P<collection_id>.*)/extended_search(?P<parameters>.*)$',
              fedoralink_ui.views.GenericSearchView.as_view(
                  facets=(),
                  orderings=(

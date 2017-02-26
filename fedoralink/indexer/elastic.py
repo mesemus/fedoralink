@@ -1,4 +1,5 @@
 import inspect
+import json
 import traceback
 import urllib
 import urllib.parse
@@ -407,7 +408,7 @@ class ElasticIndexer(Indexer):
             "size": (end - (start if start else 0)) if end is not None else 10000
         }
 
-
+        print(json.dumps(built_query))
         resp = self.es.search(body=built_query)
 
         # print(json.dumps(resp, indent=4))
