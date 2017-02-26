@@ -98,10 +98,6 @@ class FedoraObjectMetaclass(type):
     def __init__(cls, name, bases, attrs):
         super(FedoraObjectMetaclass, cls).__init__(name, bases, attrs)
         cls.objects = FedoraManager.get_manager(cls)
-        cls._meta = FedoraGenericMeta()
-        cls._meta.verbose_name = 'Repository object'
-        cls._meta.fields = []
-
         cls._meta = DjangoMetadataBridge(cls, [])
 
 
