@@ -44,8 +44,11 @@ CESNET_RDF_TYPES = _IDF(CESNET.rdf_types, name='_collection_child_types')
 
 class ElasticIndexer(Indexer):
     def __init__(self, repo_conf):
+        urls = repo_conf['SEARCH_URL']
+        if isinstance(urls, str):
+            urls = [urls]
 
-        url = urllib.parse.urlsplit(repo_conf['SEARCH_URL'][0])
+        url = urllib.parse.urlsplit(urls[0])
         self.index_name = url.path
 
         while self.index_name.startswith('/'):
@@ -58,7 +61,7 @@ class ElasticIndexer(Indexer):
                 {
                     "host": urllib.parse.urlsplit(x).hostname,
                     "port": urllib.parse.urlsplit(x).port
-                } for x in repo_conf['SEARCH_URL']
+                } for x in urls
             ])
 
         if not self.es.indices.exists(self.index_name):
