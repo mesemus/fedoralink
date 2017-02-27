@@ -414,12 +414,16 @@ def detail_view_url(obj):
 
 @register.simple_tag(takes_context=True)
 def render_search_row(context, item):
+    if 'item_template' in context:
+        template_name = context['item_template']
+    else:
+        template_name = 'fedoralink_ui/search_result_row.html'
     template_from_fedora = FedoraTemplateCache.get_template_string(item, 'search_row')
     context = Context(context)
     context['item'] = item
     if template_from_fedora:
         return Template(template_from_fedora).render(context)
-    chosen_template = select_template(['fedoralink_ui/search_result_row.html'])
+    chosen_template = select_template([template_name])
     return chosen_template.template.render(context)
 
 @register.filter
