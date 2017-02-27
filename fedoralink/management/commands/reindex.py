@@ -16,16 +16,9 @@ class Command(BaseCommand):
     help = 'Reindexuje cely obsah repozitare'
 
     def handle(self, *args, **options):
-        import configparser
-        config = configparser.ConfigParser()
-        config.read('../oarepo/admin_auth.cfg')
-
-        credentials = Credentials(config['oarepo']['admin'], config['oarepo']['admin_pw'])
-        print("user:" + credentials.username)
-        with as_user(credentials):
-            obj = FedoraObject.objects.get(pk='')
-            indexer = connections['repository'].indexer
-            self.reindex(indexer, obj)
+        obj = FedoraObject.objects.get(pk='')
+        indexer = connections['repository'].indexer
+        self.reindex(indexer, obj)
 
     def reindex(self, indexer, obj, level=0):
 
