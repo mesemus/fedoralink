@@ -13,21 +13,28 @@ from django.conf import settings
 # TODO: zbavit sa model = DCObject, pridat template pre detail collection (search)
 
 
-def repository_patterns(app_name, fedora_prefix='', custom_patterns=None):
+def repository_patterns(app_name, fedora_prefix='', custom_patterns=None, custom_extended_search_params = None):
+    extended_search_params = dict(
+        facets=(),
+        orderings=(
+                 ('title@lang', _('Sort by title (asc)')),
+                 ('-title@lang', _('Sort by title (desc)')),
+        ),
+        title='Documents',
+        create_button_title='Create a New Document',
+        fedora_prefix=fedora_prefix)
+
+    if custom_extended_search_params:
+        for k, v in custom_extended_search_params.items():
+            extended_search_params[k] = v
+
     urlpatterns = [
         url('^$',
             fedoralink_ui.views.GenericDetailView.as_view(
                 fedora_prefix=fedora_prefix), name="index"),
-        url(r'^(?P<collection_id>.*)/extended_search(?P<parameters>.*)$',
-             fedoralink_ui.views.GenericSearchView.as_view(
-                 facets=(),
-                 orderings=(
-                     ('title@en', _('Sort by title (asc)')),
-                     ('-title@en', _('Sort by title (desc)')),
-                 ),
-                 title='Documents',
-                 create_button_title='Create a New Document',
-                 fedora_prefix=fedora_prefix),
+
+        url(r'^((?P<collection_id>.*)/)?extended_search(?P<parameters>.*)$',
+             fedoralink_ui.views.GenericSearchView.as_view(**extended_search_params),
              name='extended_search'),
 
         url('^(?P<id>.*)/addSubcollection$', (fedoralink_ui.views.GenericSubcollectionCreateView.as_view(

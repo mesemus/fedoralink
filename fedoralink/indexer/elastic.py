@@ -316,10 +316,19 @@ class ElasticIndexer(Indexer):
 
     @staticmethod
     def _split_name(name, fld2id):
+
+        name = name.split('@')
+        if len(name) > 1:
+            language = name[1]
+        else:
+            language = None
+        name = name[0]
+
         name = name.split('__')
         if not name[0]:
             name = name[1:]
             name[0] = '__' + name[0]
+
         comparison_operation = None
         prefix = ''
         if len(name) > 1 and name[-1] in ('exact', 'iexact', 'contains', 'icontains', 'startswith', 'istartswith',
@@ -340,6 +349,9 @@ class ElasticIndexer(Indexer):
             transformed_name = None
         name = '.'.join(name)
         # TODO: fedoralink facets
+
+        if language and transformed_name:
+            transformed_name += '.' + language
 
         return prefix, name, comparison_operation, transformed_name
 
@@ -467,7 +479,7 @@ class ElasticIndexer(Indexer):
                             "value": {
                                 "terms": {
                                     "field": field_in_elastic,
-                                    "size": 0
+                                    "size": 200
                                 }
                             }
                         }
@@ -476,7 +488,7 @@ class ElasticIndexer(Indexer):
                     facets_clause[field_in_elastic] = {
                         "terms": {
                             "field": field_in_elastic,
-                            "size": 0
+                            "size": 200
                         }
                     }
         return facets_clause

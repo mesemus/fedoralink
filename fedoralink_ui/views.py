@@ -1,17 +1,15 @@
-import traceback
-
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import resolve
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.http import FileResponse
-from django.http import HttpResponseNotFound
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.shortcuts import render
 from django.template import Template, RequestContext
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
 from django.utils.decorators import classonlymethod
+from django.utils.translation import get_language
 from django.utils.translation import ugettext as _
 from django.views.generic import View, CreateView, DetailView, UpdateView
 
@@ -21,9 +19,7 @@ from fedoralink.fedorans import FEDORA
 from fedoralink.forms import FedoraForm
 from fedoralink.indexer.models import IndexableFedoraObject
 from fedoralink.models import FedoraObject
-from fedoralink.query import DoesNotExist
 from fedoralink.type_manager import FedoraTypeManager
-from fedoralink.utils import get_class
 from fedoralink_ui.template_cache import FedoraTemplateCache
 from fedoralink_ui.templatetags.fedoralink_tags import id_from_path, rdf2lang
 
@@ -77,7 +73,10 @@ def breadcrumbs(request, context={}, resolver_match=None, path=None, **initkwarg
 
 def get_model(collection_id, fedora_prefix = None):
     if fedora_prefix:
-        collection_id = fedora_prefix + '/' + collection_id
+        if collection_id:
+            collection_id = fedora_prefix + '/' + collection_id
+        else:
+            collection_id = fedora_prefix
     model = FedoraTemplateCache.get_collection_model(FedoraObject.objects.get(pk=collection_id))
     if model is None:
         return None
@@ -129,6 +128,7 @@ class GenericSearchView(View):
     template_name = 'fedoralink_ui/search.html'
     list_item_template = 'fedoralink_ui/search_result_row.html'
     orderings = ()
+    model_class = None
     facets = None
     title = None
     create_button_title = None
@@ -138,13 +138,16 @@ class GenericSearchView(View):
     # noinspection PyCallingNonCallable,PyUnresolvedReferences
     def get(self, request, *args, **kwargs):
 
-        if self.request.user.is_authenticated():
-            credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
-            # print("user:" + credentials.username)
-            with as_user(credentials):
-                model = get_model(collection_id=kwargs['collection_id'], fedora_prefix=self.fedora_prefix)
+        if not self.model_class:
+            if self.request.user.is_authenticated():
+                credentials = Credentials(self.request.user.username, USERS_TOMCAT_PASSWORD)
+                # print("user:" + credentials.username)
+                with as_user(credentials):
+                    model = get_subcollection_model(collection_id=kwargs['collection_id'], fedora_prefix=self.fedora_prefix)
+            else:
+                model = get_subcollection_model(collection_id=kwargs['collection_id'], fedora_prefix=self.fedora_prefix)
         else:
-            model = get_model(collection_id = kwargs['collection_id'], fedora_prefix=self.fedora_prefix)
+            model = self.model_class
 
         if self.facets and callable(self.facets):
             requested_facets = self.facets(request)
@@ -188,9 +191,11 @@ class GenericSearchView(View):
         if within_collection:
             data = data.filter(_fedora_parent__exact=within_collection.id)
 
+        current_language = get_language()
+
         sort = request.GET.get('sort', self.orderings[0][0])
         if sort:
-            data = data.order_by(*[x.strip() for x in sort.split(',')])
+            data = data.order_by(*[x.strip().replace('@lang', '@' + current_language) for x in sort.split(',')])
         page = request.GET.get('page', )
         paginator = Paginator(data, 10)
 
