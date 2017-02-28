@@ -13,7 +13,8 @@ from django.conf import settings
 # TODO: zbavit sa model = DCObject, pridat template pre detail collection (search)
 
 
-def repository_patterns(app_name, fedora_prefix='', custom_patterns=None, custom_extended_search_params = None):
+def repository_patterns(app_name, fedora_prefix='', custom_patterns=None,
+                        custom_extended_search_params = None, breadcrumbs_app_name=None):
     extended_search_params = dict(
         facets=(),
         orderings=(
@@ -82,7 +83,10 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None, custom
         def get_title(id, lang):
             def _get_title():
                 try:
-                    return rdf2lang(FedoraObject.objects.get(pk=id).title, lang=lang)
+                    idd = id
+                    if fedora_prefix:
+                        idd = fedora_prefix + '/' + idd
+                    return rdf2lang(FedoraObject.objects.get(pk=idd).title, lang=lang)
                 except:
                     import traceback
                     traceback.print_exc()
@@ -90,12 +94,15 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None, custom
             return cache.get_or_set('title__%s__%s' % (id, lang), _get_title, 3600)
 
         breadcrumbs_registry.update({
-            '%s:detail' % app_name: breadcrumb_detail,
+            '%s:detail' % (breadcrumbs_app_name if breadcrumbs_app_name else app_name): breadcrumb_detail,
         })
 
-    return [
-        url(r'^', include(urlpatterns, namespace=app_name, app_name=app_name))
-    ]
+    if app_name:
+        return [
+            url(r'^', include(urlpatterns, namespace=app_name, app_name=app_name))
+        ]
+    else:
+        return urlpatterns
 
 
 def cache_breadcrumbs(obj):
