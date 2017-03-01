@@ -250,9 +250,14 @@ class GenericDetailView(DetailView):
         super().__init__(*args, **kwargs)
         self.object = None
 
+    def use_indexer(self):
+        if callable(self.always_use_indexer):
+            return self.always_use_indexer(self.request)
+        return self.always_use_indexer
+
     def get_queryset(self):
         ret = FedoraObject.objects.all()
-        if self.always_use_indexer:
+        if self.use_indexer():
             ret = ret.via_indexer()
         return ret
 
@@ -270,7 +275,7 @@ class GenericDetailView(DetailView):
         if pk.endswith('/'):
             pk = pk[:-1]
 
-        if self.always_use_indexer:
+        if self.use_indexer():
             repo_url = settings.DATABASES['repository']['REPO_URL']
             if pk[:1] != '/' and not repo_url.endswith('/'):
                 pk = '/' + pk
