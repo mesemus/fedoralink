@@ -281,7 +281,6 @@ class GenericDetailView(DetailView):
             return resp
         # noinspection PyTypeChecker
         template = FedoraTemplateCache.get_template_string(self.object, view_type='view')
-        print("Got template", template)
         if template:
             context = self.get_context_data(object=self.object)
             return HttpResponse(

@@ -81,6 +81,9 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None,
             return get_title(id, lang)
 
         def get_title(id, lang):
+            if id.endswith('/'):
+                id = id[:-1]
+
             def _get_title():
                 try:
                     idd = id
@@ -91,7 +94,7 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None,
                     import traceback
                     traceback.print_exc()
                     return None
-            return cache.get_or_set('title__%s__%s' % (id, lang), _get_title, 3600)
+            return cache.get_or_set('title__%s__%s' % (fedora_prefix + '/' + id, lang), _get_title, 3600)
 
         breadcrumbs_registry.update({
             '%s:detail' % (breadcrumbs_app_name if breadcrumbs_app_name else app_name): breadcrumb_detail,
@@ -123,7 +126,7 @@ def cache_breadcrumbs(obj):
             prefix + '/'.join(ids[:k]) for k in range(1, len(ids)+1)
         ]
         for found_obj in DCObject.objects.filter(pk__in=ids):
-            cache.set('title__%s/__%s' % (found_obj.local_id, lang),
+            cache.set('title__%s__%s' % (found_obj.local_id, lang),
                       rdf2lang(found_obj.title, lang=lang), 3600)
 
 
