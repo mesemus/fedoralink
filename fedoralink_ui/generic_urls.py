@@ -14,7 +14,8 @@ from django.conf import settings
 
 
 def repository_patterns(app_name, fedora_prefix='', custom_patterns=None,
-                        custom_extended_search_params = None, breadcrumbs_app_name=None):
+                        custom_extended_search_params = None, breadcrumbs_app_name=None,
+                        via_indexer=True):
     extended_search_params = dict(
         facets=(),
         orderings=(
@@ -32,7 +33,7 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None,
     urlpatterns = [
         url('^$',
             fedoralink_ui.views.GenericDetailView.as_view(
-                fedora_prefix=fedora_prefix), name="index"),
+                fedora_prefix=fedora_prefix, always_use_indexer=via_indexer), name="index"),
 
         url(r'^((?P<collection_id>.*)/)?extended_search(?P<parameters>.*)$',
              fedoralink_ui.views.GenericSearchView.as_view(**extended_search_params),
@@ -62,7 +63,7 @@ def repository_patterns(app_name, fedora_prefix='', custom_patterns=None,
 
         url('^(?P<id>.*)$',
             fedoralink_ui.views.GenericDetailView.as_view(
-                fedora_prefix=fedora_prefix), name="detail"),
+                fedora_prefix=fedora_prefix, always_use_indexer=via_indexer), name="detail"),
     ]
 
     if custom_patterns:
