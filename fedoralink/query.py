@@ -7,7 +7,8 @@ class LazyFedoraQuery:
     Lazy query, gets evaluated as late as possible
     """
 
-    def __init__(self, manager, current_connection=None, filter_set=None, using='repository', do_fetch_child_metadata=True):
+    def __init__(self, manager, current_connection=None, filter_set=None, using='repository',
+                 do_fetch_child_metadata=True, force_via_indexer=False):
         """
         creates a new query from a given manager
 
@@ -19,6 +20,7 @@ class LazyFedoraQuery:
         self.__filter_set           = filter_set
         self.__using                = using
         self.__fetch_child_metadata = do_fetch_child_metadata
+        self.__force_via_indexer    = force_via_indexer
         self.__start = 0
         self.__end   = None
         self.__executed_data = None
@@ -128,6 +130,11 @@ class LazyFedoraQuery:
         ret.__fetch_child_metadata = do_fetch_child_metadata
         return ret
 
+    def via_indexer(self, force_via_indexer=True):
+        ret = copy.copy(self)
+        ret.__force_via_indexer = force_via_indexer
+        return ret
+
     def __getitem__(self, item):
         ret = copy.copy(self)
         if isinstance(item, slice):
@@ -178,7 +185,7 @@ class LazyFedoraQuery:
         self.current_connection = self.manager.connection
 
         repository_pk = self._get_repository_pk()
-        if repository_pk is not None:
+        if repository_pk is not None and not self.__force_via_indexer:
             if self.__values:
                 raise Exception('values() are not yet implemented on .get(pk=)/.filter(pk=)')
 

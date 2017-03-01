@@ -47,3 +47,27 @@ class FedoraUserDelegationMiddleware:
     @staticmethod
     def is_enabled():
         return hasattr(FedoraUserDelegationMiddleware.thread_local_storage, 'fedora_on_behalf_of')
+
+
+class FedoraProfillingMiddleware:
+    thread_local_storage = threading.local()
+
+    def process_request(self, request):
+        FedoraProfillingMiddleware.thread_local_storage.requests = []
+        FedoraProfillingMiddleware.thread_local_storage.profiling_enabled = True
+
+    def process_response(self, request, response):
+        if FedoraProfillingMiddleware.thread_local_storage.requests:
+            for request in FedoraProfillingMiddleware.thread_local_storage.requests:
+                print('%8f %s' % request)
+        return response
+
+    @staticmethod
+    def log_time(request_addr, time):
+        if FedoraProfillingMiddleware.thread_local_storage.profiling_enabled:
+            FedoraProfillingMiddleware.thread_local_storage.requests.append((time, request_addr))
+
+    @staticmethod
+    def profilling_enabled():
+        return hasattr(FedoraProfillingMiddleware.thread_local_storage, 'profiling_enabled') and \
+               FedoraProfillingMiddleware.thread_local_storage.profiling_enabled

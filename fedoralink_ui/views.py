@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import resolve
 from django.core.urlresolvers import reverse
@@ -243,13 +244,17 @@ class GenericDetailView(DetailView):
     template_name = 'fedoralink_ui/detail.html'
     fedora_prefix = None
     pk_url_kwarg = 'id'
+    always_use_indexer = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.object = None
 
     def get_queryset(self):
-        return FedoraObject.objects.all()
+        ret = FedoraObject.objects.all()
+        if self.always_use_indexer:
+            ret = ret.via_indexer()
+        return ret
 
     def get_object(self, queryset=None):
         if self.object:
@@ -262,7 +267,15 @@ class GenericDetailView(DetailView):
         if self.fedora_prefix and 'prefix_applied' not in self.kwargs:
             pk = self.fedora_prefix + '/' + pk
             self.kwargs['prefix_applied'] = True
-        # print("pk", pk)
+        if pk.endswith('/'):
+            pk = pk[:-1]
+
+        if self.always_use_indexer:
+            repo_url = settings.DATABASES['repository']['REPO_URL']
+            if pk[:1] != '/' and not repo_url.endswith('/'):
+                pk = '/' + pk
+            pk = repo_url + pk
+
         self.kwargs[self.pk_url_kwarg] = pk
         self.object = super().get_object(queryset)
         # if not isinstance(retrieved_object, IndexableFedoraObject):

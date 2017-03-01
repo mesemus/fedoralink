@@ -5,6 +5,8 @@ import urllib
 import urllib.parse
 
 import base64
+
+import time
 from dateutil.parser import parse
 from django.conf import settings
 from django.core.mail import mail_admins
@@ -17,6 +19,7 @@ from fedoralink.fedorans import FEDORA, CESNET
 from fedoralink.indexer import Indexer
 from fedoralink.indexer.fields import IndexedTextField, IndexedLanguageField, IndexedDateTimeField
 from fedoralink.indexer.models import IndexableFedoraObject, fedoralink_classes
+from fedoralink.middleware import FedoraProfillingMiddleware
 from fedoralink.models import FedoraObject
 from fedoralink.rdfmetadata import RDFMetadata
 from fedoralink.utils import url2id, id2url
@@ -431,7 +434,15 @@ class ElasticIndexer(Indexer):
         }
 
         print(json.dumps(built_query))
+        do_profile = FedoraProfillingMiddleware.profilling_enabled()
+        if do_profile:
+            t1 = time.time()
+
         resp = self.es.search(body=built_query)
+
+        if do_profile:
+            t2 = time.time()
+            FedoraProfillingMiddleware.log_time(json.dumps(built_query), t2-t1)
 
         # print(json.dumps(resp, indent=4))
 
@@ -526,7 +537,7 @@ class ElasticIndexer(Indexer):
 
         metadata.rdf_metadata.set((metadata.id, FEDORA.hasParent, URIRef(source['_fedora_parent'])))
         for x in source['_fedora_type']:
-            metadata.rdf_metadata.set((metadata.id, RDF.type, URIRef(x)))
+            metadata.rdf_metadata.add((metadata.id, RDF.type, URIRef(x)))
 
         for fld, field_value in source.items():
             if fld in ('_fedora_type', '_fedora_parent', '_fedora_id', '_fedoralink_model', '_fedora_created',

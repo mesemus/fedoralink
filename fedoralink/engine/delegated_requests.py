@@ -3,17 +3,16 @@ import traceback
 import logging
 import requests
 
-from fedoralink.middleware import FedoraUserDelegationMiddleware
+from fedoralink.middleware import FedoraUserDelegationMiddleware, FedoraProfillingMiddleware
 
 HTTPError = requests.HTTPError
 
-logger = logging.getLogger('fedora.timing')
 
 def wrapper(func):
     import time
     def wrapped(*args, **kwargs):
         kwargs = dict(kwargs)
-        do_debug = logger.getEffectiveLevel() == logging.DEBUG
+        do_debug = FedoraProfillingMiddleware.profilling_enabled()
         if do_debug:
             t1 = time.time()
         try:
@@ -28,8 +27,7 @@ def wrapper(func):
             if do_debug:
                 t2 = time.time()
                 # noinspection PyUnboundLocalVariable
-                logger.debug("timing %s %s", t2-t1, args)
-                logger.debug('Stack trace %s', ''.join(traceback.format_stack()))
+                FedoraProfillingMiddleware.log_time(args[0] + ' - ' + repr(args[1:]) + repr(kwargs), t2-t1)
     return wrapped
 
 
