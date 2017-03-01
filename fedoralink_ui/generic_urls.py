@@ -16,6 +16,29 @@ from django.conf import settings
 def repository_patterns(app_name, fedora_prefix='', custom_patterns=None,
                         custom_extended_search_params = None, breadcrumbs_app_name=None,
                         via_indexer=True):
+    """
+    Returns a generic set of url patterns for a repository collection
+
+    :param app_name:        if not None, install the url patterns into the application namespace
+    :param fedora_prefix:   prefix inside the fedora repository in case only a part of repository is handled by the patterns
+    :param custom_patterns: array of url patterns that should be included at the end of the patterns
+    :param custom_extended_search_params: a dictionary that can have the following keys:
+
+    dict(
+        facets=(),
+        orderings=(
+                 ('title@lang', _('Sort by title (asc)')),
+                 ('-title@lang', _('Sort by title (desc)')),
+        ),
+        title='Documents'
+    )
+
+    :param breadcrumbs_app_name: in case the patterns are embedded into an existing application, do not set app_name
+                                 but set this argument to application's appname to get correct breadcrumbs
+    :param via_indexer:          can be either a boolean or a callable accepting a request. If true, use indexer
+                                 (elasticsearch) to access the object. If false, use fedora to get the object.
+    :return:                     an array of patterns to be included to url patterns
+    """
     extended_search_params = dict(
         facets=(),
         orderings=(
