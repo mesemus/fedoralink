@@ -184,15 +184,22 @@ class GenericSearchView(View):
         if requested_facets:
             data = data.request_facets(*requested_facet_ids)
 
-        if 'searchstring' in request.GET and request.GET['searchstring'].strip():
-            q = None
-            for fld in self.search_fields:
-                q1 = Q(**{fld: request.GET['searchstring'].strip()})
-                if q:
-                    q |= q1
-                else:
-                    q = q1
-            data = data.filter(q)
+        if 'searchstring' in request.GET:
+            search_string = request.GET['searchstring'].strip()
+            if search_string:
+                q = None
+                flds = self.search_fields
+                if callable(flds):
+                    flds = flds(search_string)
+                for fld in flds:
+                    q1 = Q(**{fld: search_string})
+                    if q:
+                        q |= q1
+                    else:
+                        q = q1
+                data = data.filter(q)
+        else:
+            search_string = None
 
         for k in request.GET:
             if k.startswith('facet__'):
@@ -212,9 +219,13 @@ class GenericSearchView(View):
 
         current_language = get_language()
 
-        sort = request.GET.get('sort', self.orderings[0][0])
-        if sort:
-            data = data.order_by(*[x.strip().replace('@lang', '@' + current_language) for x in sort.split(',')])
+        if not search_string:
+            sort = request.GET.get('sort', self.orderings[0][0])
+            if sort:
+                data = data.order_by(*[x.strip().replace('@lang', '@' + current_language) for x in sort.split(',')])
+        else:
+            sort = ''
+
         page = request.GET.get('page', )
         paginator = Paginator(data, 10)
 
@@ -234,6 +245,8 @@ class GenericSearchView(View):
 
         if not template:
             template = get_template(self.template_name)
+
+        print(list(data[:1])[0]._highlighted)
 
         context = {
             'page': page,

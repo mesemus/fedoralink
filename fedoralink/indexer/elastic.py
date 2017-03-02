@@ -559,7 +559,12 @@ class ElasticIndexer(Indexer):
             else:
                 metadata.rdf_metadata.add((metadata.id, URIRef(fld), Literal(field_value)))
 
-        highlight = {id2fld[k]: v for k, v in doc.get('highlight', {}).items() if k in id2fld}
+        highlight = {}
+        for k, v in doc.get('highlight', {}).items():
+            if k.endswith('__fulltext'):
+                k = k[:-10]
+            if k in id2fld:
+                highlight[id2fld[k]] = v
 
         return metadata, highlight
 
