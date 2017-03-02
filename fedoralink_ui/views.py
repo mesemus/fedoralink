@@ -187,7 +187,7 @@ class GenericSearchView(View):
         if 'searchstring' in request.GET and request.GET['searchstring'].strip():
             q = None
             for fld in self.search_fields:
-                q1 = Q(**{fld + "__fulltext": request.GET['searchstring'].strip()})
+                q1 = Q(**{fld: request.GET['searchstring'].strip()})
                 if q:
                     q |= q1
                 else:

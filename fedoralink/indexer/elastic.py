@@ -433,7 +433,7 @@ class ElasticIndexer(Indexer):
             "size": (end - (start if start else 0)) if end is not None else 10000
         }
 
-        print(json.dumps(built_query))
+        print(json.dumps(built_query, ensure_ascii=False))
         do_profile = FedoraProfillingMiddleware.profilling_enabled()
         if do_profile:
             t1 = time.time()
@@ -442,7 +442,7 @@ class ElasticIndexer(Indexer):
 
         if do_profile:
             t2 = time.time()
-            FedoraProfillingMiddleware.log_time(json.dumps(built_query), t2-t1)
+            FedoraProfillingMiddleware.log_time(json.dumps(built_query ,ensure_ascii=False), t2-t1)
 
         # print(json.dumps(resp, indent=4))
 
