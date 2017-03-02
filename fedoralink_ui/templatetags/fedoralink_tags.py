@@ -33,9 +33,19 @@ def render_facet_box(context, facet, id_to_name_mapping):
 
     facet_id = facet[0]
     facet_values = facet[1]
-    facet_name = id_to_name_mapping[facet_id]
+    i18n_requested = False
+    if facet_id not in id_to_name_mapping:
+        if facet_id + '__exists' in id_to_name_mapping:
+            # existence facet
+            facet_name = id_to_name_mapping[facet_id + '__exists']
+            i18n_requested = True
+        else:
+            raise Exception('facet id %s not present in %s' % (facet_id, id_to_name_mapping))
+    else:
+        facet_name = id_to_name_mapping[facet_id]
 
     return {
+        'i18n_requested': i18n_requested,
         'id'     : facet_id,
         'esc_id' : facet_id.replace('@', '__'),
         'name'   : facet_name,

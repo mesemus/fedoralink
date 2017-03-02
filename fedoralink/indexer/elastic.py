@@ -477,9 +477,16 @@ class ElasticIndexer(Indexer):
         facets_clause = {}
         if facets:
             for f in facets:
+                if f.endswith('__exists'):
+                    existence_clause = True
+                    f = f[:-8]
+                else:
+                    existence_clause = False
                 f = f.replace('@', '__')
                 field_in_elastic = fld2id[f.replace('__', '.')]
                 if '__' in f:
+                    if existence_clause:
+                        raise Exception("Existence clause within __ is not supported yet")
                     li = f.rfind('__')
                     path = fld2id[f[:li].replace('__', '.')]
                     facets_clause[field_in_elastic] = {
@@ -496,12 +503,23 @@ class ElasticIndexer(Indexer):
                         }
                     }
                 else:
-                    facets_clause[field_in_elastic] = {
-                        "terms": {
-                            "field": field_in_elastic,
-                            "size": 200
+                    if existence_clause:
+                        facets_clause[field_in_elastic] = {
+                            "terms": {
+                                "script" : {
+                                    "inline" : "if ( doc['" + field_in_elastic + "'].value !== null) { return true; } return false;",
+                                    "lang" : "painless"
+                                }
+                            }
                         }
-                    }
+                    else:
+                        facets_clause[field_in_elastic] = {
+                            "terms": {
+                                "field": field_in_elastic,
+                                "size": 200
+                            }
+                        }
+
         return facets_clause
 
 

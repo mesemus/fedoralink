@@ -154,4 +154,8 @@ def cache_breadcrumbs(obj):
                       rdf2lang(found_obj.title, lang=lang), 3600)
 
 
+if 0:
+    # force translation
+    _('true')
+    _('false')
 

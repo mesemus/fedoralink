@@ -1,0 +1,163 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-03-02 20:49+0100\n"
+"PO-Revision-Date: 2017-03-02 20:55+0100\n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"X-Generator: Poedit 1.8.7.1\n"
+
+#: apps.py:8
+msgid "User interface module for fedoralink"
+msgstr "UI modul pro fedoralink"
+
+#: generic_urls.py:45
+msgid "Sort by title (asc)"
+msgstr "Hledat podle názvu (rostoucí)"
+
+#: generic_urls.py:46
+msgid "Sort by title (desc)"
+msgstr "Hledat podle názvu (klesající)"
+
+#: generic_urls.py:160
+msgid "true"
+msgstr "ano"
+
+#: generic_urls.py:161
+msgid "false"
+msgstr "ne"
+
+#: models.py:20 models.py:29 models.py:63
+msgid "Label"
+msgstr "Label"
+
+#: models.py:22
+msgid "Tags"
+msgstr "Tagy"
+
+#: models.py:31
+msgid "Template for view"
+msgstr "Šablona pro zobrazení"
+
+#: models.py:33
+msgid "Template for edit"
+msgstr "Šablona pro editaci"
+
+#: models.py:36
+msgid "Template for item list view"
+msgstr "Šablona pro položku uvnitř seznamu"
+
+#: models.py:38
+msgid "Controller class"
+msgstr "Obsluhující třída"
+
+#: models.py:41
+msgid "RDF types"
+msgstr "Typy RDF"
+
+#: models.py:44
+msgid "Fedoralink model class name"
+msgstr "Jméno třídy modelu Fedoralinku"
+
+#: models.py:66
+msgid "Containing resource type"
+msgstr ""
+
+#: models.py:68
+msgid "Field name"
+msgstr "Název pole"
+
+#: models.py:71
+msgid "Field fedoralink type, for example IndexedTextField"
+msgstr "Pole fedoralinku, např. IndexedTextField"
+
+#: models.py:74
+msgid "Template for field inside detail view"
+msgstr "Šablona pro pole uvnitř detailního zobrazení"
+
+#: models.py:83
+msgid "Templates for list/search view"
+msgstr "Šablona pro seznam/vyhledávání"
+
+#: models.py:86
+msgid ""
+"Primary collection's child type, used for example for search or resource "
+"creation"
+msgstr ""
+"Typ dítěte primární kolekce, použit například pro vytváření nového objektu"
+
+#: models.py:90
+msgid ""
+"Primary subcollection type, used for example for search or resource creation"
+msgstr "Typ subkolekce, použit například pro vytváření nového objektu"
+
+#: templates/fedoralink_ui/collection_detail.html:11
+#: templates/fedoralink_ui/search.html:21
+msgid "Text to search"
+msgstr "Text na vyhledání"
+
+#: templates/fedoralink_ui/collection_detail.html:13
+#: templates/fedoralink_ui/search.html:15
+#: templates/fedoralink_ui/search.html:23
+msgid "Search"
+msgstr "Hledat"
+
+#: templates/fedoralink_ui/create.html:43 templates/fedoralink_ui/edit.html:49
+msgid "Save"
+msgstr "Uložit"
+
+#: templates/fedoralink_ui/create.html:44 templates/fedoralink_ui/edit.html:50
+msgid "Back"
+msgstr "Zpět"
+
+#: templates/fedoralink_ui/detail.html:22
+msgid "Add"
+msgstr "Přidat"
+
+#: templates/fedoralink_ui/detail.html:27
+msgid "Add subcollection"
+msgstr "Přidat podkolekci"
+
+#: templates/fedoralink_ui/detail.html:34
+msgid "Back to List"
+msgstr "Zpět na seznam"
+
+#: templates/fedoralink_ui/detail.html:65
+msgid "Edit"
+msgstr "Editovat"
+
+#: templates/fedoralink_ui/facet.html:45
+msgid "More values ..."
+msgstr "Více hodnot ..."
+
+#: templates/fedoralink_ui/facet.html:60
+msgid "Choose values for filter"
+msgstr "Vyberte hodnoty pro vyfiltrování"
+
+#: templates/fedoralink_ui/facet.html:82
+msgid "Hide"
+msgstr "Schovat"
+
+#: templates/fedoralink_ui/facet.html:83
+msgid "Filter"
+msgstr "Filtr"
+
+#: templates/fedoralink_ui/partials/link.html:9
+msgid "Author"
+msgstr "Autor"
+
+#: views.py:406 views.py:532
+#, python-format
+msgid "No %(verbose_name)s found matching the query"
+msgstr "Nenalezen %(verbose_name)s, které by odpovídal odotazu"
