@@ -142,6 +142,7 @@ class GenericSearchView(View):
     fedora_prefix = ''
 
     def get(self, request, *args, **kwargs):
+        print("Extended search called")
         try:
             return self._get(request, *args, **kwargs)
         except:
