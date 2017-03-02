@@ -146,6 +146,7 @@ class GenericSearchView(View):
         try:
             return self._get(request, *args, **kwargs)
         except:
+            print("Exception received ...")
             log.exception('Exception in GenericSearchView.get(...) at path %s with params %s, %s' ,
                           request.path, args, kwargs)
             traceback.print_exc()
