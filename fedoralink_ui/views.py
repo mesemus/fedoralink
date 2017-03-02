@@ -144,9 +144,10 @@ class GenericSearchView(View):
     def get(self, request, *args, **kwargs):
         print("Extended search called")
         try:
-            return self._get(request, *args, **kwargs)
+            ret = self._get(request, *args, **kwargs)
+            ret.render()
+            return ret
         except:
-            print("Exception received ...")
             log.exception('Exception in GenericSearchView.get(...) at path %s with params %s, %s' ,
                           request.path, args, kwargs)
             traceback.print_exc()
