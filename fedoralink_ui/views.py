@@ -235,7 +235,7 @@ class GenericSearchView(View):
         if not template:
             template = get_template(self.template_name)
 
-        context = RequestContext(request, {
+        context = {
             'page': page,
             'data': data,
             'item_template': self.list_item_template,
@@ -246,7 +246,7 @@ class GenericSearchView(View):
             'title': self.title,
             'create_button_title': self.create_button_title,
             'fedora_prefix': self.fedora_prefix
-        })
+        }
 
         return TemplateResponse(request, template, context)
 
