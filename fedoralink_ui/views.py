@@ -1,3 +1,5 @@
+import traceback
+
 from django.conf import settings
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import resolve
@@ -24,6 +26,9 @@ from fedoralink.type_manager import FedoraTypeManager
 from fedoralink_ui.template_cache import FedoraTemplateCache
 from fedoralink_ui.templatetags.fedoralink_tags import id_from_path, rdf2lang
 
+import logging
+
+log = logging.getLogger('fedoralink_ui.views')
 
 def appname(request):
     # print('appname: ')
@@ -136,8 +141,18 @@ class GenericSearchView(View):
     search_fields = ()
     fedora_prefix = ''
 
-    # noinspection PyCallingNonCallable,PyUnresolvedReferences
     def get(self, request, *args, **kwargs):
+        try:
+            return self._get(request, *args, **kwargs)
+        except:
+            log.exception('Exception in GenericSearchView.get(...) at path %s with params %s, %s' ,
+                          request.path, args, kwargs)
+            traceback.print_exc()
+            raise
+
+
+    # noinspection PyCallingNonCallable,PyUnresolvedReferences
+    def _get(self, request, *args, **kwargs):
 
         if not self.model_class:
             if self.request.user.is_authenticated():
