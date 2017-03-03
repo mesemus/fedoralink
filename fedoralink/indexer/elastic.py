@@ -265,6 +265,27 @@ class ElasticIndexer(Indexer):
                     }
                 }
             }
+        elif comparison_operation == 'exists':
+            if value and value.lower() != 'false' and value.lower() != 'no':
+                ret['bool'] = {
+                    "filter": {
+                        "exists": {
+                            "field": transformed_name
+                        }
+                    }
+                }
+            else:
+                ret['bool'] = {
+                    "filter": {
+                        "bool": {
+                            "must_not": {
+                                "exists": {
+                                    "field": transformed_name
+                                }
+                            }
+                        }
+                    }
+                }
         elif not comparison_operation or comparison_operation == 'exact':
             ret['bool'] = {
                 "filter": {
@@ -335,7 +356,7 @@ class ElasticIndexer(Indexer):
         comparison_operation = None
         prefix = ''
         if len(name) > 1 and name[-1] in ('exact', 'iexact', 'contains', 'icontains', 'startswith', 'istartswith',
-                                          'endswith', 'iendswith', 'fulltext', 'gt', 'gte', 'lt', 'lte', 'in'):
+                                          'endswith', 'iendswith', 'fulltext', 'gt', 'gte', 'lt', 'lte', 'in', 'exists'):
             comparison_operation = name[-1]
             name = name[:-1]
         if len(name) > 1:
@@ -460,8 +481,13 @@ class ElasticIndexer(Indexer):
                 # nested value, always called "value" - defined above
                 buckets = v['value']['buckets']
 
+            if k.endswith('__exists'):
+                facet_id = id2fldlang[k[:-8]] + '__exists'
+            else:
+                facet_id = id2fldlang[k]
+
             facets.append((
-                id2fldlang[k],
+                facet_id,
                 [(vv['key'], vv['doc_count']) for vv in buckets]
             ))
 
@@ -504,7 +530,7 @@ class ElasticIndexer(Indexer):
                     }
                 else:
                     if existence_clause:
-                        facets_clause[field_in_elastic] = {
+                        facets_clause[field_in_elastic + "__exists"] = {
                             "terms": {
                                 "script" : {
                                     "inline" : "if ( doc['" + field_in_elastic + "'].value !== null) { return true; } return false;",

@@ -246,13 +246,22 @@ class GenericSearchView(View):
         if not template:
             template = get_template(self.template_name)
 
-        print(list(data[:1])[0]._highlighted)
+        # have facets in the same order as in requested facets
+        def find_facet_index(facet):
+            for i,f in enumerate(requested_facets):
+                if f[0] == facet[0]:
+                    return i
+            return 10000
+
+        facet_values = data.facets
+        facet_values.sort(key=find_facet_index)
 
         context = {
             'page': page,
             'data': data,
+            'facets': facet_values,
             'item_template': self.list_item_template,
-            'facet_names': {k: v for k, v in requested_facets},
+            'facet_names': {k:v for k, v in requested_facets},
             'searchstring': request.GET.get('searchstring', ''),
             'orderings': self.orderings,
             'ordering': sort,

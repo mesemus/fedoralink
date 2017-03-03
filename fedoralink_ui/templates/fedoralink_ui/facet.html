@@ -70,7 +70,13 @@
                                         {% endifinfacets %}
                                         >
                                 <label for="__facet_dialog_checkbox_{{ esc_id }}">
-                                    <span>{{ value.0 }}</span>
+                                    <span>
+                                        {% if i18n_requested %}
+                                            {% trans value.0 %}
+                                        {% else %}
+                                            {{ value.0 }}
+                                        {% endif %}
+                                    </span>
                                     <span class="text-muted">({{ value.1 }})</span>
                                 </label>
                             </div>
