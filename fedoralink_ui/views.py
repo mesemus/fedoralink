@@ -140,6 +140,7 @@ class GenericSearchView(View):
     create_button_title = None
     search_fields = ()
     fedora_prefix = ''
+    initial_queryset = None
 
     def get(self, request, *args, **kwargs):
         print("Extended search called")
@@ -179,7 +180,10 @@ class GenericSearchView(View):
 
         requested_facet_ids = [x[0] for x in requested_facets]
 
-        data = model.objects.all()
+        if self.initial_queryset:
+            data = self.initial_queryset(request)
+        else:
+            data = model.objects.all()
 
         if requested_facets:
             data = data.request_facets(*requested_facet_ids)
