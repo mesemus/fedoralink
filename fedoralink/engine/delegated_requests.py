@@ -20,8 +20,9 @@ def wrapper(func):
                 kwargs['headers'] = {}
             if FedoraUserDelegationMiddleware.is_enabled():
                 kwargs['headers']['On-Behalf-Of'] = ','.join(FedoraUserDelegationMiddleware.get_on_behalf_of())
-                kwargs['headers']['On-Behalf-Of-Django-Groups'] = \
-                    ','.join(FedoraUserDelegationMiddleware.get_on_behalf_of_groups())
+                groups = ','.join(FedoraUserDelegationMiddleware.get_on_behalf_of_groups())
+                if groups:
+                    kwargs['headers']['On-Behalf-Of-Django-Groups'] = groups
             return func(*args, **kwargs)
         finally:
             if do_debug:
