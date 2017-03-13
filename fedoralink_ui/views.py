@@ -1,5 +1,6 @@
 import traceback
 
+import django
 from django.conf import settings
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.urlresolvers import resolve
@@ -104,6 +105,18 @@ class GenericSearchView(View):
 
     def get(self, request, *args, **kwargs):
         print("Extended search called")
+
+        # convert facets according to the language
+        lang = django.utils.translation.get_language().split('-')[0].lower()
+
+        def _convert_facet(facet):
+            if not facet[0].endswith('@lang'):
+                return facet
+            localized_facet = [facet[0].replace('@lang', '@' + lang)]
+            localized_facet.extend(facet[1:])
+            return tuple(localized_facet)
+
+        self.facets = [_convert_facet(x) for x in self.facets]
         try:
             ret = self._get(request, *args, **kwargs)
             ret.render()
