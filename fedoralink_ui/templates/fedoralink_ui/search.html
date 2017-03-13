@@ -48,7 +48,7 @@
         {% block facets %}
         <div class="panel-group">
             {% for facet in facets %}
-                {% render_facet_box facet facet_names %}
+                {% render_facet_box facet facet_names facet_params %}
             {% endfor %}
         </div>
         {% endblock %}

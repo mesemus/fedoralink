@@ -27,12 +27,14 @@ log = logging.getLogger('fedoralink.tags')
 
 
 @register.inclusion_tag('fedoralink_ui/facet.html', takes_context=True)
-def render_facet_box(context, facet, id_to_name_mapping):
+def render_facet_box(context, facet, id_to_name_mapping, facet_params):
 
-    # print("id to name", id_to_name_mapping, facet)
+    # print("id to name", id_to_name_mapping, facet, facet_params)
 
     facet_id = facet[0]
     facet_values = facet[1]
+    facet_params = facet_params.get(facet_id, {})
+    print("params of {0} : {1}".format(facet_id, facet_params))
 
     i18n_requested = False
     if facet_id.endswith('__exists'):
@@ -40,12 +42,22 @@ def render_facet_box(context, facet, id_to_name_mapping):
 
     facet_name = id_to_name_mapping[facet_id]
 
+    print(facet_values)
+    sort_by = facet_params.get('sort')
+    if sort_by == 'name' or sort_by == '-name':
+        facet_values.sort(key=lambda x: x[0], reverse=sort_by[0] == '-')
+
+    if 'limit' in facet_params:
+        selected_values = facet_values[:facet_params['limit']]
+    else:
+        selected_values = facet_values[:10]
+
     return {
         'i18n_requested': i18n_requested,
         'id'     : facet_id,
         'esc_id' : facet_id.replace('@', '__'),
         'name'   : facet_name,
-        'values' : facet_values[:10],
+        'values' : selected_values,
         'all_values'   : facet_values,
         'selected_values' : context.request.GET.getlist('facet__' + facet_id)
     }
