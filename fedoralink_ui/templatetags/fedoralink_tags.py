@@ -42,7 +42,10 @@ def render_facet_box(context, facet, id_to_name_mapping, facet_params):
 
     facet_name = id_to_name_mapping[facet_id]
 
-    print(facet_values)
+    verbose_name = facet_params.get('verbose_name')
+    if verbose_name:
+        facet_values = [(x[0], x[1], verbose_name(x[0])) for x in facet_values]
+
     sort_by = facet_params.get('sort')
     if sort_by == 'name' or sort_by == '-name':
         facet_values.sort(key=lambda x: x[0], reverse=sort_by[0] == '-')

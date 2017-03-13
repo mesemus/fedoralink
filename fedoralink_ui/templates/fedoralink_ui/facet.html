@@ -26,10 +26,14 @@
                             <td>
                                 <label for="__facet_panel_checkbox_{{ esc_id }}">
                                     <span>
-                                        {% if i18n_requested %}
-                                            {% trans value.0 %}
+                                        {% if value.2 %}
+                                            {{ value.2 }}
                                         {% else %}
-                                            {{ value.0 }}
+                                            {% if i18n_requested %}
+                                                {% trans value.0 %}
+                                            {% else %}
+                                                {{ value.0 }}
+                                            {% endif %}
                                         {% endif %}
                                     </span>
                                     <span class="text-muted">({{ value.1 }})</span>
