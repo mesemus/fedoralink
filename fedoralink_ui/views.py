@@ -37,46 +37,6 @@ def appname(request):
     return {'appname': resolve(request.path).app_name}
 
 
-def breadcrumbs(request, context={}, resolver_match=None, path=None, **initkwargs):
-    if path.endswith('/'):
-        path = path[:-1]
-
-    if path != request.path:
-        return
-
-    obj = context['object']
-    breadcrumb_list = []
-    while isinstance(obj, IndexableFedoraObject):
-        if obj.pk:
-            object_id = id_from_path(obj.pk, initkwargs.get('fedora_prefix', None))
-            if object_id:
-                if hasattr(obj,"title"):
-                    breadcrumb_title = rdf2lang(obj.title)
-                else:
-                    breadcrumb_title = object_id
-                breadcrumb_list.insert(0, (
-                    reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
-                            kwargs={'id': object_id}),
-                        str(breadcrumb_title)
-                ))
-            else:
-                # reached root of the portion of repository given by fedora_prefix
-                break
-
-        parent_id = obj.fedora_parent_uri
-        if parent_id:
-            try:
-                obj = FedoraObject.objects.get(pk=parent_id)
-            except:
-                # do not have rights
-                break
-        else:
-            # reached root of the repository
-            break
-
-    return breadcrumb_list
-
-
 def get_model(collection_id, fedora_prefix = None):
     if fedora_prefix:
         if collection_id:
@@ -361,7 +321,7 @@ class GenericDetailView(DetailView):
     @classonlymethod
     def as_view(cls, **initkwargs):
         ret = super().as_view(**initkwargs)
-        ret.urlbreadcrumbs_verbose_name = breadcrumbs
+        # ret.urlbreadcrumbs_verbose_name = breadcrumbs
         return ret
 
 
@@ -431,40 +391,6 @@ class GenericCreateView(CreateView):
             'Meta': meta
         })
 
-    @classonlymethod
-    def as_view(cls, **initkwargs):
-        ret = super().as_view(**initkwargs)
-        def breadcrumbs(request, context={}, resolver_match=None, path=None):
-            if path.endswith('/'):
-                path = path[:-1]
-
-            if path != request.path:
-                return
-
-            obj = context['object']
-            breadcrumb_list = []
-            while isinstance(obj, IndexableFedoraObject):
-                object_id = id_from_path(obj.pk, initkwargs.get('fedora_prefix', None))
-                if object_id:
-                    breadcrumb_list.insert(0, (
-                        reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
-                                kwargs={'id': object_id}),
-                        str(rdf2lang(obj.title))
-                    ))
-                else:
-                    # reached root of the portion of repository given by fedora_prefix
-                    break
-
-                parent_id = obj.fedora_parent_uri
-                if parent_id:
-                    obj = FedoraObject.objects.get(pk=parent_id)
-                else:
-                    # reached root of the repository
-                    break
-
-            return breadcrumb_list
-        ret.urlbreadcrumbs_verbose_name = breadcrumbs
-        return ret
 
     # noinspection PyProtectedMember
     def render_to_response(self, context, **response_kwargs):
@@ -557,40 +483,6 @@ class GenericSubcollectionCreateView(CreateView):
             'Meta': meta
         })
 
-    @classonlymethod
-    def as_view(cls, **initkwargs):
-        ret = super().as_view(**initkwargs)
-        def breadcrumbs(request, context={}, resolver_match=None, path=None):
-            if path.endswith('/'):
-                path = path[:-1]
-
-            if path != request.path:
-                return
-
-            obj = context['object']
-            breadcrumb_list = []
-            while isinstance(obj, IndexableFedoraObject):
-                object_id = id_from_path(obj.pk, initkwargs.get('fedora_prefix', None))
-                if object_id:
-                    breadcrumb_list.insert(0, (
-                        reverse('%s:%s' % (resolver_match.app_name, resolver_match.url_name),
-                                kwargs={'id': object_id}),
-                        str(rdf2lang(obj.title))
-                    ))
-                else:
-                    # reached root of the portion of repository given by fedora_prefix
-                    break
-
-                parent_id = obj.fedora_parent_uri
-                if parent_id:
-                    obj = FedoraObject.objects.get(pk=parent_id)
-                else:
-                    # reached root of the repository
-                    break
-
-            return breadcrumb_list
-        ret.urlbreadcrumbs_verbose_name = breadcrumbs
-        return ret
 
     # noinspection PyProtectedMember
     def render_to_response(self, context, **response_kwargs):

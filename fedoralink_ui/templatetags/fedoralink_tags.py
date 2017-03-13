@@ -432,6 +432,8 @@ def detail_view_url(obj):
 
 @register.simple_tag(takes_context=True)
 def render_search_row(context, item):
+    if not getattr(item._meta, 'fields'): #TODO: If not fields => does not have valid rdf_types.
+        return ''
     if 'item_template' in context:
         template_name = context['item_template']
     else:

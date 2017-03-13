@@ -109,7 +109,10 @@ class ElasticIndexer(Indexer):
         encoded_fedora_id = base64.b64encode(str(obj.pk).encode('utf-8')).decode('utf-8')
 
         indexer_data['_fedora_id'] = obj.pk
-        indexer_data['_fedora_parent'] = convert(obj[FEDORA.hasParent], FEDORA_PARENT_FIELD)
+        parent = obj[FEDORA.hasParent]
+        if parent and (isinstance(parent, list) or isinstance(parent, tuple)):
+            parent = parent[0]
+        indexer_data['_fedora_parent'] = convert(parent, FEDORA_PARENT_FIELD)
         indexer_data['_fedoralink_model'] = [self._get_elastic_class(x) for x in inspect.getmro(clz)]
         indexer_data['_fedora_type'] = [convert(x, FEDORA_TYPE_FIELD) for x in obj[RDF.type]]
         indexer_data['_fedora_created'] = [convert(x, FEDORA_CREATED_FIELD) for x in obj[FEDORA.created]]
