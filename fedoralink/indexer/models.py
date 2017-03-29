@@ -91,6 +91,13 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
         if not hasattr(cls._meta, 'rdf_types'):
             setattr(cls._meta, 'rdf_types', ())
 
+        application = cls.__module__ + "." + cls.__class__.__name__
+        application = application.split('.')[:-1]
+        if application and application[-1] == 'models':
+            application = application[:-1]
+
+        setattr(cls._meta, 'application', '.'.join(application))
+
         if cls._meta.rdf_types and not cls.__name__.endswith('_bound'):
             FedoraTypeManager.register_model(cls, on_rdf_type=cls._meta.rdf_types)
 
