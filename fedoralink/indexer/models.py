@@ -104,7 +104,6 @@ class IndexableFedoraObjectMetaclass(FedoraObjectMetaclass):
         class_prepared.send(sender=cls)
 
 
-
 class IndexableFedoraObject(FedoraObject, metaclass=IndexableFedoraObjectMetaclass):
     def created(self):
         super().created()
